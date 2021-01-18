@@ -34,7 +34,7 @@ go-wazuh supports following environment variables for easy construction of a cli
 Construct a new Wazuh client, then use the various service on the client to access different parts of the wazuh API. For example, to list all agents:
 
 ```
-c := NewAPIClient("https://localhost:55000", WithLogin("wazuh", "wazuh"), WithInsecure())
+c := NewAPIClient("https://localhost:55000", WithLogin("wazuh", "wazuh"), WithInsecure(true))
 c.Authenticate()
 agents := c.AgentsController.GetAgents(&AgentsControllerGetAgentsParams{})
 fmt.Printf("Get Agents TotalAffectedItems %d\n", agents.AllItemsResponse.TotalAffectedItems)
@@ -46,7 +46,7 @@ for i, agent := range agents.AffectedItems {
 Or use the environment to construct the client to get the server basic information:
 
 ```
-c, err := NewClientFromEnvironment(WithInsecure())
+c, err := NewClientFromEnvironment(WithInsecure(true))
 if err != nil {
     panic(err)
 }
@@ -67,7 +67,7 @@ fmt.Printf("Connected to %s on %s\n", *status.Title, *status.Hostname)
 ## Testing
 
 Prerequisite: <https://documentation.wazuh.com/4.0/docker/wazuh-container.html>
-WAZUH\_\* environment variabes must be configured.
+WAZUH\_\* environment variables must be configured.
 
 Visual Studio Code launch configuration used for tests:
 

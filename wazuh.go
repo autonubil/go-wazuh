@@ -1,3 +1,57 @@
+/*
+go client for the wazuh [rest api](https://documentation.wazuh.com/4.0/user-manual/api/reference.html)
+
+it is generated from the OpenAPI 3.0 specifications. Thus it is not the most elegant API. Some effort has been put into an more go friendly interface by wrapping non successful results into errors and returning the `Data` objects instead of the raw result.
+
+
+There are a few With... option functions that can be used to customize the API client:
+
+- `WithBaseURL` custom base url
+- `WithLogin` (username, password)
+- `WithContext` (custom Context)
+- `WithInsecure` allow insecure certificates
+- `WithUserAgent` to set custom user agent
+
+go-wazuh supports following environment variables for easy construction of a client:
+
+- `WAZUH_URL`
+- `WAZUH_USER`
+- `WAZUH_PASSWORD`
+- `WAZUH_INSECURE`
+
+Construct a new Wazuh client, then use the various service on the client to access different parts of the wazuh API. For example, to list all agents:
+
+	c := NewAPIClient("https://localhost:55000", WithLogin("wazuh", "wazuh"), WithInsecure(true))
+	c.Authenticate()
+	agents := c.AgentsController.GetAgents(&AgentsControllerGetAgentsParams{})
+	fmt.Printf("Get Agents TotalAffectedItems %d\n", agents.AllItemsResponse.TotalAffectedItems)
+	for i, agent := range agents.AffectedItems {
+		fmt.Printf(" %d: %s on %s\n", i, *agent.Id, *agent.NodeName)
+	}
+
+
+Or use the environment to construct the client to get the server basic information:
+
+
+	c, err := NewClientFromEnvironment(WithInsecure(true))
+	if err != nil {
+		panic(err)
+	}
+	// authenticate
+	err = c.Authenticate()
+	if err != nil {
+		panic(err)
+	}
+
+	// call the DefaultInfo on the
+	status, err := c.Default.DefaultInfo(&DefaultControllerDefaultInfoParams{})
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("Connected to %s on %s\n", *status.Title, *status.Hostname)
+
+*/
+
 package wazuh
 
 import (
@@ -55,9 +109,9 @@ func WithContext(ctx context.Context) ClientOption {
 }
 
 // WithInsecure accept all certificates
-func WithInsecure() ClientOption {
+func WithInsecure(insecure bool) ClientOption {
 	return func(c *Client) error {
-		c.insecure = true
+		c.insecure = insecure
 		return nil
 	}
 }
@@ -111,16 +165,15 @@ func NewClientFromEnvironment(opts ...ClientOption) (*APIClient, error) {
 	user := os.Getenv("WAZUH_USER")
 	password := os.Getenv("WAZUH_PASSWORD")
 	opts = append(opts, WithLogin(user, password))
+	if os.Getenv("WAZUH_INSECURE") == "true" {
+		opts = append(opts, WithInsecure(true))
+	}
+
 	c, err := NewAPIClient(baseURL, opts...)
 	if err != nil {
 		return nil, err
 	}
-	if os.Getenv("WAZUH_INSECURE") == "true" {
-		err := WithInsecure()(c.ClientInterface.(*Client))
-		if err != nil {
-			return nil, err
-		}
-	}
+
 	return c, nil
 }
 
