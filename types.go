@@ -511,12 +511,12 @@ type AllItemsResponseWazuhStats struct {
 
 // ApiError defines model for ApiError.
 type ApiError struct {
-	Code        *int32               `json:"code,omitempty"`
-	DapiErrors  *ApiError_DapiErrors `json:"dapi_errors,omitempty"`
-	Detail      string               `json:"detail"`
-	Instance    *string              `json:"instance,omitempty"`
-	Remediation *string              `json:"remediation,omitempty"`
-	Title       string               `json:"title"`
+	code        *int32               `json:"code,omitempty"`
+	dapiErrors  *ApiError_DapiErrors `json:"dapi_errors,omitempty"`
+	detail      string               `json:"detail"`
+	instance    *string              `json:"instance,omitempty"`
+	remediation *string              `json:"remediation,omitempty"`
+	title       string               `json:"title"`
 }
 
 // ApiError_DapiErrors defines model for ApiError.DapiErrors.
@@ -980,9 +980,9 @@ type RemotePortInfo struct {
 
 // RequestError defines model for RequestError.
 type RequestError struct {
-	Detail string `json:"detail"`
-	Error  *int32 `json:"error,omitempty"`
-	Title  string `json:"title"`
+	detail string `json:"detail"`
+	code   *int32 `json:"error,omitempty"`
+	title  string `json:"title"`
 }
 
 // RolesRequest defines model for RolesRequest.
@@ -5903,4 +5903,93 @@ func (a SimpleApiError_Error) MarshalJSON() ([]byte, error) {
 		}
 	}
 	return json.Marshal(object)
+}
+
+func (e *ApiError) Error() string {
+	return fmt.Sprintf("%d: %s", e.code, e.title)
+}
+
+func (e *RequestError) Error() string {
+	return fmt.Sprintf("%d: %s", e.code, e.title)
+}
+
+// WazuhError generic Wazuh error
+type WazuhError interface {
+	Code() int32
+	Title() string
+	Detail() string
+}
+
+// WazuhRequestError information about a failed wazuh request
+type WazuhRequestError interface {
+	Code() int32
+	Title() string
+	Detail() string
+}
+
+// Code return the error code
+func (e *RequestError) Code() int32 {
+	if e.code == nil {
+		return -1
+	}
+	return *e.code
+}
+
+// Title of the problem
+func (e *RequestError) Title() string {
+	return e.title
+}
+
+// Detail of the problem
+func (e *RequestError) Detail() string {
+	return e.detail
+}
+
+// WazuhAPIError api errors returned by wazuh
+type WazuhAPIError interface {
+	Code() int32
+	Title() string
+	Detail() string
+	DapiErrors() *ApiError_DapiErrors
+	Instance() string
+	Remediation() string
+}
+
+// Code return the error code
+func (e *ApiError) Code() int32 {
+	if e.code == nil {
+		return -1
+	}
+	return *e.code
+}
+
+// Title of the problem
+func (e *ApiError) Title() string {
+	return e.title
+}
+
+// Detail of the problem
+func (e *ApiError) Detail() string {
+	return e.detail
+}
+
+// DAPIErrors optional list of DAPI Errors
+func (e *ApiError) DAPIErrors() *ApiError_DapiErrors {
+	return e.dapiErrors
+}
+
+// Instance information of the affected instance
+func (e *ApiError) Instance() string {
+	if e.instance == nil {
+		return ""
+	}
+	return *e.instance
+}
+
+// Remediation hint how to fix the problem
+func (e *ApiError) Remediation() string {
+	if e.remediation == nil {
+		return ""
+	}
+	return *e.remediation
 }

@@ -53,8 +53,8 @@ func NewFunction(controller string, name string, method reflect.Method) *Functio
 		}
 	}
 	f.ResultType = t
-	re := regexp.MustCompile(`"(json|yaml).*?\\""`)
-	f.ResultTypeDef = strings.ReplaceAll(re.ReplaceAllString(t.String(), ""), "wazuh.", "")
+	// re := regexp.MustCompile(`"(json|yaml).*?\\""`) re.ReplaceAllString(t.String(), "")
+	f.ResultTypeDef = strings.ReplaceAll(t.String(), "wazuh.", "")
 
 	return f
 }
@@ -192,10 +192,16 @@ func TestGenCode(t *testing.T) {
 	if err != nil {
 		return nil, err
 	}
-	return r.(%s), nil
+	// convert to %s
+	if i, ok := r.(%s); ok {
+		return i, nil
+	}
+
+    // cannot convert, return nil
+	return nil, nil
 }
 
-`, function.Controller, function.Name, function.Call(), function.ResultTypeDef)
+`, function.Controller, function.Name, function.Call(), function.ResultTypeDef, function.ResultTypeDef)
 		}
 	}
 

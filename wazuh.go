@@ -272,18 +272,18 @@ func getResponseObject(sr RawAPIResponse) (interface{}, error) {
 	v := reflect.ValueOf(sr).Elem()
 	if _, ok := v.Type().FieldByName(fldForCode); ok {
 		s := v.FieldByName(fldForCode).Interface()
-		if apiError, ok := s.(*ApiError); ok {
-			return nil, fmt.Errorf("%d: %s (%s)", sr.StatusCode(), apiError.Title, apiError.Detail)
+		if apiError, ok := s.(*ApiError); ok && (apiError.code != nil && *apiError.code != 0) {
+			return nil, apiError
+		} else if requestError, ok := s.(*RequestError); ok && (requestError.code != nil && *requestError.code != 0) {
+			return nil, requestError
+		} else {
+			v := reflect.ValueOf(s).Elem()
+			if _, ok := v.Type().FieldByName("Data"); ok {
+				d := v.FieldByName("Data").Interface()
+				return d, nil
+			}
+			return s, nil
 		}
-		if requestError, ok := s.(*RequestError); ok {
-			return nil, fmt.Errorf("%d: %s (%s)", sr.StatusCode(), requestError.Title, requestError.Detail)
-		}
-		v := reflect.ValueOf(s).Elem()
-		if _, ok := v.Type().FieldByName("Data"); ok {
-			d := v.FieldByName("Data").Interface()
-			return d, nil
-		}
-		return v, nil
 	}
 	return sr, nil
 }

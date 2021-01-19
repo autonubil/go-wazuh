@@ -6,7 +6,7 @@ import (
 )
 
 func TestStatus(t *testing.T) {
-	c, err := NewClientFromEnvironment(WithInsecure())
+	c, err := NewClientFromEnvironment(WithInsecure(true))
 	if err != nil {
 		t.Error(err)
 		return
@@ -27,7 +27,7 @@ func TestStatus(t *testing.T) {
 }
 
 func TestAgents(t *testing.T) {
-	c, err := NewClientFromEnvironment(WithInsecure())
+	c, err := NewClientFromEnvironment(WithInsecure(true))
 	if err != nil {
 		t.Error(err)
 		return
