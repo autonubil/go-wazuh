@@ -1,111 +1,6 @@
-package wazuh
+package rest
 
 import "io"
-
-// ActiveResponseControllerInterface contains all methods for the wazuh controller api
-type ActiveResponseControllerInterface interface {
-	RunCommandWithBody(params *ActiveResponseControllerRunCommandParams, contentType string, body io.Reader) (*ApiResponse, error)
-	RunCommand(params *ActiveResponseControllerRunCommandParams, activeResponseControllerRunCommandJSONRequestBody ActiveResponseControllerRunCommandJSONRequestBody) (*ApiResponse, error)
-}
-
-// ClusterControllerInterface contains all methods for the wazuh controller api
-type ClusterControllerInterface interface {
-	DeleteFilesNode(nodeID NodeId, params *ClusterControllerDeleteFilesNodeParams) (*ApiResponse, error)
-	GetAPIConfig(params *ClusterControllerGetApiConfigParams) (*struct {
-		AdditionalProperties map[string]interface{} "json:\"-\""
-	}, error)
-	GetClusterNode(params *ClusterControllerGetClusterNodeParams) (*struct {
-		Cluster *string "json:\"cluster,omitempty\""
-		Node    *string "json:\"node,omitempty\""
-		Type    *string "json:\"type,omitempty\""
-	}, error)
-	GetClusterNodes(params *ClusterControllerGetClusterNodesParams) (*AllItemsResponseClusterNodes, error)
-	GetConfValidation(params *ClusterControllerGetConfValidationParams) (*AllItemsResponseValidationStatus, error)
-	GetConfig(params *ClusterControllerGetConfigParams) (*struct {
-		BindAddr *string   "json:\"bind_addr,omitempty\""
-		Disabled *bool     "json:\"disabled,omitempty\""
-		Hidden   *string   "json:\"hidden,omitempty\""
-		Key      *string   "json:\"key,omitempty\""
-		Name     *string   "json:\"name,omitempty\""
-		NodeName *string   "json:\"node_name,omitempty\""
-		NodeType *string   "json:\"node_type,omitempty\""
-		Nodes    *[]string "json:\"nodes,omitempty\""
-		Port     *int      "json:\"port,omitempty\""
-	}, error)
-	GetConfigurationNode(nodeID NodeId, params *ClusterControllerGetConfigurationNodeParams) (*WazuhMangerConfiguration, error)
-	GetFilesNode(nodeID NodeId, params *ClusterControllerGetFilesNodeParams) (*struct {
-		Contents *string "json:\"contents,omitempty\""
-	}, error)
-	GetHealthcheck(params *ClusterControllerGetHealthcheckParams) (*AllItemsResponseNodeHealthcheck, error)
-	GetInfoNode(nodeID NodeId, params *ClusterControllerGetInfoNodeParams) (*WazuhInfo, error)
-	GetLogNode(nodeID NodeId, params *ClusterControllerGetLogNodeParams) (*AllItemsResponseWazuhLogs, error)
-	GetLogSummaryNode(nodeID NodeId, params *ClusterControllerGetLogSummaryNodeParams) (*WazuhLogsSummary, error)
-	GetNodeConfig(nodeID NodeId, component Component, configuration Configuration, params *ClusterControllerGetNodeConfigParams) (*struct {
-		ApiResponse "yaml:\",inline\""
-	}, error)
-	GetStatsAnalysisdNode(nodeID NodeId, params *ClusterControllerGetStatsAnalysisdNodeParams) (*AllItemsResponseWazuhStats, error)
-	GetStatsHourlyNode(nodeID NodeId, params *ClusterControllerGetStatsHourlyNodeParams) (*AllItemsResponseWazuhStats, error)
-	GetStatsNode(nodeID NodeId, params *ClusterControllerGetStatsNodeParams) (*AllItemsResponseWazuhStats, error)
-	GetStatsRemotedNode(nodeID NodeId, params *ClusterControllerGetStatsRemotedNodeParams) (*AllItemsResponseWazuhStats, error)
-	GetStatsWeeklyNode(nodeID NodeId, params *ClusterControllerGetStatsWeeklyNodeParams) (*AllItemsResponseWazuhStats, error)
-	GetStatusNode(nodeID NodeId, params *ClusterControllerGetStatusNodeParams) (*WazuhDaemonsStatus, error)
-	GetStatus(params *ClusterControllerGetStatusParams) (*struct {
-		Enabled *string "json:\"enabled,omitempty\""
-		Running *string "json:\"running,omitempty\""
-	}, error)
-	PutFilesNodeWithBody(nodeID NodeId, params *ClusterControllerPutFilesNodeParams, contentType string, body io.Reader) (*ApiResponse, error)
-	PutRestart(params *ClusterControllerPutRestartParams) (*AllItemsResponseNodeIDs, error)
-}
-
-// DefaultControllerInterface contains all methods for the wazuh controller api
-type DefaultControllerInterface interface {
-	DefaultInfo(params *DefaultControllerDefaultInfoParams) (*BasicInfo, error)
-}
-
-// SyscollectorControllerInterface contains all methods for the wazuh controller api
-type SyscollectorControllerInterface interface {
-	GetHardwareInfo(agentID AgentId, params *SyscollectorControllerGetHardwareInfoParams) (*AllItemsResponseSyscollectorHardware, error)
-	GetHotfixInfo(agentID AgentId, params *SyscollectorControllerGetHotfixInfoParams) (*AllItemsResponseSyscollectorHotfixes, error)
-	GetNetworkAddressInfo(agentID AgentId, params *SyscollectorControllerGetNetworkAddressInfoParams) (*AllItemsResponseSyscollectorNetwork, error)
-	GetNetworkInterfaceInfo(agentID AgentId, params *SyscollectorControllerGetNetworkInterfaceInfoParams) (*AllItemsResponseSyscollectorInterface, error)
-	GetNetworkProtocolInfo(agentID AgentId, params *SyscollectorControllerGetNetworkProtocolInfoParams) (*AllItemsResponseSyscollectorProtocol, error)
-	GetOsInfo(agentID AgentId, params *SyscollectorControllerGetOsInfoParams) (*AllItemsResponseSyscollectorOS, error)
-	GetPackagesInfo(agentID AgentId, params *SyscollectorControllerGetPackagesInfoParams) (*AllItemsResponseSyscollectorPackages, error)
-	GetPortsInfo(agentID AgentId, params *SyscollectorControllerGetPortsInfoParams) (*AllItemsResponseSyscollectorPorts, error)
-	GetProcessesInfo(agentID AgentId, params *SyscollectorControllerGetProcessesInfoParams) (*AllItemsResponseSyscollectorProcesses, error)
-}
-
-// DecodersControllerInterface contains all methods for the wazuh controller api
-type DecodersControllerInterface interface {
-	GetDecodersFiles(params *DecodersControllerGetDecodersFilesParams) (*AllItemsResponseDecodersFiles, error)
-	GetDecodersParents(params *DecodersControllerGetDecodersParentsParams) (*AllItemsResponse, error)
-	GetDecoders(params *DecodersControllerGetDecodersParams) (*AllItemsResponseDecoders, error)
-	GetDownloadFile(downloadFile DownloadFile, params *DecodersControllerGetDownloadFileParams) (*DecodersControllerGetDownloadFileResponse, error)
-}
-
-// ListsControllerInterface contains all methods for the wazuh controller api
-type ListsControllerInterface interface {
-	GetListsFiles(params *ListsControllerGetListsFilesParams) (*AllItemsResponseListsFiles, error)
-	GetLists(params *ListsControllerGetListsParams) (*AllItemsResponseLists, error)
-}
-
-// MitreControllerInterface contains all methods for the wazuh controller api
-type MitreControllerInterface interface {
-	GetAttack(params *MitreControllerGetAttackParams) (*ApiResponse, error)
-}
-
-// OverviewControllerInterface contains all methods for the wazuh controller api
-type OverviewControllerInterface interface {
-	GetOverviewAgents(params *OverviewControllerGetOverviewAgentsParams) (*OverviewAgents, error)
-}
-
-// SyscheckControllerInterface contains all methods for the wazuh controller api
-type SyscheckControllerInterface interface {
-	DeleteSyscheckAgent(agentID AgentId, params *SyscheckControllerDeleteSyscheckAgentParams) (*AllItemsResponse, error)
-	GetLastScanAgent(agentID AgentId, params *SyscheckControllerGetLastScanAgentParams) (*AllItemsResponseSyscheckLastScan, error)
-	GetSyscheckAgent(agentID AgentId, params *SyscheckControllerGetSyscheckAgentParams) (*AllItemsResponseSyscheckResult, error)
-	PutSyscheck(params *SyscheckControllerPutSyscheckParams) (*AllItemsResponseAgentIDs, error)
-}
 
 // AgentsControllerInterface contains all methods for the wazuh controller api
 type AgentsControllerInterface interface {
@@ -151,7 +46,7 @@ type AgentsControllerInterface interface {
 	InsertAgent(params *AgentsControllerInsertAgentParams, agentsControllerInsertAgentJSONRequestBody AgentsControllerInsertAgentJSONRequestBody) (*AgentIdKey, error)
 	PostGroup(params *AgentsControllerPostGroupParams) (*ApiResponse, error)
 	PostNewAgent(params *AgentsControllerPostNewAgentParams) (*AgentIdKey, error)
-	PutAgentSingleGroup(agentID AgentId, groupID GroupId, params *AgentsControllerPutAgentSingleGroupParams) (*ApiResponse, error)
+	PutAgentSingleGroup(agentID AgentId, groupID GroupId, params *AgentsControllerPutAgentSingleGroupParams) (*AllItemsResponse, error)
 	PutGroupConfigWithBody(groupID GroupId, params *AgentsControllerPutGroupConfigParams, contentType string, body io.Reader) (*ApiResponse, error)
 	PutMultipleAgentSingleGroup(params *AgentsControllerPutMultipleAgentSingleGroupParams) (*struct {
 		AllItemsResponseAgentIDs "yaml:\",inline\""
@@ -162,11 +57,6 @@ type AgentsControllerInterface interface {
 	RestartAgentsByGroup(groupID GroupId, params *AgentsControllerRestartAgentsByGroupParams) (*AllItemsResponseAgentIDs, error)
 	RestartAgentsByNode(nodeID NodeId, params *AgentsControllerRestartAgentsByNodeParams) (*AllItemsResponseAgentIDs, error)
 	RestartAgents(params *AgentsControllerRestartAgentsParams) (*AllItemsResponseAgentIDs, error)
-}
-
-// CiscatControllerInterface contains all methods for the wazuh controller api
-type CiscatControllerInterface interface {
-	GetAgentsCiscatResults(agentID AgentId, params *CiscatControllerGetAgentsCiscatResultsParams) (*AllItemsResponseCiscatResult, error)
 }
 
 // ExperimentalControllerInterface contains all methods for the wazuh controller api
@@ -184,35 +74,28 @@ type ExperimentalControllerInterface interface {
 	GetProcessesInfo(params *ExperimentalControllerGetProcessesInfoParams) (*AllItemsResponseSyscollectorProcesses, error)
 }
 
-// ManagerControllerInterface contains all methods for the wazuh controller api
-type ManagerControllerInterface interface {
-	DeleteFiles(params *ManagerControllerDeleteFilesParams) (*struct {
-		ApiResponse         "yaml:\",inline\""
-		ConfirmationMessage "yaml:\",inline\""
-	}, error)
-	GetAPIConfig(params *ManagerControllerGetApiConfigParams) (*ApiResponse, error)
-	GetConfValidation(params *ManagerControllerGetConfValidationParams) (*ConfigurationValidation, error)
-	GetConfiguration(params *ManagerControllerGetConfigurationParams) (*WazuhMangerConfiguration, error)
-	GetFiles(params *ManagerControllerGetFilesParams) (*struct {
-		Contents *string "json:\"contents,omitempty\""
-	}, error)
-	GetInfo(params *ManagerControllerGetInfoParams) (*WazuhInfo, error)
-	GetLogSummary(params *ManagerControllerGetLogSummaryParams) (*WazuhLogsSummary, error)
-	GetLog(params *ManagerControllerGetLogParams) (*AllItemsResponseWazuhLogs, error)
-	GetManagerConfigOndemand(component Component, configuration Configuration, params *ManagerControllerGetManagerConfigOndemandParams) (*struct {
-		ApiResponse "yaml:\",inline\""
-	}, error)
-	GetStatsAnalysisd(params *ManagerControllerGetStatsAnalysisdParams) (*AllItemsResponseWazuhStats, error)
-	GetStatsHourly(params *ManagerControllerGetStatsHourlyParams) (*AllItemsResponseWazuhStats, error)
-	GetStatsRemoted(params *ManagerControllerGetStatsRemotedParams) (*AllItemsResponseWazuhStats, error)
-	GetStatsWeekly(params *ManagerControllerGetStatsWeeklyParams) (*AllItemsResponseWazuhStats, error)
-	GetStats(params *ManagerControllerGetStatsParams) (*AllItemsResponseWazuhStats, error)
-	GetStatus(params *ManagerControllerGetStatusParams) (*WazuhDaemonsStatus, error)
-	PutFilesWithBody(params *ManagerControllerPutFilesParams, contentType string, body io.Reader) (*struct {
-		ApiResponse         "yaml:\",inline\""
-		ConfirmationMessage "yaml:\",inline\""
-	}, error)
-	PutRestart(params *ManagerControllerPutRestartParams) (*ApiResponse, error)
+// MitreControllerInterface contains all methods for the wazuh controller api
+type MitreControllerInterface interface {
+	GetAttack(params *MitreControllerGetAttackParams) (*ApiResponse, error)
+}
+
+// SyscollectorControllerInterface contains all methods for the wazuh controller api
+type SyscollectorControllerInterface interface {
+	GetHardwareInfo(agentID AgentId, params *SyscollectorControllerGetHardwareInfoParams) (*AllItemsResponseSyscollectorHardware, error)
+	GetHotfixInfo(agentID AgentId, params *SyscollectorControllerGetHotfixInfoParams) (*AllItemsResponseSyscollectorHotfixes, error)
+	GetNetworkAddressInfo(agentID AgentId, params *SyscollectorControllerGetNetworkAddressInfoParams) (*AllItemsResponseSyscollectorNetwork, error)
+	GetNetworkInterfaceInfo(agentID AgentId, params *SyscollectorControllerGetNetworkInterfaceInfoParams) (*AllItemsResponseSyscollectorInterface, error)
+	GetNetworkProtocolInfo(agentID AgentId, params *SyscollectorControllerGetNetworkProtocolInfoParams) (*AllItemsResponseSyscollectorProtocol, error)
+	GetOsInfo(agentID AgentId, params *SyscollectorControllerGetOsInfoParams) (*AllItemsResponseSyscollectorOS, error)
+	GetPackagesInfo(agentID AgentId, params *SyscollectorControllerGetPackagesInfoParams) (*AllItemsResponseSyscollectorPackages, error)
+	GetPortsInfo(agentID AgentId, params *SyscollectorControllerGetPortsInfoParams) (*AllItemsResponseSyscollectorPorts, error)
+	GetProcessesInfo(agentID AgentId, params *SyscollectorControllerGetProcessesInfoParams) (*AllItemsResponseSyscollectorProcesses, error)
+}
+
+// ListsControllerInterface contains all methods for the wazuh controller api
+type ListsControllerInterface interface {
+	GetListsFiles(params *ListsControllerGetListsFilesParams) (*AllItemsResponseListsFiles, error)
+	GetLists(params *ListsControllerGetListsParams) (*AllItemsResponseLists, error)
 }
 
 // RulesControllerInterface contains all methods for the wazuh controller api
@@ -222,12 +105,6 @@ type RulesControllerInterface interface {
 	GetRulesGroups(params *RulesControllerGetRulesGroupsParams) (*AllItemsResponse, error)
 	GetRulesRequirement(ruleRequirement RuleRequirement, params *RulesControllerGetRulesRequirementParams) (*AllItemsResponse, error)
 	GetRules(params *RulesControllerGetRulesParams) (*AllItemsResponseRules, error)
-}
-
-// ScaControllerInterface contains all methods for the wazuh controller api
-type ScaControllerInterface interface {
-	GetScaAgent(agentID AgentId, params *ScaControllerGetScaAgentParams) (*AllItemsResponseSCADatabase, error)
-	GetScaChecks(agentID AgentId, policyID PolicyId, params *ScaControllerGetScaChecksParams) (*AllItemsResponseSCAChecks, error)
 }
 
 // SecurityControllerInterface contains all methods for the wazuh controller api
@@ -291,4 +168,127 @@ type SecurityControllerInterface interface {
 	UpdateRule(securityRuleID SecurityRuleId, params *SecurityControllerUpdateRuleParams, securityControllerUpdateRuleJSONRequestBody SecurityControllerUpdateRuleJSONRequestBody) (*AllItemsResponseUsers, error)
 	UpdateUserWithBody(userIDRequired UserIdRequired, params *SecurityControllerUpdateUserParams, contentType string, body io.Reader) (*AllItemsResponseUsers, error)
 	UpdateUser(userIDRequired UserIdRequired, params *SecurityControllerUpdateUserParams, securityControllerUpdateUserJSONRequestBody SecurityControllerUpdateUserJSONRequestBody) (*AllItemsResponseUsers, error)
+}
+
+// SyscheckControllerInterface contains all methods for the wazuh controller api
+type SyscheckControllerInterface interface {
+	DeleteSyscheckAgent(agentID AgentId, params *SyscheckControllerDeleteSyscheckAgentParams) (*AllItemsResponse, error)
+	GetLastScanAgent(agentID AgentId, params *SyscheckControllerGetLastScanAgentParams) (*AllItemsResponseSyscheckLastScan, error)
+	GetSyscheckAgent(agentID AgentId, params *SyscheckControllerGetSyscheckAgentParams) (*AllItemsResponseSyscheckResult, error)
+	PutSyscheck(params *SyscheckControllerPutSyscheckParams) (*AllItemsResponseAgentIDs, error)
+}
+
+// ActiveResponseControllerInterface contains all methods for the wazuh controller api
+type ActiveResponseControllerInterface interface {
+	RunCommandWithBody(params *ActiveResponseControllerRunCommandParams, contentType string, body io.Reader) (*ApiResponse, error)
+	RunCommand(params *ActiveResponseControllerRunCommandParams, activeResponseControllerRunCommandJSONRequestBody ActiveResponseControllerRunCommandJSONRequestBody) (*ApiResponse, error)
+}
+
+// CiscatControllerInterface contains all methods for the wazuh controller api
+type CiscatControllerInterface interface {
+	GetAgentsCiscatResults(agentID AgentId, params *CiscatControllerGetAgentsCiscatResultsParams) (*AllItemsResponseCiscatResult, error)
+}
+
+// ClusterControllerInterface contains all methods for the wazuh controller api
+type ClusterControllerInterface interface {
+	DeleteFilesNode(nodeID NodeId, params *ClusterControllerDeleteFilesNodeParams) (*ApiResponse, error)
+	GetAPIConfig(params *ClusterControllerGetApiConfigParams) (*struct {
+		AdditionalProperties map[string]interface{} "json:\"-\""
+	}, error)
+	GetClusterNode(params *ClusterControllerGetClusterNodeParams) (*struct {
+		Cluster *string "json:\"cluster,omitempty\""
+		Node    *string "json:\"node,omitempty\""
+		Type    *string "json:\"type,omitempty\""
+	}, error)
+	GetClusterNodes(params *ClusterControllerGetClusterNodesParams) (*AllItemsResponseClusterNodes, error)
+	GetConfValidation(params *ClusterControllerGetConfValidationParams) (*AllItemsResponseValidationStatus, error)
+	GetConfig(params *ClusterControllerGetConfigParams) (*struct {
+		BindAddr *string   "json:\"bind_addr,omitempty\""
+		Disabled *bool     "json:\"disabled,omitempty\""
+		Hidden   *string   "json:\"hidden,omitempty\""
+		Key      *string   "json:\"key,omitempty\""
+		Name     *string   "json:\"name,omitempty\""
+		NodeName *string   "json:\"node_name,omitempty\""
+		NodeType *string   "json:\"node_type,omitempty\""
+		Nodes    *[]string "json:\"nodes,omitempty\""
+		Port     *int      "json:\"port,omitempty\""
+	}, error)
+	GetConfigurationNode(nodeID NodeId, params *ClusterControllerGetConfigurationNodeParams) (*WazuhMangerConfiguration, error)
+	GetFilesNode(nodeID NodeId, params *ClusterControllerGetFilesNodeParams) (*struct {
+		Contents *string "json:\"contents,omitempty\""
+	}, error)
+	GetHealthcheck(params *ClusterControllerGetHealthcheckParams) (*AllItemsResponseNodeHealthcheck, error)
+	GetInfoNode(nodeID NodeId, params *ClusterControllerGetInfoNodeParams) (*WazuhInfo, error)
+	GetLogNode(nodeID NodeId, params *ClusterControllerGetLogNodeParams) (*AllItemsResponseWazuhLogs, error)
+	GetLogSummaryNode(nodeID NodeId, params *ClusterControllerGetLogSummaryNodeParams) (*WazuhLogsSummary, error)
+	GetNodeConfig(nodeID NodeId, component Component, configuration Configuration, params *ClusterControllerGetNodeConfigParams) (*struct {
+		ApiResponse "yaml:\",inline\""
+	}, error)
+	GetStatsAnalysisdNode(nodeID NodeId, params *ClusterControllerGetStatsAnalysisdNodeParams) (*AllItemsResponseWazuhStats, error)
+	GetStatsHourlyNode(nodeID NodeId, params *ClusterControllerGetStatsHourlyNodeParams) (*AllItemsResponseWazuhStats, error)
+	GetStatsNode(nodeID NodeId, params *ClusterControllerGetStatsNodeParams) (*AllItemsResponseWazuhStats, error)
+	GetStatsRemotedNode(nodeID NodeId, params *ClusterControllerGetStatsRemotedNodeParams) (*AllItemsResponseWazuhStats, error)
+	GetStatsWeeklyNode(nodeID NodeId, params *ClusterControllerGetStatsWeeklyNodeParams) (*AllItemsResponseWazuhStats, error)
+	GetStatusNode(nodeID NodeId, params *ClusterControllerGetStatusNodeParams) (*WazuhDaemonsStatus, error)
+	GetStatus(params *ClusterControllerGetStatusParams) (*struct {
+		Enabled *string "json:\"enabled,omitempty\""
+		Running *string "json:\"running,omitempty\""
+	}, error)
+	PutFilesNodeWithBody(nodeID NodeId, params *ClusterControllerPutFilesNodeParams, contentType string, body io.Reader) (*ApiResponse, error)
+	PutRestart(params *ClusterControllerPutRestartParams) (*AllItemsResponseNodeIDs, error)
+}
+
+// DecodersControllerInterface contains all methods for the wazuh controller api
+type DecodersControllerInterface interface {
+	GetDecodersFiles(params *DecodersControllerGetDecodersFilesParams) (*AllItemsResponseDecodersFiles, error)
+	GetDecodersParents(params *DecodersControllerGetDecodersParentsParams) (*AllItemsResponse, error)
+	GetDecoders(params *DecodersControllerGetDecodersParams) (*AllItemsResponseDecoders, error)
+	GetDownloadFile(downloadFile DownloadFile, params *DecodersControllerGetDownloadFileParams) (*DecodersControllerGetDownloadFileResponse, error)
+}
+
+// DefaultControllerInterface contains all methods for the wazuh controller api
+type DefaultControllerInterface interface {
+	DefaultInfo(params *DefaultControllerDefaultInfoParams) (*BasicInfo, error)
+}
+
+// ManagerControllerInterface contains all methods for the wazuh controller api
+type ManagerControllerInterface interface {
+	DeleteFiles(params *ManagerControllerDeleteFilesParams) (*struct {
+		ApiResponse         "yaml:\",inline\""
+		ConfirmationMessage "yaml:\",inline\""
+	}, error)
+	GetAPIConfig(params *ManagerControllerGetApiConfigParams) (*ApiResponse, error)
+	GetConfValidation(params *ManagerControllerGetConfValidationParams) (*ConfigurationValidation, error)
+	GetConfiguration(params *ManagerControllerGetConfigurationParams) (*WazuhMangerConfiguration, error)
+	GetFiles(params *ManagerControllerGetFilesParams) (*struct {
+		Contents *string "json:\"contents,omitempty\""
+	}, error)
+	GetInfo(params *ManagerControllerGetInfoParams) (*WazuhInfo, error)
+	GetLogSummary(params *ManagerControllerGetLogSummaryParams) (*WazuhLogsSummary, error)
+	GetLog(params *ManagerControllerGetLogParams) (*AllItemsResponseWazuhLogs, error)
+	GetManagerConfigOndemand(component Component, configuration Configuration, params *ManagerControllerGetManagerConfigOndemandParams) (*struct {
+		ApiResponse "yaml:\",inline\""
+	}, error)
+	GetStatsAnalysisd(params *ManagerControllerGetStatsAnalysisdParams) (*AllItemsResponseWazuhStats, error)
+	GetStatsHourly(params *ManagerControllerGetStatsHourlyParams) (*AllItemsResponseWazuhStats, error)
+	GetStatsRemoted(params *ManagerControllerGetStatsRemotedParams) (*AllItemsResponseWazuhStats, error)
+	GetStatsWeekly(params *ManagerControllerGetStatsWeeklyParams) (*AllItemsResponseWazuhStats, error)
+	GetStats(params *ManagerControllerGetStatsParams) (*AllItemsResponseWazuhStats, error)
+	GetStatus(params *ManagerControllerGetStatusParams) (*WazuhDaemonsStatus, error)
+	PutFilesWithBody(params *ManagerControllerPutFilesParams, contentType string, body io.Reader) (*struct {
+		ApiResponse         "yaml:\",inline\""
+		ConfirmationMessage "yaml:\",inline\""
+	}, error)
+	PutRestart(params *ManagerControllerPutRestartParams) (*ApiResponse, error)
+}
+
+// OverviewControllerInterface contains all methods for the wazuh controller api
+type OverviewControllerInterface interface {
+	GetOverviewAgents(params *OverviewControllerGetOverviewAgentsParams) (*OverviewAgents, error)
+}
+
+// ScaControllerInterface contains all methods for the wazuh controller api
+type ScaControllerInterface interface {
+	GetScaAgent(agentID AgentId, params *ScaControllerGetScaAgentParams) (*AllItemsResponseSCADatabase, error)
+	GetScaChecks(agentID AgentId, policyID PolicyId, params *ScaControllerGetScaChecksParams) (*AllItemsResponseSCAChecks, error)
 }

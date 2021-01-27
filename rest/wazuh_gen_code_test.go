@@ -1,4 +1,4 @@
-package wazuh
+package rest
 
 import (
 	"fmt"
@@ -9,12 +9,12 @@ import (
 )
 
 type Function struct {
-	Controller    string
-	Name          string
-	CallName      string
-	Method        reflect.Method
-	Doc           string
-	ResultType    reflect.Type
+	Controller string
+	Name       string
+	CallName   string
+	Method     reflect.Method
+	Doc        string
+	// ResultType    reflect.Type
 	ResultTypeDef string
 }
 
@@ -45,6 +45,7 @@ func NewFunction(controller string, name string, method reflect.Method) *Functio
 		if y.Kind() == reflect.Struct {
 			if dataFld, ok := y.FieldByName("Data"); ok {
 				t = dataFld.Type
+
 			} else {
 				t = okFld.Type
 			}
@@ -52,9 +53,13 @@ func NewFunction(controller string, name string, method reflect.Method) *Functio
 			t = okFld.Type
 		}
 	}
-	f.ResultType = t
 	// re := regexp.MustCompile(`"(json|yaml).*?\\""`) re.ReplaceAllString(t.String(), "")
-	f.ResultTypeDef = strings.ReplaceAll(t.String(), "wazuh.", "")
+
+	st := strings.ReplaceAll(t.String(), "wazuh.", "")
+	if st == "*ApiResponse" && f.CallName == "PutAgentSingleGroup" {
+		st = "*AllItemsResponse"
+	}
+	f.ResultTypeDef = st
 
 	return f
 }

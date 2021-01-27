@@ -52,7 +52,7 @@ Or use the environment to construct the client to get the server basic informati
 
 */
 
-package wazuh
+package rest
 
 import (
 	"context"
@@ -62,6 +62,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/http/httputil"
 	"os"
 	"reflect"
 	"strings"
@@ -79,6 +80,8 @@ type Client struct {
 	// customized settings, such as certificate chains.
 	Client HttpRequestDoer
 
+	innerClient HttpRequestDoer
+
 	// A callback for modifying requests which are generated before sending over
 	// the network.
 	RequestEditor RequestEditorFn
@@ -89,6 +92,7 @@ type Client struct {
 	user      string
 	password  string
 	insecure  bool
+	trace     bool
 }
 
 // WithLogin specifies the credentials for
@@ -112,6 +116,14 @@ func WithContext(ctx context.Context) ClientOption {
 func WithInsecure(insecure bool) ClientOption {
 	return func(c *Client) error {
 		c.insecure = insecure
+		return nil
+	}
+}
+
+// WithTrace write all requests to the log
+func WithTrace(trace bool) ClientOption {
+	return func(c *Client) error {
+		c.trace = trace
 		return nil
 	}
 }
@@ -233,17 +245,34 @@ func NewClient(baseURL string, opts ...ClientOption) (*Client, error) {
 		c.Server += "/"
 	}
 	// create httpClient, if not already present
-	if c.Client == nil {
-		c.Client = &http.Client{
-			Transport: &http.Transport{
-				TLSClientConfig: &tls.Config{
-					InsecureSkipVerify: c.insecure, // test server certificate is not trusted.
-				},
+	c.Client = c
+	c.innerClient = &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: c.insecure, // test server certificate is not trusted.
 			},
-		}
+		},
 	}
 
 	return c, nil
+}
+
+// Do wrap the doer for tracing
+func (c *Client) Do(req *http.Request) (*http.Response, error) {
+	r, e := c.innerClient.Do(req)
+	if c.trace {
+		var reqStr = ""
+		dump, err := httputil.DumpRequestOut(req, true)
+		if err == nil {
+			reqStr = strings.ReplaceAll(strings.TrimRight(string(dump), "\r\n"), "\n", "\n                            ")
+		}
+		dump, err = httputil.DumpResponse(r, true)
+		if err == nil {
+			c.Tracef("%s\n\n                            %s\n", reqStr, strings.ReplaceAll(strings.TrimRight(string(dump), "\r\n"), "\n", "\n                            "))
+		}
+	}
+	return r, e
+
 }
 
 // Errorf logs errors
@@ -261,6 +290,11 @@ func (c *Client) Debugf(format string, v ...interface{}) {
 	log.Printf("[DEBUG] %s", fmt.Sprintf(format, v...))
 }
 
+// Tracef logs trace info
+func (c *Client) Tracef(format string, v ...interface{}) {
+	log.Printf("[TRACE] %s", fmt.Sprintf(format, v...))
+}
+
 // RawAPIResponse generic response wrapper
 type RawAPIResponse interface {
 	Status() string
@@ -272,10 +306,12 @@ func getResponseObject(sr RawAPIResponse) (interface{}, error) {
 	v := reflect.ValueOf(sr).Elem()
 	if _, ok := v.Type().FieldByName(fldForCode); ok {
 		s := v.FieldByName(fldForCode).Interface()
-		if apiError, ok := s.(*ApiError); ok && (apiError.code != nil && *apiError.code != 0) {
+		if apiError, ok := s.(*ApiError); ok && (apiError.ApiCode != nil && *apiError.ApiCode != 0) {
 			return nil, apiError
-		} else if requestError, ok := s.(*RequestError); ok && (requestError.code != nil && *requestError.code != 0) {
+		} else if requestError, ok := s.(*RequestError); ok && (requestError.RequestError != nil && *requestError.RequestError != 0) {
 			return nil, requestError
+		} else if apiResponse, ok := s.(*ApiResponse); ok && (apiResponse.Code() > 0) {
+			return nil, apiResponse
 		} else {
 			v := reflect.ValueOf(s).Elem()
 			if _, ok := v.Type().FieldByName("Data"); ok {

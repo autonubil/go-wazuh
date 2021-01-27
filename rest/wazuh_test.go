@@ -1,4 +1,4 @@
-package wazuh
+package rest
 
 import (
 	"fmt"
