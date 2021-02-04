@@ -1,17 +1,23 @@
+/*
+see: https://documentation.wazuh.com/4.0/development/message-format.html
+
+*/
 package ossec
 
 import (
 	"bytes"
-	// "compress/zlib"
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/md5"
 	"errors"
 	"fmt"
+	"io"
 	"math/rand"
 	"strings"
 
-	"github.com/4kills/go-zlib"
+	// "github.com/4kills/go-zlib"
+	"compress/zlib"
+
 	"golang.org/x/crypto/blowfish"
 )
 
@@ -60,14 +66,16 @@ func blowfishDecrypt(ppt, key []byte) []byte {
 
 func aesEncrypt(ppt, key []byte) []byte {
 	// create the cipher
-	bfCipher, err := aes.NewCipher(key[:32])
+	aesCipher, err := aes.NewCipher(key[:32])
 	if err != nil {
 		// fix this. its okay for this tester program, but ....
 		panic(err)
 	}
 
 	// create the encrypter
-	ecbc := cipher.NewCBCEncrypter(bfCipher, []byte("FEDCBA0987654321"))
+	fmt.Println(aesCipher.BlockSize())
+	ecbc := cipher.NewCBCEncrypter(aesCipher, []byte("FEDCBA0987654321"))
+
 	pad := len(ppt) % ecbc.BlockSize()
 	for pad != 0 {
 		ppt = append(ppt, 0)
@@ -80,6 +88,30 @@ func aesEncrypt(ppt, key []byte) []byte {
 	// encrypt the blocks, because block cipher
 	ecbc.CryptBlocks(ciphertext, ppt)
 	// return ciphertext to calling function
+	return ciphertext
+}
+
+func aesDecrypt(ppt, key []byte) []byte {
+	// create the cipher
+	aesCipher, err := aes.NewCipher(key[:32])
+	if err != nil {
+		// fix this. its okay for this tester program, but ....
+		panic(err)
+	}
+	// pad
+	pad := aesCipher.BlockSize() - (len(ppt) % aesCipher.BlockSize())
+	for pad > 0 && pad < aesCipher.BlockSize() {
+		ppt = append(ppt, 0)
+		pad--
+	}
+
+	// make ciphertext big enough to store len(ppt)
+	ciphertext := make([]byte, len(ppt))
+
+	// create the encrypter
+	ecbc := cipher.NewCBCDecrypter(aesCipher, []byte("FEDCBA0987654321"))
+
+	ecbc.CryptBlocks(ciphertext, ppt)
 	return ciphertext
 }
 
@@ -102,7 +134,6 @@ func (a *Client) decryptMessage(encMsg []byte, msgSize uint32) (string, error) {
 
 	method := EncryptionMethodBlowFish
 	if string(encMsg[:4]) == "#AES" {
-		// compressed = aesEncrypt([]byte(tmpMsg), []byte(a.AgentHashedKey))
 		compressed = make([]byte, 0)
 		method = EncryptionMethodAES
 		encMsg = encMsg[4:]
@@ -116,21 +147,26 @@ func (a *Client) decryptMessage(encMsg []byte, msgSize uint32) (string, error) {
 	if method == EncryptionMethodBlowFish {
 		compressed = blowfishDecrypt([]byte(encMsg[0:msgSize]), []byte(a.AgentHashedKey))
 	} else {
-		panic("Not yet supported")
+		compressed = aesDecrypt([]byte(encMsg[0:msgSize]), []byte(a.AgentHashedKey))
 	}
 	for compressed[0] == '!' {
 		compressed = compressed[1:]
 		msgSize--
 	}
 	// fmt.Printf("%0x %s\n", compressed, string(compressed))
-	msg := make([]byte, msgSize)
-	r, _ := zlib.NewReader(nil)
-	_, msg, err := r.ReadBuffer(compressed, msg)
-	r.Close()
+	b := bytes.NewReader(compressed)
+	var w bytes.Buffer
+	r, err := zlib.NewReader(b)
 	if err != nil {
 		return "", err
 	}
-	// fmt.Printf("%d\n", x)
+	_, err = io.Copy(&w, r)
+	if err != nil {
+		r.Close()
+		return "", err
+	}
+	msg := w.Bytes()
+	r.Close()
 
 	return string(msg), nil
 }
@@ -189,20 +225,21 @@ func (a *Client) cryptMsg(msg string) ([]byte, uint32) {
 	a.cCompSize += cmpSize
 	a.evtCount++
 
-	// always send ID
-
-	// msgEncrypted := fmt.Sprintf(":%s:%s", a.AgentID, blowfishEncrypt([]byte(tmpMsg), []byte(a.AgentHashedKey)))
 	var cryptoToken string
 	var encrypted []byte
 	if a.EncryptionMethod == EncryptionMethodAES {
 		cryptoToken = "#AES:"
-		encrypted = aesEncrypt([]byte(tmpMsg), []byte(a.AgentKey))
+		encrypted = aesEncrypt([]byte(tmpMsg), []byte(a.AgentHashedKey))
 	} else {
 		cryptoToken = ":"
 		encrypted = blowfishEncrypt([]byte(tmpMsg), []byte(a.AgentHashedKey))
 	}
-
-	msgEncrypted := fmt.Sprintf("!%s!%s%s", a.AgentID, cryptoToken, encrypted)
+	var msgEncrypted string
+	if a.AgentAllowedIPs == "any" {
+		msgEncrypted = fmt.Sprintf("!%s!%s%s", a.AgentID, cryptoToken, encrypted)
+	} else {
+		msgEncrypted = fmt.Sprintf("%s%s", cryptoToken, encrypted)
+	}
 
 	msgSize = uint(len(msgEncrypted))
 	// fmt.Printf("'%s' : %d ->  <%s> '%s' : %d\n", tmpMsg, len(tmpMsg), fmt.Sprintf("%00x", md5.Sum([]byte(msgEncrypted))), msgEncrypted, len(msgEncrypted))

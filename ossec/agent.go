@@ -1,17 +1,23 @@
 package ossec
 
 import (
+	"errors"
+	"os"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
+	"syscall"
 
-	// "compress/zlib"
 	"context"
 	"crypto/md5"
 	"encoding/binary"
 	"fmt"
 	"net"
 	"time"
+
+	"github.com/autonubil/go-wazuh/sysinfo"
+	"go.uber.org/zap"
 )
 
 // EncryptionMethod supported transport encryption
@@ -26,13 +32,9 @@ const (
 
 // Client allowes to handshake with the server to reach a pending state (which allowes the agent to become a group member)
 type Client struct {
+	*AgentKey
 	Server           string
-	AgentID          string
-	AgentName        string
-	AgentKey         string
-	AgentHashedKey   string
-	AgentIP          string
-	Port             int
+	Port             uint16
 	UDP              bool
 	localCount       uint
 	globalCount      uint
@@ -43,6 +45,8 @@ type Client struct {
 	ctx              context.Context
 	conn             net.Conn
 	mx               sync.Mutex
+	logger           *zap.Logger
+	connected        bool
 }
 
 // AgentOption allows setting custom parameters during construction
@@ -52,6 +56,14 @@ type AgentOption func(*Client) error
 func WithContext(ctx context.Context) AgentOption {
 	return func(c *Client) error {
 		c.ctx = ctx
+		return nil
+	}
+}
+
+// WithZapLogger use a custom logger
+func WithZapLogger(logger *zap.Logger) AgentOption {
+	return func(c *Client) error {
+		c.logger = logger
 		return nil
 	}
 }
@@ -73,7 +85,7 @@ func WithTCP(tcp bool) AgentOption {
 }
 
 // WithPort use specific port
-func WithPort(port int) AgentOption {
+func WithPort(port uint16) AgentOption {
 	return func(c *Client) error {
 		c.Port = port
 		return nil
@@ -83,6 +95,9 @@ func WithPort(port int) AgentOption {
 // WithEncryptionMethod specify encryption method to use
 func WithEncryptionMethod(encryptionMethod EncryptionMethod) AgentOption {
 	return func(c *Client) error {
+		if encryptionMethod == EncryptionMethodAES {
+			return errors.New("AES is currently not supported")
+		}
 		c.EncryptionMethod = encryptionMethod
 		return nil
 	}
@@ -96,31 +111,34 @@ func WithAgentIP(agentIP string) AgentOption {
 	}
 }
 
+// WithAgentAllowedIPs which IPs are allwed
+func WithAgentAllowedIPs(allowedIPs string) AgentOption {
+	return func(c *Client) error {
+		c.AgentAllowedIPs = allowedIPs
+		return nil
+	}
+}
+
 // NewAgent create a new Agent for the target server
 func NewAgent(server string, agentID string, agentName string, agentKey string, opts ...AgentOption) (*Client, error) {
 
 	// key... https://github.com/ossec/ossec-hids/blob/10f6ad82f5271593c61d9ac2f14ba918e559be7b/src/os_crypto/shared/keys.c#L31
 	filesum1 := fmt.Sprintf("%00x", md5.Sum([]byte(agentName)))
 	filesum2 := fmt.Sprintf("%00x", md5.Sum([]byte(agentID)))
-	// fmt.Printf("filesum1: %s -> %s\n", agentName, filesum1)
-	// fmt.Printf("filesum2: %s -> %s\n", agentID, filesum2)
-
 	finalStr := fmt.Sprintf("%s%s", filesum1, filesum2)
-	// fmt.Printf("finalStr: %s\n", finalStr)
-
 	filesum1 = fmt.Sprintf("%00x", md5.Sum([]byte(finalStr)))[0:15]
 	filesum2 = fmt.Sprintf("%00x", md5.Sum([]byte(agentKey)))
-	// fmt.Printf("filesum1: %s\n", filesum1)
-	// fmt.Printf("key md5: %s\n", filesum2)
-
 	finalStr = fmt.Sprintf("%s%s", filesum2, filesum1)
-	// fmt.Printf("key: %s\n", finalStr)
+
 	a := &Client{
-		AgentID:          agentID,
-		AgentKey:         agentKey,
-		AgentName:        agentName,
-		AgentIP:          "any",
-		AgentHashedKey:   finalStr,
+		AgentKey: &AgentKey{
+			AgentID:         agentID,
+			AgentKey:        agentKey,
+			AgentName:       agentName,
+			AgentAllowedIPs: "",
+			AgentIP:         os.Getenv("OSSEC_AGENT_IP"),
+			AgentHashedKey:  finalStr,
+		},
 		Server:           server,
 		Port:             1514,
 		UDP:              false,
@@ -139,23 +157,8 @@ func NewAgent(server string, agentID string, agentName string, agentKey string, 
 		a.ctx = context.Background()
 	}
 
-	var err error
-	var localAddr net.Addr
-	if a.UDP {
-		a.conn, err = net.Dial("udp", fmt.Sprintf("%s:%d", a.Server, a.Port))
-		localAddr = a.conn.LocalAddr().(*net.UDPAddr)
-	} else {
-		a.conn, err = net.Dial("tcp", fmt.Sprintf("%s:%d", a.Server, a.Port))
-		localAddr = a.conn.LocalAddr().(*net.TCPAddr)
-	}
-	if err != nil {
-		return nil, err
-	}
-
-	if a.AgentIP == "any" || a.AgentIP == "" {
-		addr := localAddr.String()
-		lastSep := strings.LastIndex(addr, ":")
-		a.AgentIP = addr[:lastSep-1]
+	if a.logger != nil {
+		a.logger.Debug("New ossec agent", zap.Any("agentId", a.AgentID))
 	}
 
 	return a, nil
@@ -187,17 +190,30 @@ const (
 	SYSCHECK_MQ  = '8'
 	ROOTCHECK_MQ = '9'
 
-	maxBufferSize = 1024
-	timeout       = time.Duration(30 * time.Second)
+	maxBufferSize        = 1024
+	ReadWaitTimeout      = time.Duration(30 * time.Second)
+	ReadImmediateTimeout = time.Duration(1 * time.Second)
 )
 
 // Close closes the connection.
 // Any blocked Read or Write operations will be unblocked and return errors.
 func (a *Client) Close() error {
-	return a.conn.Close()
+	if a.connected {
+		msg := fmt.Sprintf("ossec: ossec: Agent disconnected: '%s-%s'.", a.AgentName, a.AgentIP)
+		msg = fmt.Sprintf("%c:%s:%s", LOCALFILE_MQ, "ossec", msg)
+		err := a.writeMessage(msg)
+		if err != nil {
+			a.connected = false
+			a.conn.Close()
+			return err
+		}
+		a.connected = false
+		return a.conn.Close()
+	}
+	return nil
 }
 
-// SendMessage without waiting for an answerr a message and wait for an answer
+// WriteMessage without waiting for an answerr a message and wait for an answer
 func (a *Client) WriteMessage(msg string) error {
 	a.mx.Lock()
 	err := a.writeMessage(msg)
@@ -205,8 +221,78 @@ func (a *Client) WriteMessage(msg string) error {
 	return err
 }
 
-func (a *Client) writeMessage(msg string) error {
+func nullTerminatedString(data [65]int8) string {
+	var buf [512]byte // Enough for a DNS name.
+	for i, b := range data[:] {
+		buf[i] = uint8(b)
+		if b == 0 {
+			return string(buf[:i])
+		}
+	}
+	return string(buf[:])
+}
 
+func firstUpper(src string) string {
+	if len(src) == 0 {
+		return ""
+	}
+	return strings.ToUpper(src[:1]) + src[1:]
+}
+
+// PingServer send a single ping to the server
+func (a *Client) PingServer() error {
+	a.mx.Lock()
+	defer a.mx.Unlock()
+	return a.pingServer()
+}
+
+func (a *Client) pingServer() error {
+	labelIP := fmt.Sprintf("#\"_agent_ip\":%s", a.AgentIP)
+	agentConfigMd5 := fmt.Sprintf("%00x", md5.Sum([]byte(a.AgentName)))
+	var un syscall.Utsname
+	err := syscall.Uname(&un)
+	if err != nil {
+		return err
+	}
+
+	osInfo := sysinfo.GetOSInfo()
+
+	osRel := osInfo.Name
+	if strings.HasPrefix(strings.ToLower(osRel), strings.ToLower(osInfo.Vendor+" ")) {
+		osRel = osRel[len(osInfo.Vendor)+1:]
+	}
+	aname := fmt.Sprintf("%s |%s |%s |%s |%s [%s|%s: %s] - %s %s",
+		firstUpper(nullTerminatedString(un.Sysname)),
+		nullTerminatedString(un.Nodename),
+		nullTerminatedString(un.Release),
+		nullTerminatedString(un.Version),
+		nullTerminatedString(un.Machine),
+		firstUpper(runtime.GOOS),
+		runtime.GOARCH,
+		osRel,
+		"go-wazuh", "v0.1.0")
+
+	labels := ""
+	sharedFiles := "\n"
+
+	// test example:
+	//"Linux |debian10 |4.19.0-9-amd64 |#1 SMP Debian 4.19.118-2+deb10u1 (2020-06-07) |x86_64 \
+	// [Debian GNU/Linux|debian: 10 (buster)] - Wazuh v3.13.0 / ab73af41699f13fdd81903b5f23d8d00\nfd756ba04d9c32c8848d4608bec41251 \
+	// merged.mg\n#\"_agent_ip\":192.168.0.143\n"
+	msg := fmt.Sprintf("#!-%s / %s\n%s%s%s\n", aname, agentConfigMd5, labels, sharedFiles, labelIP)
+
+	response, err := a.sendMessage(msg)
+	if err != nil {
+		return err
+	}
+	if string(response) != "#!-agent ack " {
+		return errors.New("Not acknowledged")
+	}
+	return nil
+
+}
+
+func (a *Client) writeMessage(msg string) error {
 	encryptedMsg, msgSize := a.cryptMsg(msg)
 	if !a.UDP {
 		// prepend a header containing message size as 4-byte little-endian unsigned integer.
@@ -214,17 +300,15 @@ func (a *Client) writeMessage(msg string) error {
 		binary.LittleEndian.PutUint32(encryptedMsg, (uint32)(msgSize))
 	}
 
-	n, err := a.conn.Write(encryptedMsg)
+	_, err := a.conn.Write(encryptedMsg)
 	if err != nil {
+		if a.logger != nil {
+			a.logger.Debug("writeMessage", zap.Any("agentId", a.AgentID), zap.String("msg", msg), zap.Error(err))
+		}
 		return err
 	}
-
-	fmt.Printf("packet-written: bytes=%d (%d:%d:%d) -> %s \n", n, len(encryptedMsg), a.globalCount, a.localCount, msg)
-
-	deadline := time.Now().Add(timeout)
-	err = a.conn.SetReadDeadline(deadline)
-	if err != nil {
-		return err
+	if a.logger != nil {
+		a.logger.Debug("writeMessage", zap.Any("agentId", a.AgentID), zap.String("msg", msg))
 	}
 	return nil
 }
@@ -237,11 +321,34 @@ func (a *Client) SendMessage(msg string) (string, error) {
 	return s, err
 }
 
+// ReadMessage read next message
+func (a *Client) ReadMessage(timeout time.Duration) (string, error) {
+	a.mx.Lock()
+	s, err := a.readMessage(timeout)
+	a.mx.Unlock()
+	return s, err
+
+}
+
 func (a *Client) sendMessage(msg string) (string, error) {
 	err := a.writeMessage(msg)
 	if err != nil {
 		return "", err
 	}
+	result, err := a.readMessage(ReadWaitTimeout)
+	if err != nil {
+		return "", err
+	}
+	return result, nil
+}
+
+func (a *Client) readMessage(timeout time.Duration) (string, error) {
+	deadline := time.Now().Add(timeout)
+	err := a.conn.SetReadDeadline(deadline)
+	if err != nil {
+		return "", err
+	}
+
 	buffer := make([]byte, maxBufferSize)
 	nRead, err := a.conn.Read(buffer)
 	if err != nil {
@@ -252,18 +359,18 @@ func (a *Client) sendMessage(msg string) (string, error) {
 	if !a.UDP {
 		msgSize = binary.LittleEndian.Uint32(buffer)
 		rawMsg = buffer[4:]
+		nRead -= 4
 	} else {
 		rawMsg = buffer
 		msgSize = uint32(len(buffer))
 	}
-	msg, err = a.decryptMessage(rawMsg[:nRead], msgSize)
+	msg, err := a.decryptMessage(rawMsg[:nRead], msgSize)
 	if err != nil {
 		return "", err
 	}
 
 	// parse result - get counters
 	msg = msg[32:]
-	rand1 := msg[:5]
 	globalCount, err := strconv.Atoi(msg[5:15])
 	if err != nil {
 		return "", err
@@ -275,40 +382,88 @@ func (a *Client) sendMessage(msg string) (string, error) {
 	msg = msg[21:]
 	a.localCount = uint(localCount)
 	a.globalCount = uint(globalCount)
-	fmt.Printf("packet-received: bytes=%d (%s:%d:%d) '%s'\n", nRead, rand1, globalCount, localCount, msg)
+	// rand1 := msg[:5]
+	// fmt.Printf("packet-received: bytes=%d (%s:%d:%d) '%s'\n", nRead, rand1, globalCount, localCount, msg)
+	if a.logger != nil {
+		a.logger.Debug("receivedMessage", zap.Any("agentId", a.AgentID), zap.String("msg", msg))
+	}
 	return msg, nil
 }
 
-// Handshake do a handshake
-func (a *Client) Handshake(ctx context.Context) error {
+// Connect connect and do a handshake
+func (a *Client) Connect(isStartup bool) error {
 	a.mx.Lock()
 	defer a.mx.Unlock()
+	a.connected = false
+	var err error
+	var localAddr net.Addr
+	if a.UDP {
+		a.conn, err = net.Dial("udp", fmt.Sprintf("%s:%d", a.Server, a.Port))
+		if err != nil {
+			return err
+		}
+		localAddr = a.conn.LocalAddr().(*net.UDPAddr)
+	} else {
+		a.conn, err = net.Dial("tcp", fmt.Sprintf("%s:%d", a.Server, a.Port))
+		if err != nil {
+			return err
+		}
+		localAddr = a.conn.LocalAddr().(*net.TCPAddr)
+	}
+
+	// determine agentIP from actual address used
+	if a.AgentIP == "" {
+		addr := localAddr.String()
+		lastSep := strings.LastIndex(addr, ":")
+		if lastSep > 0 {
+			a.AgentIP = addr[:lastSep]
+		} else {
+			a.AgentIP = addr
+		}
+	}
+
 	msg := fmt.Sprintf("%s%s", CONTROL_HEADER, HC_STARTUP)
-	_, err := a.sendMessage(msg)
+	response, err := a.sendMessage(msg)
 	if err != nil {
 		return err
 	}
-
-	// log start startup
-	msg = fmt.Sprintf("ossec: Agent started: '%s->%s' from go-wazuh.", a.AgentID, a.AgentIP)
-	msg = fmt.Sprintf("%c:%s:%s", LOCALFILE_MQ, "ossec", msg)
-	err = a.writeMessage(msg)
-	if err != nil {
-		return err
+	if string(response) != "#!-agent ack " {
+		return errors.New("Not acknowledged")
 	}
 
-	msg = fmt.Sprintf("%c:%s: Jan 26 09:05:45 n005prtg-001 PRTG: ...[PRTG Network Monitor (N005PRTG-001)] device name status down (message)", SYSLOG_MQ, "ossec")
-	err = a.writeMessage(msg)
-	if err != nil {
-		return err
+	if isStartup {
+		// log start startup
+		msg = fmt.Sprintf("ossec: Agent started: '%s->%s' from go-wazuh.", a.AgentID, a.AgentIP)
+		msg = fmt.Sprintf("%c:%s:%s", LOCALFILE_MQ, "ossec", msg)
+		err = a.writeMessage(msg)
+		if err != nil {
+			return err
+		}
+		err = a.pingServer()
+		if err != nil {
+			return err
+		}
 	}
+	a.connected = true
+	return nil
+}
 
-	msg = fmt.Sprintf("ossec: ossec: Agent disconnected: '%s-%s'.", a.AgentName, a.AgentIP)
-	msg = fmt.Sprintf("%c:%s:%s", LOCALFILE_MQ, "ossec", msg)
-	err = a.writeMessage(msg)
-	if err != nil {
-		return err
+// AgentLoop Process messages and keep track of connection status
+func (a *Client) AgentLoop() error {
+	for true {
+		msg, err := a.ReadMessage(ReadImmediateTimeout)
+		if err == nil {
+			fmt.Println(msg)
+		}
+		err = a.PingServer()
+		if err != nil {
+			a.logger.Debug("try reconnected", zap.Any("agentId", a.AgentID))
+			err = a.Connect(false)
+		}
+		if err != nil {
+			return err
+		}
+		time.Sleep(time.Minute * 1)
 	}
-
 	return nil
 }

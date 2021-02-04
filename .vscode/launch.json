@@ -38,20 +38,6 @@
         "WAZUH_INSECURE": true
       },
       "args": []
-    },
-    {
-      "name": "Launch Agent",
-      "type": "go",
-      "mode": "debug",
-      "request": "launch",
-      "program": "${workspaceFolder}/",
-      "env": {
-        "WAZUH_URL": "https://localhost:55000",
-        "WAZUH_USER": "wazuh",
-        "WAZUH_PASSWORD": "wazuh",
-        "WAZUH_INSECURE": true
-      },
-      "args": []
     }
   ]
 }

@@ -1,13 +1,16 @@
 module github.com/autonubil/go-wazuh
 
 require (
-	github.com/4kills/go-zlib v1.1.0
-	github.com/deepmap/oapi-codegen v1.4.2
-	github.com/go-resty/resty/v2 v2.3.0
-	github.com/motemen/go-nuts v0.0.0-20200601065735-3df31f16cb2f
+	github.com/deepmap/oapi-codegen v1.5.0
+	github.com/google/martian v2.1.0+incompatible
+	github.com/gosnmp/gosnmp v1.29.0 // indirect
 	github.com/pkg/errors v0.9.1
-	golang.org/x/crypto v0.0.0-20191112222119-e1110fd1c708
-	gopkg.in/resty.v1 v1.12.0
+	github.com/prometheus/client_golang v1.9.0 // indirect
+	github.com/sleepinggenius2/gosmi v0.3.2
+	github.com/spf13/cobra v1.1.1 // indirect
+	github.com/zcalusic/sysinfo v0.0.0-20201228191146-22fe1fd10b0f
+	go.uber.org/zap v1.16.0
+	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad
 )
 
 go 1.13
