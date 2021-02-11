@@ -289,7 +289,6 @@ func (a *Client) pingServer() error {
 		return errors.New("Not acknowledged")
 	}
 	return nil
-
 }
 
 func (a *Client) writeMessage(msg string) error {
