@@ -1,6 +1,7 @@
 package ossec
 
 import (
+	"bytes"
 	"errors"
 	"os"
 	"runtime"
@@ -273,20 +274,53 @@ func (a *Client) pingServer() error {
 		"go-wazuh", "v0.1.0")
 
 	labels := ""
-	sharedFiles := "\n"
+	sharedFiles := fmt.Sprintf("%s %s\n", agentConfigMd5, "merged.mg")
 
 	// test example:
 	//"Linux |debian10 |4.19.0-9-amd64 |#1 SMP Debian 4.19.118-2+deb10u1 (2020-06-07) |x86_64 \
 	// [Debian GNU/Linux|debian: 10 (buster)] - Wazuh v3.13.0 / ab73af41699f13fdd81903b5f23d8d00\nfd756ba04d9c32c8848d4608bec41251 \
 	// merged.mg\n#\"_agent_ip\":192.168.0.143\n"
-	msg := fmt.Sprintf("#!-%s / %s\n%s%s%s\n", aname, agentConfigMd5, labels, sharedFiles, labelIP)
+	msg := fmt.Sprintf("%s%s / %s\n%s%s%s\n", CONTROL_HEADER, aname, agentConfigMd5, labels, sharedFiles, labelIP)
 
 	response, err := a.sendMessage(msg)
 	if err != nil {
 		return err
 	}
-	if string(response) != "#!-agent ack " {
-		return errors.New("Not acknowledged")
+	doneMsg := fmt.Sprintf("%s%s", CONTROL_HEADER, FILE_CLOSE_HEADER)
+	ackMsg := fmt.Sprintf("%s%s", CONTROL_HEADER, HC_ACK)
+	if strings.HasPrefix(string(response), "#!-up file ") {
+		fieleSpecs := strings.Split(strings.Trim(response[11:], "\n \t"), " ")
+		if len(fieleSpecs) == 2 {
+			if a.logger != nil {
+				a.logger.Debug("Receive File", zap.String("fileName", fieleSpecs[0]))
+			}
+
+			for {
+				msg, err := a.readMessage(ReadWaitTimeout)
+				fmt.Println(msg)
+				if err != nil {
+					return err
+				}
+				if msg == "" {
+					break
+				}
+				if strings.HasPrefix(msg, doneMsg) {
+					return nil
+				}
+				if msg == ackMsg {
+					break
+				}
+			}
+
+			if err != nil {
+				return err
+			}
+		}
+
+	} else {
+		if string(response) != "#!-agent ack " {
+			return fmt.Errorf("Not acknowledged (%s)", response)
+		}
 	}
 	return nil
 }
@@ -348,22 +382,40 @@ func (a *Client) readMessage(timeout time.Duration) (string, error) {
 		return "", err
 	}
 
+	var buf bytes.Buffer
 	buffer := make([]byte, maxBufferSize)
-	nRead, err := a.conn.Read(buffer)
-	if err != nil {
-		return "", err
+	totallyRead := 0
+	for true {
+		nRead, err := a.conn.Read(buffer)
+		if err != nil {
+			return "", err
+		}
+		if nRead == 0 {
+			break
+		}
+		buf.Write(buffer[:nRead])
+		totallyRead += nRead
+		if nRead < maxBufferSize {
+			break
+		}
 	}
-	var rawMsg []byte
+
+	if totallyRead == 0 {
+		return "", nil
+	}
+	rawMsg := buf.Bytes()
 	var msgSize uint32
 	if !a.UDP {
-		msgSize = binary.LittleEndian.Uint32(buffer)
-		rawMsg = buffer[4:]
-		nRead -= 4
+		if len(rawMsg) < 4 {
+			return "", errors.New("Message too short")
+		}
+		msgSize = binary.LittleEndian.Uint32(rawMsg)
+		rawMsg = rawMsg[4:]
+		totallyRead -= 4
 	} else {
-		rawMsg = buffer
-		msgSize = uint32(len(buffer))
+		msgSize = uint32(len(rawMsg))
 	}
-	msg, err := a.decryptMessage(rawMsg[:nRead], msgSize)
+	msg, err := a.decryptMessage(rawMsg[:totallyRead], msgSize)
 	if err != nil {
 		return "", err
 	}
@@ -387,6 +439,33 @@ func (a *Client) readMessage(timeout time.Duration) (string, error) {
 		a.logger.Debug("receivedMessage", zap.Any("agentId", a.AgentID), zap.String("msg", msg))
 	}
 	return msg, nil
+}
+
+func (a *Client) readRaw(timeout time.Duration) ([]byte, error) {
+	deadline := time.Now().Add(timeout)
+	err := a.conn.SetReadDeadline(deadline)
+	if err != nil {
+		return nil, err
+	}
+
+	var buf bytes.Buffer
+
+	buffer := make([]byte, maxBufferSize)
+	for true {
+		nRead, err := a.conn.Read(buffer)
+		if nRead == 0 {
+			break
+		}
+		if err != nil {
+			return nil, err
+		}
+		buf.Write(buffer[:nRead])
+		if nRead < maxBufferSize {
+			break
+		}
+	}
+
+	return buf.Bytes(), nil
 }
 
 // Connect connect and do a handshake

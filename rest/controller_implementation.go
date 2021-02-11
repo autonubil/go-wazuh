@@ -2911,6 +2911,7 @@ func (c *AgentsController) PutAgentSingleGroup(agentID AgentId, groupID GroupId,
 	if err != nil {
 		return nil, err
 	}
+
 	// convert to *AllItemsResponse
 	if i, ok := r.(*AllItemsResponse); ok {
 		return i, nil

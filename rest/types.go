@@ -4,12 +4,10 @@
 package rest
 
 import (
-	"encoding/json"
 	"fmt"
 	"time"
 
 	openapi_types "github.com/deepmap/oapi-codegen/pkg/types"
-	"github.com/pkg/errors"
 )
 
 // ActiveResponseBody defines model for ActiveResponseBody.
@@ -128,7 +126,6 @@ type AgentsSummaryStatus struct {
 
 // AllItemsResponse defines model for AllItemsResponse.
 type AllItemsResponse struct {
-
 	// List of items that have failed applying the requested operation
 	FailedItems []SimpleApiError `json:"failed_items"`
 
@@ -521,15 +518,12 @@ type ApiError struct {
 
 // ApiError_DapiErrors defines model for ApiError.DapiErrors.
 type ApiError_DapiErrors struct {
-	AdditionalProperties map[string]struct {
-		Error   *string `json:"error,omitempty"`
-		Logfile *string `json:"logfile,omitempty"`
-	} `json:"-"`
+	Error   *string `json:"error,omitempty"`
+	Logfile *string `json:"logfile,omitempty"`
 }
 
 // ApiResponse defines model for ApiResponse.
 type ApiResponse struct {
-
 	// Human readable description to explain the result of the request
 	Message   *string `json:"message,omitempty"`
 	ErrorCode int     `json:"error,omitempty"`
@@ -984,6 +978,8 @@ type RequestError struct {
 	RequestDetail string `json:"detail"`
 	RequestError  *int32 `json:"error,omitempty"`
 	RequestTitle  string `json:"title"`
+	// Explain how to fix the check, this field is very useful in case the check failed
+	Remediation *string `json:"remediation,omitempty"`
 }
 
 // RolesRequest defines model for RolesRequest.
@@ -1206,11 +1202,9 @@ type SimpleApiError struct {
 
 // SimpleApiError_Error defines model for SimpleApiError.Error.
 type SimpleApiError_Error struct {
-	AdditionalProperties map[string]struct {
-		Code        *int32  `json:"code,omitempty"`
-		Message     *string `json:"message,omitempty"`
-		Remediation *string `json:"remediation,omitempty"`
-	} `json:"-"`
+	Code        *int32  `json:"code,omitempty"`
+	Message     *string `json:"message,omitempty"`
+	Remediation *string `json:"remediation,omitempty"`
 }
 
 // SyscheckDatabase defines model for SyscheckDatabase.
@@ -5765,6 +5759,7 @@ type SecurityControllerCreateUserJSONRequestBody SecurityControllerCreateUserJSO
 // SecurityControllerUpdateUserRequestBody defines body for SecurityControllerUpdateUser for application/json ContentType.
 type SecurityControllerUpdateUserJSONRequestBody SecurityControllerUpdateUserJSONBody
 
+/*
 // Getter for additional properties for ApiError_DapiErrors. Returns the specified
 // element and whether it was found
 func (a ApiError_DapiErrors) Get(fieldName string) (value struct {
@@ -5832,7 +5827,8 @@ func (a ApiError_DapiErrors) MarshalJSON() ([]byte, error) {
 	}
 	return json.Marshal(object)
 }
-
+*/
+/*
 // Getter for additional properties for SimpleApiError_Error. Returns the specified
 // element and whether it was found
 func (a SimpleApiError_Error) Get(fieldName string) (value struct {
@@ -5877,16 +5873,12 @@ func (a *SimpleApiError_Error) UnmarshalJSON(b []byte) error {
 			Remediation *string `json:"remediation,omitempty"`
 		})
 		for fieldName, fieldBuf := range object {
-			var fieldVal struct {
-				Code        *int32  `json:"code,omitempty"`
-				Message     *string `json:"message,omitempty"`
-				Remediation *string `json:"remediation,omitempty"`
-			}
-			err := json.Unmarshal(fieldBuf, &fieldVal)
+
+			err := json.Unmarshal(fieldBuf, &a.AdditionalProperties[fieldName])
 			if err != nil {
 				return errors.Wrap(err, fmt.Sprintf("error unmarshaling field %s", fieldName))
 			}
-			a.AdditionalProperties[fieldName] = fieldVal
+			// a.AdditionalProperties[fieldName] = fieldVal
 		}
 	}
 	return nil
@@ -5905,13 +5897,17 @@ func (a SimpleApiError_Error) MarshalJSON() ([]byte, error) {
 	}
 	return json.Marshal(object)
 }
-
+*/
 func (e *ApiError) Error() string {
 	return fmt.Sprintf("%d: %s", e.ApiCode, e.ApiTitle)
 }
 
 func (e *RequestError) Error() string {
-	return fmt.Sprintf("%d: %s", e.RequestError, e.RequestTitle)
+	if e.Remediation != nil && *e.Remediation != "" {
+		return fmt.Sprintf("%s - %s: %s (%d)", e.RequestTitle, e.RequestDetail, *e.Remediation, *e.RequestError)
+	}
+
+	return fmt.Sprintf("%s - %s (%d)", e.RequestTitle, e.RequestDetail, *e.RequestError)
 }
 
 func (e *ApiResponse) Error() string {

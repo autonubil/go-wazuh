@@ -22040,13 +22040,18 @@ func (r AgentsControllerDeleteSingleAgentSingleGroupResponse) StatusCode() int {
 type AgentsControllerPutAgentSingleGroupResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *ApiResponse
-	JSON400      *RequestError
-	JSON401      *RequestError
-	JSON403      *ApiError
-	JSON404      *ApiError
-	JSON405      *RequestError
-	JSON429      *RequestError
+	JSON200      *struct {
+		// Embedded struct due to allOf(#/components/schemas/ApiResponse)
+		ApiResponse `yaml:",inline"`
+		// Embedded fields due to inline allOf schema
+		Data *AllItemsResponse `json:"data,omitempty"`
+	}
+	JSON400 *RequestError
+	JSON401 *RequestError
+	JSON403 *ApiError
+	JSON404 *ApiError
+	JSON405 *RequestError
+	JSON429 *RequestError
 }
 
 // Status returns HTTPResponse.Status
@@ -28925,7 +28930,12 @@ func ParseAgentsControllerPutAgentSingleGroupResponse(rsp *http.Response) (*Agen
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest ApiResponse
+		var dest struct {
+			// Embedded struct due to allOf(#/components/schemas/ApiResponse)
+			ApiResponse "yaml:\",inline\""
+			// Embedded fields due to inline allOf schema
+			Data *AllItemsResponse "json:\"data,omitempty\""
+		}
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}

@@ -63,6 +63,7 @@ import (
 	"log"
 	"net/http"
 	"net/http/httputil"
+	"net/url"
 	"os"
 	"reflect"
 	"strings"
@@ -219,6 +220,19 @@ func NewAPIClient(baseURL string, opts ...ClientOption) (*APIClient, error) {
 	}, nil
 }
 
+// ServerAddress return the Wazuh server address
+func (c *APIClient) ServerAddress() string {
+	u, err := url.Parse(c.ClientInterface.(*Client).Server)
+	if err != nil {
+		return "127.0.0.1"
+	}
+	lastSep := strings.LastIndex(u.Host, ":")
+	if lastSep > 0 {
+		return u.Host[:lastSep]
+	}
+	return u.Host
+}
+
 // NewClient returns a new wazuh API client
 func NewClient(baseURL string, opts ...ClientOption) (*Client, error) {
 	// remove trailing slash (if any) from base URL
@@ -266,7 +280,12 @@ func (c *Client) Do(req *http.Request) (*http.Response, error) {
 		if err == nil {
 			reqStr = strings.ReplaceAll(strings.TrimRight(string(dump), "\r\n"), "\n", "\n                            ")
 		}
-		dump, err = httputil.DumpResponse(r, true)
+		if r == nil {
+			dump = nil
+			err = nil
+		} else {
+			dump, err = httputil.DumpResponse(r, true)
+		}
 		if err == nil {
 			c.Tracef("%s\n\n                            %s\n", reqStr, strings.ReplaceAll(strings.TrimRight(string(dump), "\r\n"), "\n", "\n                            "))
 		}
@@ -318,6 +337,9 @@ func getResponseObject(sr RawAPIResponse) (interface{}, error) {
 				d := v.FieldByName("Data").Interface()
 				return d, nil
 			}
+			if _, ok := s.(ApiResponse); ok {
+				fmt.Println("do")
+			}
 			return s, nil
 		}
 	}
@@ -354,5 +376,6 @@ func (c *ClientWithResponses) evaluateResponse(response RawAPIResponse, err erro
 	}
 
 	// log.Printf("[TRACE] %s  %v", response.Request.URL, reflect.ValueOf(response.Request.Result).Elem().FieldByName("Data").Interface())
+
 	return getResponseObject(response)
 }
