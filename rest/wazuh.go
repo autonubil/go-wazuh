@@ -356,13 +356,19 @@ func (c *ClientWithResponses) Authenticate() error {
 	if err != nil {
 		return err
 	}
-
+	if sr == nil {
+		return fmt.Errorf("Authentication failed")
+	}
 	if sr.StatusCode() > 399 {
-		_, err := getResponseObject(sr)
+		if sr != nil {
+			_, err = getResponseObject(sr)
+		}
 		if err != nil {
 			return err
 		}
+		return errors.New(sr.Status())
 	}
+
 	if sr.JSON200.Data.Token == nil {
 		return errors.New("Nil token!?")
 	}
