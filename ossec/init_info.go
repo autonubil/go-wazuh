@@ -14,6 +14,13 @@ import (
 
 var defaultInitFileLocation = "/etc/ossec-init.conf"
 
+// LocalInitInfo contains the init info of the locally installed OSSEC
+var LocalInitInfo *InitInfo
+
+func init() {
+	LocalInitInfo, _ = NewInitInfo()
+}
+
 type stringMap map[string]string
 
 // InitInfo information gathered from ossec-init.conf

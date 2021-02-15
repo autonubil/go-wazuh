@@ -87,11 +87,15 @@ func NewQueue(typ string, opts ...QueueOption) (*Queue, error) {
 
 	if w.QueuePath == "" {
 		if w.InitInfo == nil {
-			info, err := NewInitInfo()
-			if err != nil {
-				return nil, err
+			if LocalInitInfo != nil {
+				w.InitInfo = LocalInitInfo
+			} else {
+				info, err := NewInitInfo()
+				if err != nil {
+					return nil, err
+				}
+				w.InitInfo = info
 			}
-			w.InitInfo = info
 		}
 		w.QueuePath = fmt.Sprintf("%s/queue/ossec/queue", w.InitInfo.Directory)
 	}
@@ -163,7 +167,6 @@ func (w *Queue) DebugMessage(msg string) error {
 
 // SendMessage send a single message to the agent´s queue
 func (w *Queue) SendMessage(event interface{}, location string, programName string) error {
-
 	return w.sendMessage(event, location, programName)
 }
 
@@ -204,7 +207,7 @@ func (w *Queue) AgentLoop() (chan *QueuePosting, chan error) {
 				var location, programName string
 				location = msg.Location
 				if location == "" {
-					location = "ossecv"
+					location = "ossec"
 
 				}
 				programName = msg.ProgramName

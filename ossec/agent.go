@@ -142,7 +142,7 @@ func NewAgent(server string, agentID string, agentName string, agentKey string, 
 		},
 		Server:           server,
 		Port:             1514,
-		UDP:              false,
+		UDP:              true,
 		EncryptionMethod: EncryptionMethodBlowFish,
 	}
 

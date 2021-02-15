@@ -20860,6 +20860,7 @@ func NewSyscollectorControllerGetProcessesInfoRequest(server string, agentId Age
 // ClientWithResponses builds on ClientInterface to offer response payloads
 type ClientWithResponses struct {
 	ClientInterface
+	Lazy bool
 }
 
 // NewClientWithResponses creates a new ClientWithResponses, which wraps
@@ -20869,7 +20870,7 @@ func NewClientWithResponses(server string, opts ...ClientOption) (*ClientWithRes
 	if err != nil {
 		return nil, err
 	}
-	return &ClientWithResponses{client}, nil
+	return &ClientWithResponses{client, false}, nil
 }
 
 // WithBaseURL overrides the baseURL.

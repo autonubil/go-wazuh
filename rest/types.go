@@ -1207,6 +1207,10 @@ type SimpleApiError_Error struct {
 	Remediation *string `json:"remediation,omitempty"`
 }
 
+func (e SimpleApiError_Error) Error() string {
+	return fmt.Sprintf("%s (%d): %s", *e.Message, e.Code, *e.Remediation)
+}
+
 // SyscheckDatabase defines model for SyscheckDatabase.
 type SyscheckDatabase struct {
 

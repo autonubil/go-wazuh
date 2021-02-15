@@ -153,7 +153,6 @@ func (c *Client) do(ctx context.Context, req *http.Request) error {
 // APIClient extended client with less abstract api access
 type APIClient struct {
 	*ClientWithResponses
-
 	ExperimentalController   ExperimentalControllerInterface
 	SyscheckController       SyscheckControllerInterface
 	AgentsController         AgentsControllerInterface
@@ -197,10 +196,9 @@ func NewAPIClient(baseURL string, opts ...ClientOption) (*APIClient, error) {
 	if err != nil {
 		return nil, err
 	}
-	clientWithResponses := &ClientWithResponses{cl}
+	clientWithResponses := &ClientWithResponses{cl, false}
 	return &APIClient{
-		ClientWithResponses: clientWithResponses,
-
+		ClientWithResponses:      clientWithResponses,
 		ExperimentalController:   &ExperimentalController{clientWithResponses},
 		SyscheckController:       &SyscheckController{clientWithResponses},
 		ListsController:          &ListsController{clientWithResponses},
@@ -340,10 +338,20 @@ func getResponseObject(sr RawAPIResponse) (interface{}, error) {
 			if _, ok := s.(ApiResponse); ok {
 				fmt.Println("do")
 			}
+			if sr.StatusCode() > 399 {
+				return s, errors.New(sr.Status())
+			}
 			return s, nil
 		}
 	}
+	if sr.StatusCode() > 399 {
+		return sr, errors.New(sr.Status())
+	}
 	return sr, nil
+}
+
+func (c *ClientWithResponses) Authenticated() bool {
+	return c.ClientInterface.(*Client).token != ""
 }
 
 //Authenticate login using basic auth to optain a token
@@ -366,7 +374,7 @@ func (c *ClientWithResponses) Authenticate() error {
 		if err != nil {
 			return err
 		}
-		return errors.New(sr.Status())
+		return fmt.Errorf("%s returned %s", c.ClientInterface.(*Client).Server, sr.Status())
 	}
 
 	if sr.JSON200.Data.Token == nil {
@@ -382,6 +390,5 @@ func (c *ClientWithResponses) evaluateResponse(response RawAPIResponse, err erro
 	}
 
 	// log.Printf("[TRACE] %s  %v", response.Request.URL, reflect.ValueOf(response.Request.Result).Elem().FieldByName("Data").Interface())
-
 	return getResponseObject(response)
 }
