@@ -26,7 +26,6 @@ build:
         mkdir -p /root/gocache
         go get .
         GOCACHE=${ROOT}/gocache CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "-s -w -linkmode=external -v -X main.Version=${CI_COMMIT_REF_NAME} -X main.BuildDate=$(date --iso-8601=seconds) -X main.Commit=$CI_COMMIT_SHA -s" -v -o ${ROOT}/${CI_PROJECT_NAME} main.go
-        upx ${ROOT}/${CI_PROJECT_NAME}
         nexus_publish_artifact.sh ${ROOT}/${CI_PROJECT_NAME} terraform/${CI_PROJECT_NAME}/linux/amd64
     artifacts:
       paths:
@@ -43,7 +42,6 @@ build_linux_release:
         mkdir -p /root/gocache
         go get .
         GOCACHE=${ROOT}/gocache CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "-s -w -linkmode=external -v -X main.Version=${CI_COMMIT_REF_NAME} -X main.BuildDate=$(date --iso-8601=seconds) -X main.Commit=$CI_COMMIT_SHA -s" -v -o ${ROOT}/${CI_PROJECT_NAME}_${CI_COMMIT_REF_NAME} main.go
-        upx ${ROOT}/${CI_PROJECT_NAME}_${CI_COMMIT_REF_NAME}
         nexus_publish_artifact.sh ${ROOT}/${CI_PROJECT_NAME}_${CI_COMMIT_REF_NAME} terraform/${CI_PROJECT_NAME}/linux/amd64
     artifacts:
       paths:
