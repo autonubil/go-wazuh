@@ -18,7 +18,11 @@ var defaultInitFileLocation = "/etc/ossec-init.conf"
 var LocalInitInfo *InitInfo
 
 func init() {
-	LocalInitInfo, _ = NewInitInfo()
+	var err error
+	LocalInitInfo, err = NewInitInfo()
+	if err != nil {
+		LocalInitInfo = DefaultInintInfo()
+	}
 }
 
 type stringMap map[string]string
@@ -32,6 +36,23 @@ type InitInfo struct {
 	Revision  uint            `json:"Revision"`
 	Date      time.Time       `json:"Date"`
 	Type      string          `json:"Type"`
+}
+
+// DefaultInintInfo Create a default Info
+func DefaultInintInfo() *InitInfo {
+	return &InitInfo{
+		Directory: "/var/ossec",
+		Name:      "Wazuh",
+		Version: &semver.Version{
+			Major: 4,
+			Minor: 0,
+			Patch: 4,
+		},
+		Revision: 40011,
+		Date:     time.Now(),
+		Type:     "agent",
+	}
+
 }
 
 // NewInitInfo read InitInfo from default location
