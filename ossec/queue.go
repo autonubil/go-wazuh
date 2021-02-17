@@ -201,9 +201,6 @@ func (w *Queue) AgentLoop(closeOnError bool) (chan *QueuePosting, chan error) {
 	go func() {
 		for {
 			for msg := range input {
-				if w.Logger != nil {
-					w.Logger.Debug("queue entry", zap.Any("msg", msg))
-				}
 				var location, programName string
 				location = msg.Location
 				if location == "" {
