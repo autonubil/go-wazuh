@@ -194,7 +194,7 @@ func (w *Queue) sendMessage(event interface{}, location string, programName stri
 }
 
 // AgentLoop process incoming messages
-func (w *Queue) AgentLoop() (chan *QueuePosting, chan error) {
+func (w *Queue) AgentLoop(closeOnError bool) (chan *QueuePosting, chan error) {
 	// make the context cancable
 	input := make(chan *QueuePosting, 100)
 	out := make(chan error)
@@ -217,9 +217,15 @@ func (w *Queue) AgentLoop() (chan *QueuePosting, chan error) {
 
 				err := w.SendMessage(msg.Raw, location, programName)
 				if err != nil {
-					close(input)
-					out <- err
-					return
+					if closeOnError {
+						out <- err
+						close(input)
+						return
+					} else {
+						if w.Logger != nil {
+							w.Logger.Error("Send Message", zap.Error(err))
+						}
+					}
 				}
 			}
 		}
