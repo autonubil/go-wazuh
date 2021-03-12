@@ -251,7 +251,7 @@ type AllItemsResponseGroups struct {
 	// Embedded fields due to inline allOf schema
 
 	// Items that successfully applied the API call action
-	AffectedItems []AgentGroupID `json:"affected_items"`
+	AffectedItems []AgentGroup `json:"affected_items"`
 	// Embedded struct due to allOf(#/components/schemas/AllItemsResponse)
 	AllItemsResponse `yaml:",inline"`
 }

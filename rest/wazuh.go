@@ -79,9 +79,9 @@ type Client struct {
 
 	// Doer for performing requests, typically a *http.Client with any
 	// customized settings, such as certificate chains.
-	Client HttpRequestDoer
+	Client HTTPRequestDoer
 
-	innerClient HttpRequestDoer
+	innerClient HTTPRequestDoer
 
 	// A callback for modifying requests which are generated before sending over
 	// the network.
@@ -94,6 +94,13 @@ type Client struct {
 	password  string
 	insecure  bool
 	trace     bool
+}
+
+// HTTPRequestDoer performs HTTP requests.
+//
+// The standard http.Client implements this interface.
+type HTTPRequestDoer interface {
+	Do(req *http.Request) (*http.Response, error)
 }
 
 // WithLogin specifies the credentials for

@@ -134,7 +134,6 @@ type IntegrationMeta struct {
 	Action           string      `json:"action,omitempty"`
 	Status           string      `json:"status,omitempty"`
 	SystemName       string      `json:"systemname,omitempty"`
-	Data             interface{} `json:"webhook,omitempty"`
 	ExtraData        interface{} `json:"extra_data,omitempty"`
 }
 
