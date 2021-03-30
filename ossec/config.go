@@ -9,7 +9,7 @@ import (
 type ConvertibleBoolean bool
 
 // UnmarshalJSON convert string to boolean
-func (bit *ConvertibleBoolean) UnmarshalJSON(data []byte) error {
+func (bit *ConvertibleBoolean) UnmarshalText(data []byte) error {
 	asString := string(data)
 	if asString == "1" || asString == "yes" || asString == "true" {
 		*bit = true
@@ -47,19 +47,19 @@ type ClientConfig struct {
 	XMLName xml.Name `xml:"client"`
 
 	// Address specifies the IP address or the hostname of the Wazuh manager.
-	Address string `xml:"address,omitempty"`
+	Address string `xml:"server>address,omitempty"`
 
 	// Port sSpecifies the port to send events to on the manager. This must match the associated listening port configured on the Wazuh manager.
-	Port uint16 `xml:"port,omitempty"`
+	Port uint16 `xml:"server>port,omitempty"`
 
 	// Protocol specifies the protocol to use when connecting to the manager.
-	Protocol string `xml:"protocol,omitempty"`
+	Protocol string `xml:"server>protocol,omitempty"`
 
 	// MaxRetries number of connection retries.
-	MaxRetries uint16 `xml:"max_retries,omitempty"`
+	MaxRetries uint16 `xml:"server>max_retries,omitempty"`
 
 	// RetryInterval Time interval between connection attempts (seconds).
-	RetryInterval uint16 `xml:"retry_interval,omitempty"`
+	RetryInterval uint16 `xml:"server>retry_interval,omitempty"`
 
 	// ConfigProfile specifies the agent.conf profile(s) to be used by the agent.
 	ConfigProfile string `xml:"config-profile,omitempty"`

@@ -8,7 +8,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"syscall"
 
 	"context"
 	"crypto/md5"
@@ -17,8 +16,10 @@ import (
 	"net"
 	"time"
 
-	"github.com/autonubil/go-wazuh/sysinfo"
 	"go.uber.org/zap"
+
+	"github.com/autonubil/go-wazuh/sysinfo"
+	"github.com/matishsiao/goInfo"
 )
 
 // EncryptionMethod supported transport encryption
@@ -43,6 +44,8 @@ type Client struct {
 	cOrigSize        uint
 	cCompSize        uint
 	EncryptionMethod EncryptionMethod
+	ClientName       string
+	ClientVersion    string
 	ctx              context.Context
 	conn             net.Conn
 	mx               sync.Mutex
@@ -57,6 +60,22 @@ type AgentOption func(*Client) error
 func WithContext(ctx context.Context) AgentOption {
 	return func(c *Client) error {
 		c.ctx = ctx
+		return nil
+	}
+}
+
+// WithClientName use a custom client name
+func WithClientName(clientName string) AgentOption {
+	return func(c *Client) error {
+		c.ClientName = clientName
+		return nil
+	}
+}
+
+// WithClientVersion use a custom client version
+func WithClientVersion(clientVersion string) AgentOption {
+	return func(c *Client) error {
+		c.ClientVersion = clientVersion
 		return nil
 	}
 }
@@ -144,6 +163,8 @@ func NewAgent(server string, agentID string, agentName string, agentKey string, 
 		Port:             1514,
 		UDP:              true,
 		EncryptionMethod: EncryptionMethodBlowFish,
+		ClientName:       "go-wazuh",
+		ClientVersion:    "v1.0.0",
 	}
 
 	// mutate agent and add all optional params
@@ -250,11 +271,7 @@ func (a *Client) PingServer() error {
 func (a *Client) pingServer() error {
 	labelIP := fmt.Sprintf("#\"_agent_ip\":%s", a.AgentIP)
 	agentConfigMd5 := fmt.Sprintf("%00x", md5.Sum([]byte(a.AgentName)))
-	var un syscall.Utsname
-	err := syscall.Uname(&un)
-	if err != nil {
-		return err
-	}
+	un := goInfo.GetInfo()
 
 	osInfo := sysinfo.GetOSInfo()
 
@@ -263,15 +280,15 @@ func (a *Client) pingServer() error {
 		osRel = osRel[len(osInfo.Vendor)+1:]
 	}
 	aname := fmt.Sprintf("%s |%s |%s |%s |%s [%s|%s: %s] - %s %s",
-		firstUpper(nullTerminatedString(un.Sysname)),
-		nullTerminatedString(un.Nodename),
-		nullTerminatedString(un.Release),
-		nullTerminatedString(un.Version),
-		nullTerminatedString(un.Machine),
+		firstUpper(un.OS),
+		un.Hostname,
+		un.Core,
+		un.Kernel,
+		un.Hostname,
 		firstUpper(runtime.GOOS),
 		runtime.GOARCH,
 		osRel,
-		"go-wazuh", "v0.1.0")
+		a.ClientName, a.ClientVersion)
 
 	labels := ""
 	sharedFiles := fmt.Sprintf("%s %s\n", agentConfigMd5, "merged.mg")
@@ -511,7 +528,7 @@ func (a *Client) Connect(isStartup bool) error {
 
 	if isStartup {
 		// log start startup
-		msg = fmt.Sprintf("ossec: Agent started: '%s->%s' from go-wazuh.", a.AgentID, a.AgentIP)
+		msg = fmt.Sprintf("ossec: Agent started: '%s->%s' from %s %s", a.AgentID, a.AgentIP, a.ClientName, a.ClientVersion)
 		msg = fmt.Sprintf("%c:%s:%s", LOCALFILE_MQ, "ossec", msg)
 		err = a.writeMessage(msg)
 		if err != nil {

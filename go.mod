@@ -6,6 +6,7 @@ require (
 	github.com/go-openapi/runtime v0.19.26 // indirect
 	github.com/google/martian v2.1.0+incompatible
 	github.com/gosnmp/gosnmp v1.29.0 // indirect
+	github.com/matishsiao/goInfo v0.0.0-20200404012835-b5f882ee2288 // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.9.0 // indirect
 	github.com/slack-go/slack v0.8.0 // indirect

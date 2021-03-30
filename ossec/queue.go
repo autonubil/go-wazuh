@@ -67,7 +67,6 @@ func WithQueueLogger(logger *zap.Logger) QueueOption {
 
 // NewQueue create new wodle
 func NewQueue(typ string, opts ...QueueOption) (*Queue, error) {
-
 	w := &Queue{
 		TargetQueue: LOCALFILE_MQ,
 		Type:        typ,
