@@ -37,6 +37,33 @@ func ParseAgentKey(line string) (*AgentKey, error) {
 	return &agent, nil
 }
 
+// GetAgentKeyMap read from Environment and if not found there, try default file
+func GetAgentKeyMap(filename string) (AgentKeyMap, error) {
+
+	agentID := os.Getenv("WAZUH_AGENT_ID")
+	agentName := os.Getenv("WAZUH_AGENT_NAME")
+	agentIP := os.Getenv("WAZUH_AGENT_IP")
+	agentKey := os.Getenv("WAZUH_AGENT_KEY")
+
+	if agentID != "" && agentName != "" && agentKey != "" {
+		agentMap := AgentKeyMap{}
+		if agentIP == "" {
+			agentIP = "any"
+		}
+
+		key := &AgentKey{
+			AgentID:         agentID,
+			AgentName:       agentName,
+			AgentHashedKey:  agentKey,
+			AgentAllowedIPs: agentIP,
+		}
+		agentMap[agentID] = key
+		return agentMap, nil
+	}
+
+	return LoadAgentKeyMap("")
+}
+
 // LoadAgentKeyMap read all agent infos from a file (/var/ossec/etc/client.keys)
 func LoadAgentKeyMap(filename string) (AgentKeyMap, error) {
 	if filename == "" {
