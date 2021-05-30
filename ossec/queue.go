@@ -212,6 +212,7 @@ func (w *Queue) AgentLoop(closeOnError bool) (chan *QueuePosting, chan error) {
 
 				err := w.SendMessage(msg.Raw, location, programName)
 				if err != nil {
+					err = NewQueueError("sent", err)
 					if closeOnError {
 						out <- err
 						close(input)
@@ -227,4 +228,17 @@ func (w *Queue) AgentLoop(closeOnError bool) (chan *QueuePosting, chan error) {
 	}()
 
 	return input, out
+}
+
+type QueueError struct {
+	Operation  string
+	InnerError error
+}
+
+func NewQueueError(operation string, innerError error) QueueError {
+	return QueueError{operation, innerError}
+}
+
+func (m QueueError) Error() string {
+	return fmt.Sprintf("%s: %s", m.Operation, m.InnerError.Error())
 }
