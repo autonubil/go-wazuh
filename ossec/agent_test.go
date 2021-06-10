@@ -13,7 +13,6 @@ func TestAgentClient(t *testing.T) {
 	}
 	defer a.Close()
 	err = a.Connect(true)
-
 	if err != nil {
 		t.Error(err)
 		return

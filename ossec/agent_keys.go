@@ -26,7 +26,7 @@ type AgentKeyMap map[string]*AgentKey
 func ParseAgentKey(line string) (*AgentKey, error) {
 	items := strings.Split(line, " ")
 	if len(items) < 4 {
-		return nil, errors.New("Invalid agent key spec")
+		return nil, errors.New("invalid agent key spec")
 	}
 	agent := AgentKey{
 		AgentID: strings.Trim(items[0], " 	"),

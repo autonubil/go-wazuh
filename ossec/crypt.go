@@ -9,7 +9,6 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/md5"
-	"errors"
 	"fmt"
 	"io"
 	"math/rand"
@@ -73,7 +72,7 @@ func aesEncrypt(ppt, key []byte) []byte {
 	}
 
 	// create the encrypter
-	fmt.Println(aesCipher.BlockSize())
+	// fmt.Println(aesCipher.BlockSize())
 	ecbc := cipher.NewCBCEncrypter(aesCipher, []byte("FEDCBA0987654321"))
 
 	pad := len(ppt) % ecbc.BlockSize()
@@ -122,11 +121,11 @@ func (a *Client) decryptMessage(encMsg []byte, msgSize uint32) (string, error) {
 	if encMsg[0] == '!' {
 		endAgentID := strings.Index(string(encMsg[1:]), "!")
 		if endAgentID == -1 {
-			return "", errors.New("Corrupt message")
+			return "", NewCorruptMessage("missing exclamation mark")
 		}
 		agentID := string(encMsg[1 : endAgentID+1])
 		if agentID != a.AgentID {
-			return "", errors.New("AgentID not matching")
+			return "", NewCorruptMessage("AgentID not matching")
 		}
 		msgSize = msgSize - uint32(endAgentID)
 		encMsg = encMsg[endAgentID+2:]
@@ -140,7 +139,7 @@ func (a *Client) decryptMessage(encMsg []byte, msgSize uint32) (string, error) {
 		msgSize = msgSize - 4
 	}
 	if encMsg[0] != ':' {
-		return "", errors.New("Corrupt message")
+		return "", NewCorruptMessage("missing colon")
 	}
 	encMsg = encMsg[1:]
 	msgSize--
@@ -248,4 +247,17 @@ func (a *Client) cryptMsg(msg string) ([]byte, uint32) {
 		cmpSize = uint(len(msgEncrypted))
 	}
 	return []byte(msgEncrypted), (uint32)(cmpSize)
+}
+
+type CorruptMessage struct {
+	typ string
+}
+
+func NewCorruptMessage(typ string) CorruptMessage {
+	return CorruptMessage{
+		typ: typ,
+	}
+}
+func (cme CorruptMessage) Error() string {
+	return fmt.Sprintf("corrupt message (%s)", cme.typ)
 }

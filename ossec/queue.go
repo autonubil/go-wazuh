@@ -155,6 +155,8 @@ type Event struct {
 type QueuePosting struct {
 	Location    string
 	ProgramName string
+	TargetQueue rune
+	Timestamp   time.Time
 	Raw         interface{}
 }
 
@@ -192,7 +194,10 @@ func (w *Queue) sendMessage(event interface{}, location string, programName stri
 }
 
 // AgentLoop process incoming messages
-func (w *Queue) AgentLoop(closeOnError bool) (chan *QueuePosting, chan error) {
+func (w *Queue) AgentLoop(ctx context.Context, closeOnError bool) (chan *QueuePosting, chan error, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	// make the context cancable
 	input := make(chan *QueuePosting, 100)
 	out := make(chan error)
@@ -224,10 +229,13 @@ func (w *Queue) AgentLoop(closeOnError bool) (chan *QueuePosting, chan error) {
 					}
 				}
 			}
+			if ctx.Err() != nil {
+				break
+			}
 		}
 	}()
 
-	return input, out
+	return input, out, nil
 }
 
 type QueueError struct {

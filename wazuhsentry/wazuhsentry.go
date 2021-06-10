@@ -1,6 +1,7 @@
 package wazuhsentry
 
 import (
+	"encoding/gob"
 	"fmt"
 	"reflect"
 	"time"
@@ -24,6 +25,11 @@ type SentryEvent struct {
 	*sentry.Event
 	Project string `json:"project,omitempty"`
 	Version string `json:"version,omitempty"`
+}
+
+func init() {
+	gob.Register(SentryIntegrationEvent{})
+	gob.Register(SentryEvent{})
 }
 
 func (t *AgentTransport) Flush(timeout time.Duration) bool {
@@ -83,6 +89,7 @@ func (t *AgentTransport) SendEvent(event *sentry.Event) {
 	t.channel <- &ossec.QueuePosting{
 		Location:    "internal",
 		ProgramName: "sentry",
+		TargetQueue: ossec.LOCALFILE_MQ,
 		Raw:         msg,
 	}
 }

@@ -23,7 +23,7 @@ func (bit *ConvertibleBoolean) UnmarshalText(data []byte) error {
 
 // LocalConfig see https://documentation.wazuh.com/4.0/user-manual/reference/ossec-conf/index.html
 type LocalConfig struct {
-	XMLName      xml.Name     `xml:"oss_agent"`
+	XMLName      xml.Name     `xml:"ossec_config"`
 	ClientConfig ClientConfig `xml:"client"`
 }
 

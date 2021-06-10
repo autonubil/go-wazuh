@@ -15,7 +15,7 @@ func TestAuthD(t *testing.T) {
 	cfg.AgentID = "666"
 	cfg.AgentKey = "c588215eddc469001c41f4aa5cc306ea20fc6815e5cfe3cc666c5ccb7bc505e0"
 	cfg.AgentIP = "any"
-	key, err := RegisterAgent(cfg, []string{"default"})
+	key, err := RegisterAgent(cfg)
 	if err != nil {
 		t.Error(err)
 		return
