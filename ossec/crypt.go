@@ -63,7 +63,21 @@ func blowfishDecrypt(ppt, key []byte) []byte {
 	return ciphertext
 }
 
+// Use PKCS7 to fill, IOS is also 7
+func PKCS7Padding(ciphertext []byte, blockSize int) []byte {
+	padding := blockSize - len(ciphertext)%blockSize
+	padtext := bytes.Repeat([]byte{byte(padding)}, padding)
+	return append(ciphertext, padtext...)
+}
+
+func PKCS7UnPadding(origData []byte) []byte {
+	length := len(origData)
+	unpadding := int(origData[length-1])
+	return origData[:(length - unpadding)]
+}
+
 func aesEncrypt(ppt, key []byte) []byte {
+	// ppt = []byte("TestString123456TestString123456")
 	// create the cipher
 	aesCipher, err := aes.NewCipher(key[:32])
 	if err != nil {
@@ -73,24 +87,25 @@ func aesEncrypt(ppt, key []byte) []byte {
 
 	// create the encrypter
 	// fmt.Println(aesCipher.BlockSize())
-	ecbc := cipher.NewCBCEncrypter(aesCipher, []byte("FEDCBA0987654321"))
+	ivBytes := []byte("FEDCBA0987654321")
+	ecbc := cipher.NewCBCEncrypter(aesCipher, ivBytes)
 
-	pad := len(ppt) % ecbc.BlockSize()
-	for pad != 0 {
-		ppt = append(ppt, 0)
-		pad = len(ppt) % ecbc.BlockSize()
-	}
+	ppt = PKCS7Padding(ppt, ecbc.BlockSize())
 
 	// make ciphertext big enough to store len(ppt)
+	// ciphertext := make([]byte, len(ppt)+ecbc.BlockSize())
 	ciphertext := make([]byte, len(ppt))
 
 	// encrypt the blocks, because block cipher
 	ecbc.CryptBlocks(ciphertext, ppt)
+	// ecbc.CryptBlocks(ciphertext[len(ppt):], ivBytes)
+
 	// return ciphertext to calling function
 	return ciphertext
 }
 
 func aesDecrypt(ppt, key []byte) []byte {
+
 	// create the cipher
 	aesCipher, err := aes.NewCipher(key[:32])
 	if err != nil {
@@ -112,6 +127,7 @@ func aesDecrypt(ppt, key []byte) []byte {
 
 	ecbc.CryptBlocks(ciphertext, ppt)
 	return ciphertext
+
 }
 
 func (a *Client) decryptMessage(encMsg []byte, msgSize uint32) (string, error) {

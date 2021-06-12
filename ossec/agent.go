@@ -36,8 +36,8 @@ const (
 	EncryptionMethodBlowFish = EncryptionMethod(0)
 	// EncryptionMethodAES use AES for transprot encryption
 	EncryptionMethodAES = EncryptionMethod(1)
-	// maixumum number of messages that can be send ber second
-	SendRateLimit = 40
+	// maximum number of messages that can be send ber second (500 is the hard limit on the server - be gentle  )
+	SendRateLimit = 450
 )
 
 // Client allowes to handshake with the server to reach a pending state (which allowes the agent to become a group member)
@@ -130,9 +130,10 @@ func WithPort(port uint16) AgentOption {
 // WithEncryptionMethod specify encryption method to use
 func WithEncryptionMethod(encryptionMethod EncryptionMethod) AgentOption {
 	return func(c *Client) error {
-		if encryptionMethod == EncryptionMethodAES {
+		/**		if encryptionMethod == EncryptionMethodAES {
 			return errors.New("AES is currently not supported")
 		}
+		*/
 		c.EncryptionMethod = encryptionMethod
 		return nil
 	}
@@ -185,7 +186,7 @@ func NewAgent(server string, agentID string, agentName string, agentKey string, 
 		Server:           server,
 		Port:             1514,
 		UDP:              true,
-		EncryptionMethod: EncryptionMethodBlowFish,
+		EncryptionMethod: EncryptionMethodAES,
 		ClientName:       "go-wazuh",
 		ClientVersion:    "v1.0.0",
 		ratelimit:        ratelimit.New(SendRateLimit), // per second
@@ -319,7 +320,7 @@ func (a *Client) handleResponse(response string) error {
 			}
 			sb := strings.Builder{}
 			for {
-				raw, err := a.readRaw(ReadWaitTimeout)
+				raw, err := a.readMessage(ReadWaitTimeout)
 				if err != nil {
 					return err
 				}
@@ -384,7 +385,7 @@ func (a *Client) cacheFileHash(fileName string, hash string, content string) err
 
 func (a *Client) pingServer() error {
 	labelIP := fmt.Sprintf("#\"_agent_ip\":%s", a.AgentIP)
-	labelWodle := fmt.Sprintf("#\"_opserve_wodle\":%s", a.ClientName)
+	labelWodle := fmt.Sprintf("#\"_opserve_wodle\":\"%s\"", a.ClientName)
 	agentConfigMd5 := fmt.Sprintf("%00x", md5.Sum([]byte(a.AgentName)))
 	un := goInfo.GetInfo()
 
@@ -472,7 +473,7 @@ func (a *Client) sendMessage(msg string, readTimeout time.Duration) (string, err
 		return "", err
 	}
 	result, err := a.readMessage(readTimeout)
-	if err != nil {
+	if err != nil && err.Error() != "EOF" {
 		return "", err
 	}
 	return result, nil
@@ -653,7 +654,7 @@ func itemBuilder() interface{} {
 
 func (a *Client) openQueue(ctx context.Context) (chan *QueuePosting, *dque.DQue, error) {
 
-	q, err := dque.NewOrOpen("agent-queue", a.basePath, 500, itemBuilder)
+	q, err := dque.NewOrOpen("event-queue", a.basePath, 500, itemBuilder)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -713,9 +714,10 @@ func (a *Client) AgentLoop(ctx context.Context, closeOnError bool) (chan *QueueP
 				}
 
 				// once a second dequeue any message
-				for item, err := q.Dequeue(); err != dque.ErrEmpty; {
-					if err != nil {
-						a.logger.Error("dequeue", zap.Error(err))
+
+				for item, dqErr := q.Dequeue(); dqErr != dque.ErrEmpty && item != nil; {
+					if dqErr != nil {
+						a.logger.Error("dequeue", zap.Error(dqErr))
 						break
 					}
 
@@ -723,6 +725,7 @@ func (a *Client) AgentLoop(ctx context.Context, closeOnError bool) (chan *QueueP
 						b, err := json.Marshal(msg.Raw)
 						if err != nil {
 							a.logger.Error("marshall", zap.Error(err))
+							item = nil
 							continue
 						}
 
@@ -731,7 +734,8 @@ func (a *Client) AgentLoop(ctx context.Context, closeOnError bool) (chan *QueueP
 						}
 
 						wireMsg := fmt.Sprintf("%c:%s:%s %s %s:%s", msg.TargetQueue, msg.Location, msg.Timestamp.UTC().Format("Jan 02 15:04:05"), a.AgentName, msg.ProgramName, string(b))
-						_, err = a.SendMessage(wireMsg, ReadImmediateTimeout)
+						err = a.WriteMessage(wireMsg)
+						item = nil
 						if err != nil {
 							break
 						}
@@ -739,10 +743,11 @@ func (a *Client) AgentLoop(ctx context.Context, closeOnError bool) (chan *QueueP
 						a.logger.Error("dequeue", zap.Error(fmt.Errorf("invalid queue content")))
 					}
 				}
+				time.Sleep(time.Second * 1)
 				if !a.IsConencted() {
+					a.logger.Warn("disconnected")
 					break
 				}
-				time.Sleep(time.Second * 1)
 			}
 			if !a.IsConencted() {
 				a.logger.Debug("try reconnected", zap.Any("agentId", a.AgentID))
