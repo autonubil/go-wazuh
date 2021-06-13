@@ -132,7 +132,6 @@ func aesDecrypt(ppt, key []byte) []byte {
 
 func (a *Client) decryptMessage(encMsg []byte, msgSize uint32) (string, error) {
 	var compressed []byte
-	// fmt.Printf("%d:%d -> '%s' %0x\n", len(encMsg), msgSize, string(encMsg), encMsg)
 
 	if encMsg[0] == '!' {
 		endAgentID := strings.Index(string(encMsg[1:]), "!")
@@ -149,16 +148,21 @@ func (a *Client) decryptMessage(encMsg []byte, msgSize uint32) (string, error) {
 
 	method := EncryptionMethodBlowFish
 	if string(encMsg[:4]) == "#AES" {
-		compressed = make([]byte, 0)
 		method = EncryptionMethodAES
 		encMsg = encMsg[4:]
 		msgSize = msgSize - 4
+		fmt.Println("#AES")
 	}
 	if encMsg[0] != ':' {
 		return "", NewCorruptMessage("missing colon")
 	}
 	encMsg = encMsg[1:]
 	msgSize--
+
+	if int(msgSize) > len(encMsg) {
+		return "", NewCorruptMessage("invalid decrypted length")
+	}
+
 	if method == EncryptionMethodBlowFish {
 		compressed = blowfishDecrypt([]byte(encMsg[0:msgSize]), []byte(a.AgentHashedKey))
 	} else {
