@@ -151,7 +151,6 @@ func (a *Client) decryptMessage(encMsg []byte, msgSize uint32) (string, error) {
 		method = EncryptionMethodAES
 		encMsg = encMsg[4:]
 		msgSize = msgSize - 4
-		fmt.Println("#AES")
 	}
 	if encMsg[0] != ':' {
 		return "", NewCorruptMessage("missing colon")
@@ -261,7 +260,6 @@ func (a *Client) cryptMsg(msg string) ([]byte, uint32) {
 	}
 
 	msgSize = uint(len(msgEncrypted))
-	// fmt.Printf("'%s' : %d ->  <%s> '%s' : %d\n", tmpMsg, len(tmpMsg), fmt.Sprintf("%00x", md5.Sum([]byte(msgEncrypted))), msgEncrypted, len(msgEncrypted))
 
 	if cmpSize < uint(len(msgEncrypted)) {
 		cmpSize = uint(len(msgEncrypted))

@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"errors"
 	"io/ioutil"
-	"math"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -63,7 +62,14 @@ type Client struct {
 	logger            *zap.Logger
 	connected         bool
 	ratelimit         ratelimit.Limiter
-	CurrentRemoteFile *bytes.Buffer
+	RemoteFiles       map[string]RemoteFileInfo
+	CurrentRemoteFile *RemoteFileInfo
+}
+
+type RemoteFileInfo struct {
+	Filename string
+	Hash     string
+	Content  *bytes.Buffer
 }
 
 func init() {
@@ -192,6 +198,7 @@ func NewAgent(server string, agentID string, agentName string, agentKey string, 
 		ClientName:       "go-wazuh",
 		ClientVersion:    "v1.0.0",
 		ratelimit:        ratelimit.New(SendRateLimit), // per second
+		RemoteFiles:      make(map[string]RemoteFileInfo),
 	}
 
 	// mutate agent and add all optional params
@@ -255,7 +262,7 @@ const (
 
 	maxBufferSize        = 1024 * 60
 	ReadWaitTimeout      = time.Duration(30 * time.Second)
-	ReadImmediateTimeout = time.Duration(2 * time.Second)
+	ReadImmediateTimeout = time.Duration(1 * time.Second)
 )
 
 func (a *Client) IsConencted() bool {
@@ -310,47 +317,77 @@ func (a *Client) PingServer() error {
 
 func (a *Client) handleResponse(response string) error {
 
-	if a.CurrentRemoteFile != nil {
-		a.CurrentRemoteFile.WriteString(response)
-		return nil
-	}
-
-	if strings.HasPrefix(string(response), FILE_UPDATE_HEADER) {
-		fieleSpecs := strings.Split(strings.Trim(response[11:], "\n \t"), " ")
-		if len(fieleSpecs) == 2 {
-			a.cacheFileHash(fieleSpecs[1], fieleSpecs[0], "")
-
-			if a.logger != nil {
-				a.logger.Debug("receive file", zap.String("fileName", fieleSpecs[1]))
+	if strings.HasPrefix(string(response), CONTROL_HEADER) {
+		a.logger.Info("control message", zap.Any("agentId", a.AgentID), zap.String("msg", string(response)))
+		if strings.HasPrefix(string(response), FILE_UPDATE_HEADER) {
+			fieleSpecs := strings.Split(strings.Trim(response[11:], "\n \t"), " ")
+			if len(fieleSpecs) == 2 {
+				if existingFile, ok := a.RemoteFiles[fieleSpecs[1]]; ok && existingFile.Hash == fieleSpecs[0] {
+					return nil
+				}
+				if a.logger != nil {
+					a.logger.Debug("receive file", zap.String("fileName", fieleSpecs[1]))
+				}
+				a.CurrentRemoteFile = &RemoteFileInfo{
+					Filename: fieleSpecs[1],
+					Hash:     fieleSpecs[0],
+					Content:  bytes.NewBuffer(nil),
+				}
 			}
-			a.CurrentRemoteFile = bytes.NewBuffer(nil)
+			return nil
 		}
-		return nil
-	}
-	if strings.HasPrefix(string(response), FILE_CLOSE_HEADER) {
+		if strings.HasPrefix(string(response), FILE_CLOSE_HEADER) {
+			if a.logger != nil {
+				a.logger.Debug("done receive file", zap.Int("len", a.CurrentRemoteFile.Content.Len()))
+			}
+			a.cacheFileHash(a.CurrentRemoteFile.Filename, a.CurrentRemoteFile.Hash, a.CurrentRemoteFile.Content.String())
+			a.CurrentRemoteFile = nil
+			return nil
+		}
+		if string(response) == HC_ACK {
+			return nil
+		}
+
+	} else {
+		if a.CurrentRemoteFile != nil {
+			a.CurrentRemoteFile.Content.WriteString(response)
+			a.cacheFileHash(a.CurrentRemoteFile.Filename, a.CurrentRemoteFile.Hash, a.CurrentRemoteFile.Content.String())
+
+			/*if a.logger != nil {
+				a.logger.Debug("receivedFilecontent", zap.Any("agentId", a.AgentID), zap.String("filename", a.CurrentRemoteFile.Filename), zap.Int("read", len(response)), zap.Int("total", a.CurrentRemoteFile.Content.Len()), zap.String("msg", string(response)))
+			}
+			*/
+			return nil
+		}
 		if a.logger != nil {
-			a.logger.Debug("done receive file", zap.Int("len", a.CurrentRemoteFile.Len()))
+			a.logger.Debug("receivedMessage", zap.Any("agentId", a.AgentID), zap.String("msg", string(response)))
 		}
-		a.CurrentRemoteFile = nil
-		return nil
 	}
-	if string(response) == HC_ACK {
-		return nil
-	}
+
 	return nil
 }
 
 func (a *Client) getSharedFiles() string {
 	b := strings.Builder{}
-	searchPath := filepath.Join(a.remotePath, "*.hash")
+	searchPath := filepath.Join(a.remotePath, "*")
 	files, err := filepath.Glob(searchPath)
 	if err == nil && len(files) > 0 {
 		for _, filename := range files {
 			content, err := ioutil.ReadFile(filename)
 			if err != nil {
-				content = []byte("00000000000000000000000000000000")
+				a.logger.Warn("corrupt file", zap.String("filename", filename), zap.Error(err))
+				os.Remove(filename)
+				continue
 			}
-			b.WriteString(fmt.Sprintf("%s %s\n", string(content), filepath.Base(filename[0:len(filename)-5])))
+			h := md5.New()
+			h.Write(content)
+			fileInfo := RemoteFileInfo{
+				Filename: filename[len(a.remotePath)+1:],
+				Content:  bytes.NewBuffer([]byte(content)),
+				Hash:     fmt.Sprintf("%x", h.Sum(nil)),
+			}
+			a.RemoteFiles[filename] = fileInfo
+			b.WriteString(fmt.Sprintf("%s %s\n", fileInfo.Hash, fileInfo.Filename))
 		}
 	} else {
 		// new agent registration. empty mergerd.mg
@@ -360,13 +397,15 @@ func (a *Client) getSharedFiles() string {
 }
 
 func (a *Client) cacheFileHash(fileName string, hash string, content string) error {
-	fullpath := filepath.Join(a.remotePath, fileName+".hash")
-	err := ioutil.WriteFile(fullpath, []byte(hash), 0644)
-	if err != nil {
-		return nil
+	fullpath := filepath.Join(a.remotePath, fileName)
+	err := ioutil.WriteFile(fullpath, []byte(content), 0644)
+	if err == nil {
+		a.RemoteFiles[fileName] = RemoteFileInfo{
+			Filename: fileName,
+			Content:  bytes.NewBuffer([]byte(content)),
+			Hash:     hash,
+		}
 	}
-	fullpath = filepath.Join(a.remotePath, fileName)
-	err = ioutil.WriteFile(fullpath, []byte(content), 0644)
 	return err
 }
 
@@ -480,12 +519,11 @@ func (a *Client) readServerResponse(timeout time.Duration) error {
 	totallyRead := 0
 	messagesRead := 0
 	for {
-		if buf.Len() > 0 {
-			fmt.Println("continue")
-		}
 		for {
 			nRead, err := a.conn.Read(buffer)
-
+			if nRead == 0 {
+				break
+			}
 			if err != nil {
 				if oe, ok := err.(*net.OpError); ok && totallyRead > 0 && oe.Err == os.ErrDeadlineExceeded {
 					break
@@ -495,12 +533,9 @@ func (a *Client) readServerResponse(timeout time.Duration) error {
 						return nil
 					}
 					// time out without any message... not expected
-					fmt.Printf("%d\t%d\t'%s'\t%s\n", totallyRead, -1, "<nil>", err)
+					// fmt.Printf("%d\t%d\t'%s'\t%s\n", totallyRead, -1, "<nil>", err)
 					return err
 				}
-			}
-			if nRead == 0 {
-				break
 			}
 
 			buf.Write(buffer[:nRead])
@@ -510,11 +545,10 @@ func (a *Client) readServerResponse(timeout time.Duration) error {
 			}
 		}
 		if totallyRead == 0 {
-			println("empty result")
 			return nil
 		}
 		rawMsg := buf.Bytes()
-		fmt.Printf("\n%d -> '%s\n", len(rawMsg), string(rawMsg[:int(math.Min(float64(len(rawMsg)), 128))]))
+		// fmt.Printf("\n%d -> '%s\n", len(rawMsg), string(rawMsg[:int(math.Min(float64(len(rawMsg)), 128))]))
 
 		var msgSize uint32
 		if !a.UDP {
@@ -528,8 +562,11 @@ func (a *Client) readServerResponse(timeout time.Duration) error {
 			msgSize = uint32(len(rawMsg))
 		}
 
+		if int(msgSize) > len(rawMsg) {
+			return errors.New("message exceeds buffer")
+		}
 		msg, err := a.decryptMessage(rawMsg[:msgSize], msgSize)
-		fmt.Printf("%d\t%d\t'%s'\t%s\n", totallyRead, msgSize, msg, err)
+		// fmt.Printf("%d\t%d\t'%s'\t%s\n", totallyRead, msgSize, msg, err)
 		if err != nil {
 			return err
 		}
@@ -549,16 +586,13 @@ func (a *Client) readServerResponse(timeout time.Duration) error {
 		a.globalCount = uint(globalCount)
 		// rand1 := msg[:5]
 		// fmt.Printf("packet-received: bytes=%d (%s:%d:%d) '%s'\n", nRead, rand1, globalCount, localCount, msg)
-		if a.logger != nil {
-			a.logger.Debug("receivedMessage", zap.Any("agentId", a.AgentID), zap.String("msg", msg))
-		}
-
 		// empty buffer for next read
 		buf.Reset()
-		// alread read a port of the next message?
+		// already read a port of the next message?
 		if totallyRead > int(msgSize) {
 			totallyRead -= int(msgSize)
 			buf.Write(rawMsg[int(msgSize):])
+			totallyRead = 0
 		} else {
 			totallyRead = 0
 			buffer = make([]byte, maxBufferSize)
