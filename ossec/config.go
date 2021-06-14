@@ -16,7 +16,7 @@ func (bit *ConvertibleBoolean) UnmarshalText(data []byte) error {
 	} else if asString == "0" || asString == "no" || asString == "false" {
 		*bit = false
 	} else {
-		return fmt.Errorf("Boolean unmarshal error: invalid input %s", asString)
+		return fmt.Errorf("boolean unmarshal error: invalid input %s", asString)
 	}
 	return nil
 }

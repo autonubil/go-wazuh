@@ -26,10 +26,6 @@ type Queue struct {
 	ctx         context.Context
 }
 
-var (
-	fieldDebugName = "Wodle event"
-)
-
 // QueueOption allows setting custom parameters during construction
 type QueueOption func(*Queue) error
 
@@ -111,10 +107,6 @@ func NewQueue(typ string, opts ...QueueOption) (*Queue, error) {
 	return w, nil
 }
 
-type wodleDebugEvent struct {
-	Event string `json:"Wodle event"`
-}
-
 // IntegrationMeta standard metadata
 type IntegrationMeta struct {
 	//	InputType       string      `json:"input>type,omitempty"`
@@ -183,7 +175,7 @@ func (w *Queue) sendMessage(event interface{}, location string, programName stri
 	defer s.Close()
 
 	wireMsg := fmt.Sprintf("%c:%s:%s %s %s:%s", w.TargetQueue, location, time.Now().UTC().Format("Jan 02 15:04:05"), w.AgentName, programName, string(b))
-	_, err = s.Write([]byte(wireMsg))
+	_, e = s.Write([]byte(wireMsg))
 	if e != nil {
 		return e
 	}

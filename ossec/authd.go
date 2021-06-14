@@ -21,7 +21,7 @@ type EnrollmentConfig struct {
 	AgentName string
 	AgentID   string
 	AgentIP   string
-	// IP adress or CIDR of the agent. In case of null the manager will use the source ip
+	// IP address or CIDR of the agent. In case of null the manager will use the source ip
 	SenderIP string
 	// Forces manager to use source ip
 	UseSrcIP bool
@@ -55,7 +55,6 @@ func NewEnrollmentConfig() (*EnrollmentConfig, error) {
 			return nil, err
 		}
 		cfg.AgentName = hostname
-
 	}
 
 	if cfg.logger == nil {
@@ -75,7 +74,7 @@ func RegisterAgent(cfg *EnrollmentConfig) (*AgentKey, error) {
 	if cfg.CACert != "" {
 		ok := roots.AppendCertsFromPEM([]byte(cfg.CACert))
 		if !ok {
-			return nil, errors.New("Failed to add manager´s CA certificates")
+			return nil, errors.New("failed to add manager´s CA certificates")
 		}
 		insecure = false
 	}
@@ -84,7 +83,9 @@ func RegisterAgent(cfg *EnrollmentConfig) (*AgentKey, error) {
 		RootCAs:            roots,
 		InsecureSkipVerify: insecure,
 	})
-
+	if err != nil {
+		return nil, err
+	}
 	var b strings.Builder
 	if cfg.AuthPass != "" {
 		b.WriteString(fmt.Sprintf("OSSEC PASS: %s OSSEC A:'%s'", cfg.AuthPass, cfg.AgentName))
@@ -128,5 +129,5 @@ func RegisterAgent(cfg *EnrollmentConfig) (*AgentKey, error) {
 		}
 	}
 
-	return nil, fmt.Errorf("Invalid result: %s", s)
+	return nil, fmt.Errorf("invalid result: %s", s)
 }

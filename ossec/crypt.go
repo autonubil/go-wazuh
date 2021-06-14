@@ -259,7 +259,7 @@ func (a *Client) cryptMsg(msg string) ([]byte, uint32) {
 		msgEncrypted = fmt.Sprintf("%s%s", cryptoToken, encrypted)
 	}
 
-	msgSize = uint(len(msgEncrypted))
+	// msgSize = uint(len(msgEncrypted))
 
 	if cmpSize < uint(len(msgEncrypted)) {
 		cmpSize = uint(len(msgEncrypted))

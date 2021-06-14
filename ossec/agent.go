@@ -38,6 +38,9 @@ const (
 	EncryptionMethodAES = EncryptionMethod(1)
 	// maximum number of messages that can be send ber second (500 is the hard limit on the server - be gentle  )
 	SendRateLimit = 450
+
+	// time between server pings
+	PingIntervall = 60
 )
 
 // Client allowes to handshake with the server to reach a pending state (which allowes the agent to become a group member)
@@ -318,7 +321,6 @@ func (a *Client) PingServer() error {
 func (a *Client) handleResponse(response string) error {
 
 	if strings.HasPrefix(string(response), CONTROL_HEADER) {
-		a.logger.Info("control message", zap.Any("agentId", a.AgentID), zap.String("msg", string(response)))
 		if strings.HasPrefix(string(response), FILE_UPDATE_HEADER) {
 			fieleSpecs := strings.Split(strings.Trim(response[11:], "\n \t"), " ")
 			if len(fieleSpecs) == 2 {
@@ -347,6 +349,7 @@ func (a *Client) handleResponse(response string) error {
 		if string(response) == HC_ACK {
 			return nil
 		}
+		a.logger.Info("control message", zap.Any("agentId", a.AgentID), zap.String("msg", string(response)))
 
 	} else {
 		if a.CurrentRemoteFile != nil {
@@ -363,7 +366,6 @@ func (a *Client) handleResponse(response string) error {
 			a.logger.Debug("receivedMessage", zap.Any("agentId", a.AgentID), zap.String("msg", string(response)))
 		}
 	}
-
 	return nil
 }
 
@@ -704,7 +706,7 @@ func (a *Client) openQueue(ctx context.Context) (chan *QueuePosting, *dque.DQue,
 }
 
 // AgentLoop Process messages and keep track of connection status
-func (a *Client) AgentLoop(ctx context.Context, closeOnError bool) (chan *QueuePosting, chan error, error) {
+func (a *Client) AgentLoop(ctx context.Context, closeOnError bool) (chan *QueuePosting, chan interface{}, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -712,7 +714,7 @@ func (a *Client) AgentLoop(ctx context.Context, closeOnError bool) (chan *QueueP
 	a.ctx = ctx
 
 	// make the context cancable
-	out := make(chan error)
+	out := make(chan interface{})
 	var err error
 	for err = a.Connect(true); err != nil; {
 		a.logger.WithOptions(zap.WithCaller(false)).Warn("connect failed", zap.Any("agentId", a.AgentID), zap.String("error", err.Error()))
@@ -729,8 +731,8 @@ func (a *Client) AgentLoop(ctx context.Context, closeOnError bool) (chan *QueueP
 		defer q.Close()
 
 		for {
-
-			for t := 0; t < 60; t++ {
+			loopEntry := time.Now()
+			for t := 0; t < PingIntervall; t++ {
 				if ctx.Err() != nil {
 					out <- err
 					break
@@ -764,9 +766,15 @@ func (a *Client) AgentLoop(ctx context.Context, closeOnError bool) (chan *QueueP
 						}
 					} else {
 						a.logger.Error("dequeue", zap.Error(fmt.Errorf("invalid queue content")))
-						q.Dequeue()
+					}
+					// remove last item from queue
+					q.Dequeue()
+					// make sure, we take a pause
+					if loopEntry.Add(time.Second*PingIntervall - 1).After(time.Now()) {
+						break
 					}
 				}
+				// take a breath
 				time.Sleep(time.Second * 1)
 				if !a.IsConencted() {
 					a.logger.Warn("disconnected")
@@ -774,12 +782,11 @@ func (a *Client) AgentLoop(ctx context.Context, closeOnError bool) (chan *QueueP
 				}
 			}
 			if !a.IsConencted() {
-				a.logger.Debug("try reconnected", zap.Any("agentId", a.AgentID))
+				a.logger.Debug("try reconnect", zap.Any("agentId", a.AgentID))
 				for err = a.Connect(false); err != nil; {
 					time.Sleep(time.Second * 10)
-					a.logger.Debug("try reconnected", zap.Any("agentId", a.AgentID))
+					a.logger.Debug("try reconnect", zap.Any("agentId", a.AgentID))
 				}
-
 			} else {
 				err = a.PingServer()
 			}
