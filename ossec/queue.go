@@ -186,13 +186,13 @@ func (w *Queue) sendMessage(event interface{}, location string, programName stri
 }
 
 // AgentLoop process incoming messages
-func (w *Queue) AgentLoop(ctx context.Context, closeOnError bool) (chan *QueuePosting, chan error, error) {
+func (w *Queue) AgentLoop(ctx context.Context, closeOnError bool) (chan *QueuePosting, chan interface{}, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
 	// make the context cancable
 	input := make(chan *QueuePosting, 100)
-	out := make(chan error)
+	out := make(chan interface{})
 	go func() {
 		for {
 			for msg := range input {

@@ -65,10 +65,17 @@ type Client struct {
 	logger            *zap.Logger
 	connected         bool
 	ratelimit         ratelimit.Limiter
+	outChannel        chan interface{}
 	RemoteFiles       map[string]RemoteFileInfo
 	CurrentRemoteFile *RemoteFileInfo
 }
 
+type FileUpdatedEvent struct {
+	FileInfo *RemoteFileInfo
+}
+
+type AgentShutDownEvent struct {
+}
 type RemoteFileInfo struct {
 	Filename string
 	Hash     string
@@ -343,7 +350,7 @@ func (a *Client) handleResponse(response string) error {
 				a.logger.Debug("done receive file", zap.Int("len", a.CurrentRemoteFile.Content.Len()))
 			}
 			a.cacheFileHash(a.CurrentRemoteFile.Filename, a.CurrentRemoteFile.Hash, a.CurrentRemoteFile.Content.String())
-			a.CurrentRemoteFile = nil
+			a.outChannel <- &FileUpdatedEvent{a.CurrentRemoteFile}
 			return nil
 		}
 		if string(response) == HC_ACK {
@@ -715,6 +722,7 @@ func (a *Client) AgentLoop(ctx context.Context, closeOnError bool) (chan *QueueP
 
 	// make the context cancable
 	out := make(chan interface{})
+	a.outChannel = out
 	var err error
 	for err = a.Connect(true); err != nil; {
 		a.logger.WithOptions(zap.WithCaller(false)).Warn("connect failed", zap.Any("agentId", a.AgentID), zap.String("error", err.Error()))

@@ -39,6 +39,10 @@ type EnrollmentConfig struct {
 	logger *zap.Logger
 }
 
+func (c *EnrollmentConfig) SetLogger(logger *zap.Logger) {
+	c.logger = logger
+}
+
 // NewEnrollmentConfig initialize new enrolment config
 func NewEnrollmentConfig() (*EnrollmentConfig, error) {
 	cfg := &EnrollmentConfig{

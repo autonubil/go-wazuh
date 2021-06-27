@@ -3,6 +3,7 @@ package ossec
 import (
 	"bufio"
 	"errors"
+	"fmt"
 	"os"
 	"strings"
 
@@ -39,7 +40,6 @@ func ParseAgentKey(line string) (*AgentKey, error) {
 
 // GetAgentKeyMap read from Environment and if not found there, try default file
 func GetAgentKeyMap(filename string) (AgentKeyMap, error) {
-
 	agentID := os.Getenv("WAZUH_AGENT_ID")
 	agentName := os.Getenv("WAZUH_AGENT_NAME")
 	agentIP := os.Getenv("WAZUH_AGENT_IP")
@@ -50,7 +50,6 @@ func GetAgentKeyMap(filename string) (AgentKeyMap, error) {
 		if agentIP == "" {
 			agentIP = "any"
 		}
-
 		key := &AgentKey{
 			AgentID:         agentID,
 			AgentName:       agentName,
@@ -60,7 +59,6 @@ func GetAgentKeyMap(filename string) (AgentKeyMap, error) {
 		agentMap[agentID] = key
 		return agentMap, nil
 	}
-
 	return LoadAgentKeyMap("")
 }
 
@@ -89,4 +87,17 @@ func LoadAgentKeyMap(filename string) (AgentKeyMap, error) {
 		}
 	}
 	return agentMap, nil
+}
+
+func (a *AgentKey) WriteAgentKey(filename string) error {
+	if filename == "" {
+		filename = "/etc/client.keys"
+	}
+	file, err := os.Create(filename)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	_, err = fmt.Fprintf(file, "%s %s %s %s", a.AgentID, a.AgentName, a.AgentAllowedIPs, a.AgentKey)
+	return err
 }
