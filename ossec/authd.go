@@ -46,10 +46,10 @@ func (c *EnrollmentConfig) SetLogger(logger *zap.Logger) {
 // NewEnrollmentConfig initialize new enrolment config
 func NewEnrollmentConfig() (*EnrollmentConfig, error) {
 	cfg := &EnrollmentConfig{
-		ManagerName: "127.0.0.1",
+		ManagerName: os.Getenv("WAZUH_AUTHD_SERVER"),
 		Port:        1515,
 		AgentIP:     "src",
-		AuthPass:    "",
+		AuthPass:    os.Getenv("WAZUH_AUTHD_PASSWORD"),
 		Groups:      make([]string, 0),
 	}
 	var err error
@@ -67,7 +67,6 @@ func NewEnrollmentConfig() (*EnrollmentConfig, error) {
 			return nil, err
 		}
 	}
-
 	return cfg, nil
 }
 
