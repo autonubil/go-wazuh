@@ -724,10 +724,10 @@ func (a *Client) AgentLoop(ctx context.Context, closeOnError bool) (chan *QueueP
 	out := make(chan interface{})
 	a.outChannel = out
 	var err error
-	trie := 0
+	tries := 0
 	for err = a.Connect(true); err != nil; {
-		trie++
-		if trie > 9 {
+		tries++
+		if tries > 10 {
 			return nil, out, err
 		}
 		a.logger.WithOptions(zap.WithCaller(false)).Warn("connect failed", zap.Any("agentId", a.AgentID), zap.Int("try", tries), zap.String("error", err.Error()))
