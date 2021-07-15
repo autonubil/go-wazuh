@@ -511,8 +511,17 @@ func (a *Client) sendMessage(msg string, readTimeout time.Duration) error {
 	if isControlMessage && readTimeout < ReadWaitTimeout {
 		readTimeout = ReadWaitTimeout
 	}
-	return a.readServerResponse(readTimeout)
-
+	err = a.readServerResponse(readTimeout)
+	if err == nil {
+		// Reset read deadline
+		deadline := time.Now().Add(PingIntervall * 2 * time.Second)
+		err := a.conn.SetReadDeadline(deadline)
+		if err != nil {
+			println(err.Error())
+			return err
+		}
+	}
+	return nil
 }
 
 func (a *Client) readServerResponse(timeout time.Duration) error {
@@ -795,10 +804,17 @@ func (a *Client) AgentLoop(ctx context.Context, closeOnError bool) (chan *QueueP
 				}
 			}
 			if !a.IsConencted() {
-				a.logger.Debug("try reconnect", zap.Any("agentId", a.AgentID))
+				tries := 0
+
+				a.logger.Info("try reconnect", zap.Any("agentId", a.AgentID))
 				for err = a.Connect(false); err != nil; {
-					time.Sleep(time.Second * 10)
-					a.logger.Debug("try reconnect", zap.Any("agentId", a.AgentID))
+					time.Sleep(time.Second * 2)
+					tries++
+					if tries > 10 {
+						a.logger.Panic("failed to reconnect", zap.Any("agentId", a.AgentID), zap.Error(err))
+						break
+					}
+					a.logger.Info("try reconnect", zap.Any("agentId", a.AgentID))
 				}
 			} else {
 				err = a.PingServer()
