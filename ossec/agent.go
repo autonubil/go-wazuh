@@ -281,6 +281,7 @@ func (a *Client) IsConencted() bool {
 
 func (a *Client) close(sendCloseMsg bool) error {
 	if a.connected {
+		a.logger.Info("disconnection from manager", zap.Any("agentId", a.AgentID))
 		if sendCloseMsg {
 			msg := fmt.Sprintf("ossec: ossec: Agent disconnected: '%s-%s'.", a.AgentName, a.AgentIP)
 			msg = fmt.Sprintf("%c:%s:%s", LOCALFILE_MQ, "ossec", msg)
@@ -384,7 +385,7 @@ func (a *Client) getSharedFiles() string {
 		for _, filename := range files {
 			content, err := ioutil.ReadFile(filename)
 			if err != nil {
-				a.logger.Warn("corrupt file", zap.String("filename", filename), zap.Error(err))
+				a.logger.Warn("corrupt file", zap.Any("agentId", a.AgentID), zap.String("filename", filename), zap.Error(err))
 				os.Remove(filename)
 				continue
 			}
@@ -638,12 +639,14 @@ func (a *Client) Connect(isStartup bool) error {
 	var err error
 	var localAddr net.Addr
 	if a.UDP {
+		a.logger.Debug("connect", zap.Any("agentId", a.AgentID), zap.String("protocol", "udp"), zap.String("server", a.Server))
 		a.conn, err = net.Dial("udp", fmt.Sprintf("%s:%d", a.Server, a.Port))
 		if err != nil {
 			return err
 		}
 		localAddr = a.conn.LocalAddr().(*net.UDPAddr)
 	} else {
+		a.logger.Debug("connect", zap.Any("agentId", a.AgentID), zap.String("protocol", "tcp"), zap.String("server", a.Server))
 		a.conn, err = net.Dial("tcp", fmt.Sprintf("%s:%d", a.Server, a.Port))
 		if err != nil {
 			return err
@@ -709,7 +712,7 @@ func (a *Client) openQueue(ctx context.Context) (chan *QueuePosting, *dque.DQue,
 					msg.Timestamp = time.Now()
 				}
 				if err = q.Enqueue(msg); err != nil {
-					a.logger.Error("enqueue item", zap.Any("item", msg), zap.Error(err))
+					a.logger.Error("enqueue item", zap.Any("agentId", a.AgentID), zap.Any("item", msg), zap.Error(err))
 				}
 			}
 			if ctx.Err() != nil {
@@ -749,8 +752,11 @@ func (a *Client) AgentLoop(ctx context.Context, closeOnError bool) (chan *QueueP
 	}
 
 	go func() {
-		defer a.Close()
-		defer q.Close()
+		defer func() {
+			a.logger.Error("shutdown", zap.Any("agentId", a.AgentID))
+			a.Close()
+			q.Close()
+		}()
 
 		for {
 			loopEntry := time.Now()
@@ -763,14 +769,14 @@ func (a *Client) AgentLoop(ctx context.Context, closeOnError bool) (chan *QueueP
 				// once a second check if there is any message
 				for item, dqErr := q.Peek(); dqErr != dque.ErrEmpty && item != nil; {
 					if dqErr != nil {
-						a.logger.Error("dequeue", zap.Error(dqErr))
+						a.logger.Error("dequeue", zap.Any("agentId", a.AgentID), zap.Error(dqErr))
 						break
 					}
 
 					if msg, ok := item.(*QueuePosting); ok {
 						b, err := json.Marshal(msg.Raw)
 						if err != nil {
-							a.logger.Error("marshall", zap.Error(err))
+							a.logger.Error("marshall", zap.Any("agentId", a.AgentID), zap.Error(err))
 							item = nil
 							q.Dequeue()
 							continue
@@ -787,7 +793,7 @@ func (a *Client) AgentLoop(ctx context.Context, closeOnError bool) (chan *QueueP
 							break
 						}
 					} else {
-						a.logger.Error("dequeue", zap.Error(fmt.Errorf("invalid queue content")))
+						a.logger.Error("dequeue", zap.Any("agentId", a.AgentID), zap.Error(fmt.Errorf("invalid queue content")))
 					}
 					// remove last item from queue
 					q.Dequeue()
@@ -799,7 +805,7 @@ func (a *Client) AgentLoop(ctx context.Context, closeOnError bool) (chan *QueueP
 				// take a breath
 				time.Sleep(time.Second * 1)
 				if !a.IsConencted() {
-					a.logger.Warn("disconnected")
+					a.logger.Warn("disconnected", zap.Any("agentId", a.AgentID))
 					break
 				}
 			}
