@@ -43,6 +43,37 @@ const (
 	PingIntervall = 60
 )
 
+const (
+	CONTROL_HEADER     = "#!-"
+	EXECD_HEADER       = "execd "
+	FILE_UPDATE_HEADER = CONTROL_HEADER + "up file "
+	FILE_CLOSE_HEADER  = CONTROL_HEADER + "close file "
+	HC_STARTUP         = "agent startup "
+	HC_ACK             = CONTROL_HEADER + "agent ack "
+	HC_SK_DB_COMPLETED = "syscheck-db-completed"
+	HC_SK_RESTART      = "syscheck restart"
+	HC_REQUEST         = "req "
+	HC_FIM_DB_SFS      = "fim-db-start-first-scan"
+	HC_FIM_DB_EFS      = "fim-db-end-first-scan"
+	HC_FIM_DB_SS       = "fim-db-start-scan"
+	HC_FIM_DB_ES       = "fim-db-end-scan"
+	CFGA_DB_DUMP       = "sca-dump"
+	HC_SK              = "syscheck "
+	HC_FIM_FILE        = "fim_file "
+	HC_FIM_REGISTRY    = "fim_registry "
+
+	LOCALFILE_MQ = '1'
+	SYSLOG_MQ    = '2'
+	HOSTINFO_MQ  = '3'
+	SECURE_MQ    = '4'
+	SYSCHECK_MQ  = '8'
+	ROOTCHECK_MQ = '9'
+
+	maxBufferSize        = 1024 * 1024 * 10
+	ReadWaitTimeout      = time.Duration(30 * time.Second)
+	ReadImmediateTimeout = time.Duration(1 * time.Second)
+)
+
 // Client allowes to handshake with the server to reach a pending state (which allowes the agent to become a group member)
 type Client struct {
 	*AgentKey
@@ -224,7 +255,7 @@ func NewAgent(server string, agentID string, agentName string, agentKey string, 
 	}
 
 	if a.logger != nil {
-		a.logger.Debug("New ossec agent", zap.Any("agentId", a.AgentID))
+		a.logger.Debug("newAgent", zap.Any("agentId", a.AgentID))
 	}
 
 	if a.basePath == "" {
@@ -244,45 +275,14 @@ func NewAgent(server string, agentID string, agentName string, agentKey string, 
 	return a, nil
 }
 
-const (
-	CONTROL_HEADER     = "#!-"
-	EXECD_HEADER       = "execd "
-	FILE_UPDATE_HEADER = CONTROL_HEADER + "up file "
-	FILE_CLOSE_HEADER  = CONTROL_HEADER + "close file "
-	HC_STARTUP         = "agent startup "
-	HC_ACK             = CONTROL_HEADER + "agent ack "
-	HC_SK_DB_COMPLETED = "syscheck-db-completed"
-	HC_SK_RESTART      = "syscheck restart"
-	HC_REQUEST         = "req "
-	HC_FIM_DB_SFS      = "fim-db-start-first-scan"
-	HC_FIM_DB_EFS      = "fim-db-end-first-scan"
-	HC_FIM_DB_SS       = "fim-db-start-scan"
-	HC_FIM_DB_ES       = "fim-db-end-scan"
-	CFGA_DB_DUMP       = "sca-dump"
-	HC_SK              = "syscheck "
-	HC_FIM_FILE        = "fim_file "
-	HC_FIM_REGISTRY    = "fim_registry "
-
-	LOCALFILE_MQ = '1'
-	SYSLOG_MQ    = '2'
-	HOSTINFO_MQ  = '3'
-	SECURE_MQ    = '4'
-	SYSCHECK_MQ  = '8'
-	ROOTCHECK_MQ = '9'
-
-	maxBufferSize        = 1024 * 60
-	ReadWaitTimeout      = time.Duration(30 * time.Second)
-	ReadImmediateTimeout = time.Duration(1 * time.Second)
-)
-
 func (a *Client) IsConencted() bool {
 	return a.connected
 }
 
 func (a *Client) close(sendCloseMsg bool) error {
 	if a.connected {
-		a.logger.Info("disconnection from manager", zap.Any("agentId", a.AgentID))
 		if sendCloseMsg {
+			a.logger.Info("managerDisconnected", zap.Any("agentId", a.AgentID))
 			msg := fmt.Sprintf("ossec: ossec: Agent disconnected: '%s-%s'.", a.AgentName, a.AgentIP)
 			msg = fmt.Sprintf("%c:%s:%s", LOCALFILE_MQ, "ossec", msg)
 			err := a.writeMessage(msg)
@@ -329,6 +329,7 @@ func (a *Client) PingServer() error {
 func (a *Client) handleResponse(response string) error {
 
 	if strings.HasPrefix(string(response), CONTROL_HEADER) {
+		a.logger.Info("controlMsg", zap.Any("agentId", a.AgentID), zap.String("message", strings.Split(response, "\n")[0]))
 		if strings.HasPrefix(string(response), FILE_UPDATE_HEADER) {
 			fieleSpecs := strings.Split(strings.Trim(response[11:], "\n \t"), " ")
 			if len(fieleSpecs) == 2 {
@@ -336,7 +337,7 @@ func (a *Client) handleResponse(response string) error {
 					return nil
 				}
 				if a.logger != nil {
-					a.logger.Debug("receive file", zap.String("fileName", fieleSpecs[1]))
+					a.logger.Debug("receive file", zap.Any("agentId", a.AgentID), zap.String("fileName", fieleSpecs[1]))
 				}
 				a.CurrentRemoteFile = &RemoteFileInfo{
 					Filename: fieleSpecs[1],
@@ -345,33 +346,32 @@ func (a *Client) handleResponse(response string) error {
 				}
 			}
 			return nil
-		}
-		if strings.HasPrefix(string(response), FILE_CLOSE_HEADER) {
+		} else if strings.HasPrefix(string(response), FILE_CLOSE_HEADER) {
 			if a.logger != nil {
-				a.logger.Debug("done receive file", zap.Int("len", a.CurrentRemoteFile.Content.Len()))
+				a.logger.Debug("fileReceived", zap.Any("agentId", a.AgentID), zap.Int("len", a.CurrentRemoteFile.Content.Len()))
 			}
 			a.cacheFileHash(a.CurrentRemoteFile.Filename, a.CurrentRemoteFile.Hash, a.CurrentRemoteFile.Content.String())
 			a.outChannel <- &FileUpdatedEvent{a.CurrentRemoteFile}
 			return nil
-		}
-		if string(response) == HC_ACK {
+		} else if string(response) == HC_ACK {
 			return nil
+		} else {
+			if a.CurrentRemoteFile != nil {
+				// close any open file
+				a.CurrentRemoteFile = nil
+			}
+			a.logger.Warn("unhandledControlMessage", zap.Any("agentId", a.AgentID), zap.String("msg", string(response)))
 		}
-		a.logger.Info("control message", zap.Any("agentId", a.AgentID), zap.String("msg", string(response)))
 
 	} else {
 		if a.CurrentRemoteFile != nil {
 			a.CurrentRemoteFile.Content.WriteString(response)
 			a.cacheFileHash(a.CurrentRemoteFile.Filename, a.CurrentRemoteFile.Hash, a.CurrentRemoteFile.Content.String())
-
-			/*if a.logger != nil {
-				a.logger.Debug("receivedFilecontent", zap.Any("agentId", a.AgentID), zap.String("filename", a.CurrentRemoteFile.Filename), zap.Int("read", len(response)), zap.Int("total", a.CurrentRemoteFile.Content.Len()), zap.String("msg", string(response)))
-			}
-			*/
 			return nil
-		}
-		if a.logger != nil {
-			a.logger.Debug("receivedMessage", zap.Any("agentId", a.AgentID), zap.String("msg", string(response)))
+		} else {
+			if a.logger != nil {
+				a.logger.Debug("receivedMessage", zap.Any("agentId", a.AgentID), zap.String("msg", string(response)))
+			}
 		}
 	}
 	return nil
@@ -379,13 +379,13 @@ func (a *Client) handleResponse(response string) error {
 
 func (a *Client) getSharedFiles() string {
 	b := strings.Builder{}
-	searchPath := filepath.Join(a.remotePath, "*")
+	searchPath := filepath.Join(a.remotePath, "merged.mg") //"*")
 	files, err := filepath.Glob(searchPath)
 	if err == nil && len(files) > 0 {
 		for _, filename := range files {
 			content, err := ioutil.ReadFile(filename)
 			if err != nil {
-				a.logger.Warn("corrupt file", zap.Any("agentId", a.AgentID), zap.String("filename", filename), zap.Error(err))
+				a.logger.Warn("corruptFile", zap.Any("agentId", a.AgentID), zap.String("filename", filename), zap.Error(err))
 				os.Remove(filename)
 				continue
 			}
@@ -401,7 +401,7 @@ func (a *Client) getSharedFiles() string {
 		}
 	} else {
 		// new agent registration. empty mergerd.mg
-		b.WriteString("00000000000000000000000000000000 merged.mg\n")
+		b.WriteString("x merged.mg\n")
 	}
 	return b.String()
 }
@@ -421,7 +421,7 @@ func (a *Client) cacheFileHash(fileName string, hash string, content string) err
 
 func (a *Client) pingServer() error {
 	labelIP := fmt.Sprintf("#\"_agent_ip\":%s", a.AgentIP)
-	labelWodle := fmt.Sprintf("#\"_opserve_wodle\":\"%s\"", a.ClientName)
+	labelClientName := fmt.Sprintf("\"client_name\":%s\n", a.ClientName)
 	agentConfigMd5 := fmt.Sprintf("%00x", md5.Sum([]byte(a.AgentName)))
 	un := goInfo.GetInfo()
 
@@ -442,7 +442,7 @@ func (a *Client) pingServer() error {
 		osRel,
 		a.ClientName, a.ClientVersion)
 
-	labels := ""
+	labels := labelClientName
 
 	sharedFiles := a.getSharedFiles()
 
@@ -450,7 +450,7 @@ func (a *Client) pingServer() error {
 	//"Linux |debian10 |4.19.0-9-amd64 |#1 SMP Debian 4.19.118-2+deb10u1 (2020-06-07) |x86_64 \
 	// [Debian GNU/Linux|debian: 10 (buster)] - Wazuh v3.13.0 / ab73af41699f13fdd81903b5f23d8d00\nfd756ba04d9c32c8848d4608bec41251 \
 	// merged.mg\n#\"_agent_ip\":192.168.0.143\n"
-	msg := fmt.Sprintf("%s%s / %s\n%s%s%s\n%s\n", CONTROL_HEADER, aname, agentConfigMd5, labels, sharedFiles, labelIP, labelWodle)
+	msg := fmt.Sprintf("%s%s / %s\n%s%s%s\n", CONTROL_HEADER, aname, agentConfigMd5, labels, sharedFiles, labelIP)
 
 	err := a.sendMessage(msg, ReadWaitTimeout)
 	if err != nil {
@@ -475,7 +475,7 @@ func (a *Client) writeMessage(msg string) error {
 	ret, err := a.conn.Write(encryptedMsg)
 	if err != nil {
 		if a.logger != nil {
-			a.logger.Debug("writeMessage", zap.Any("agentId", a.AgentID), zap.String("msg", msg), zap.Int("result", ret), zap.Duration("rateWait", now.Sub(prev)), zap.Error(err))
+			a.logger.Info("writeMessage", zap.Any("agentId", a.AgentID), zap.String("msg", msg), zap.Int("result", ret), zap.Duration("rateWait", now.Sub(prev)), zap.Error(err))
 		}
 		a.close(false)
 		return err
@@ -513,62 +513,76 @@ func (a *Client) sendMessage(msg string, readTimeout time.Duration) error {
 		readTimeout = ReadWaitTimeout
 	}
 	err = a.readServerResponse(readTimeout)
-	if err == nil {
-		// Reset read deadline
-		deadline := time.Now().Add(PingIntervall * 2 * time.Second)
-		err := a.conn.SetReadDeadline(deadline)
+	if err != nil {
+		a.logger.Warn("read failed", zap.Any("agentId", a.AgentID), zap.Error(err))
+		return err
+	}
+
+	for a.CurrentRemoteFile != nil {
+		err = a.readServerResponse(readTimeout)
 		if err != nil {
-			println(err.Error())
+			a.logger.Warn("read failed", zap.Any("agentId", a.AgentID), zap.Error(err))
 			return err
 		}
 	}
+
 	return nil
 }
 
 func (a *Client) readServerResponse(timeout time.Duration) error {
-	deadline := time.Now().Add(timeout)
-	err := a.conn.SetReadDeadline(deadline)
-	if err != nil {
-		println(err.Error())
-		return err
-	}
-
 	var buf bytes.Buffer
 	buffer := make([]byte, maxBufferSize)
 	totallyRead := 0
 	messagesRead := 0
+	deadline := time.Now().Add(timeout)
+	err := a.conn.SetReadDeadline(deadline)
+	if err != nil {
+		a.logger.Warn("setReadDeadlineFailed", zap.Any("agentId", a.AgentID), zap.Any("deadline", deadline), zap.Error(err))
+		return err
+	}
 	for {
-		for {
-			nRead, err := a.conn.Read(buffer)
-			if nRead == 0 {
-				break
+
+		nRead, err := a.conn.Read(buffer)
+		// a.logger.Info("read", zap.Any("agentId", a.AgentID), zap.Any("deadline", deadline), zap.Int("read", nRead), zap.Int("readSoFar", totallyRead), zap.Error(err))
+		if nRead == 0 {
+			if oe, ok := err.(*net.OpError); ok && oe.Err != os.ErrDeadlineExceeded {
+				return err
 			}
-			if err != nil {
-				if oe, ok := err.(*net.OpError); ok && totallyRead > 0 && oe.Err == os.ErrDeadlineExceeded {
-					break
-				} else {
-					if messagesRead > 0 {
-						// time out after at least a message == EOF... not a real error
-						return nil
-					}
-					// time out without any message... not expected
-					// fmt.Printf("%d\t%d\t'%s'\t%s\n", totallyRead, -1, "<nil>", err)
-					return err
+			break
+		}
+		if err != nil {
+			if oe, ok := err.(*net.OpError); ok && totallyRead > 0 && oe.Err == os.ErrDeadlineExceeded {
+				break
+			} else {
+				if messagesRead > 0 {
+					// time out after at least a message == EOF... not a real error
+					return nil
 				}
-			}
-
-			buf.Write(buffer[:nRead])
-			totallyRead += nRead
-			if nRead < maxBufferSize {
-				break
+				// time out without any message... not expected
+				// fmt.Printf("%d\t%d\t'%s'\t%s\n", totallyRead, -1, "<nil>", err)
+				return err
 			}
 		}
-		if totallyRead == 0 {
-			return nil
-		}
-		rawMsg := buf.Bytes()
-		// fmt.Printf("\n%d -> '%s\n", len(rawMsg), string(rawMsg[:int(math.Min(float64(len(rawMsg)), 128))]))
 
+		buf.Write(buffer[:nRead])
+		totallyRead += nRead
+		deadline = time.Now().Add(ReadImmediateTimeout)
+		err = a.conn.SetReadDeadline(deadline)
+		if err != nil {
+			a.logger.Warn("setReadDeadlineFailed", zap.Any("agentId", a.AgentID), zap.Any("deadline", deadline), zap.Error(err))
+			return err
+		}
+	}
+	if totallyRead == 0 {
+		if a.CurrentRemoteFile != nil {
+			a.cacheFileHash(a.CurrentRemoteFile.Filename, a.CurrentRemoteFile.Hash, a.CurrentRemoteFile.Content.String())
+		}
+		return nil
+	}
+
+	rawMsg := buf.Bytes()
+	// fmt.Printf("\n%d -> '%s\n", len(rawMsg), string(rawMsg[:int(math.Min(float64(len(rawMsg)), 128))]))
+	for {
 		var msgSize uint32
 		if !a.UDP {
 			if len(rawMsg) < 4 {
@@ -606,29 +620,20 @@ func (a *Client) readServerResponse(timeout time.Duration) error {
 		// rand1 := msg[:5]
 		// fmt.Printf("packet-received: bytes=%d (%s:%d:%d) '%s'\n", nRead, rand1, globalCount, localCount, msg)
 		// empty buffer for next read
-		buf.Reset()
-		// already read a port of the next message?
-		if totallyRead > int(msgSize) {
-			totallyRead -= int(msgSize)
-			buf.Write(rawMsg[int(msgSize):])
-			totallyRead = 0
-		} else {
-			totallyRead = 0
-			buffer = make([]byte, maxBufferSize)
-		}
 
 		err = a.handleResponse(msg)
 		if err != nil {
 			return err
 		}
 		messagesRead++
-		deadline := time.Now().Add(ReadImmediateTimeout)
-		err = a.conn.SetReadDeadline(deadline)
-		if err != nil {
-			println(err.Error())
-			return err
+
+		rawMsg = rawMsg[msgSize:]
+		if len(rawMsg) == 0 {
+			break
 		}
+
 	}
+	return nil
 }
 
 // Connect connect and do a handshake
@@ -684,6 +689,11 @@ func (a *Client) Connect(isStartup bool) error {
 		if err != nil {
 			return err
 		}
+		time.Sleep(1)
+		err = a.pingServer()
+		if err != nil {
+			return err
+		}
 
 	}
 	a.connected = true
@@ -712,7 +722,7 @@ func (a *Client) openQueue(ctx context.Context) (chan *QueuePosting, *dque.DQue,
 					msg.Timestamp = time.Now()
 				}
 				if err = q.Enqueue(msg); err != nil {
-					a.logger.Error("enqueue item", zap.Any("agentId", a.AgentID), zap.Any("item", msg), zap.Error(err))
+					a.logger.Error("enqueueItem", zap.Any("agentId", a.AgentID), zap.Any("item", msg), zap.Error(err))
 				}
 			}
 			if ctx.Err() != nil {
@@ -733,7 +743,7 @@ func (a *Client) AgentLoop(ctx context.Context, closeOnError bool) (chan *QueueP
 	a.ctx = ctx
 
 	// make the context cancable
-	out := make(chan interface{})
+	out := make(chan interface{}, 10)
 	a.outChannel = out
 	var err error
 	tries := 0
@@ -759,73 +769,87 @@ func (a *Client) AgentLoop(ctx context.Context, closeOnError bool) (chan *QueueP
 		}()
 
 		for {
-			loopEntry := time.Now()
-			for t := 0; t < PingIntervall; t++ {
-				if ctx.Err() != nil {
-					out <- err
-					break
-				}
-
-				// once a second check if there is any message
-				for item, dqErr := q.Peek(); dqErr != dque.ErrEmpty && item != nil; {
-					if dqErr != nil {
-						a.logger.Error("dequeue", zap.Any("agentId", a.AgentID), zap.Error(dqErr))
+			if a.CurrentRemoteFile != nil {
+				a.logger.Debug("fileTransfer", zap.Any("agentId", a.AgentID), zap.String("fileName", a.CurrentRemoteFile.Filename))
+			} else {
+				loopEntry := time.Now()
+				loopExit := loopEntry.Add(time.Second * (PingIntervall - 1))
+				for t := 0; t < PingIntervall; t++ {
+					if ctx.Err() != nil {
+						out <- err
 						break
 					}
 
-					if msg, ok := item.(*QueuePosting); ok {
-						b, err := json.Marshal(msg.Raw)
-						if err != nil {
-							a.logger.Error("marshall", zap.Any("agentId", a.AgentID), zap.Error(err))
-							item = nil
-							q.Dequeue()
-							continue
-						}
-
-						if msg.TargetQueue == 0 {
-							msg.TargetQueue = LOCALFILE_MQ
-						}
-
-						wireMsg := fmt.Sprintf("%c:%s:%s %s %s:%s", msg.TargetQueue, msg.Location, msg.Timestamp.UTC().Format("Jan 02 15:04:05"), a.AgentName, msg.ProgramName, string(b))
-						err = a.WriteMessage(wireMsg)
-						item = nil
-						if err != nil {
+					// once a second check if there is any message
+					for item, dqErr := q.Peek(); dqErr != dque.ErrEmpty && item != nil; {
+						if dqErr != nil {
+							a.logger.Error("dequeue", zap.Any("agentId", a.AgentID), zap.Error(dqErr))
 							break
 						}
-					} else {
-						a.logger.Error("dequeue", zap.Any("agentId", a.AgentID), zap.Error(fmt.Errorf("invalid queue content")))
+
+						if msg, ok := item.(*QueuePosting); ok {
+							b, err := json.Marshal(msg.Raw)
+							if err != nil {
+								a.logger.Error("marshall", zap.Any("agentId", a.AgentID), zap.Error(err))
+								item = nil
+								q.Dequeue()
+								continue
+							}
+
+							if msg.TargetQueue == 0 {
+								msg.TargetQueue = LOCALFILE_MQ
+							}
+
+							wireMsg := fmt.Sprintf("%c:%s:%s %s %s:%s", msg.TargetQueue, msg.Location, msg.Timestamp.UTC().Format("Jan 02 15:04:05"), a.AgentName, msg.ProgramName, string(b))
+							err = a.WriteMessage(wireMsg)
+							item = nil
+							if err != nil {
+								a.Close()
+								break
+							}
+						} else {
+							a.logger.Error("dequeue", zap.Any("agentId", a.AgentID), zap.Error(fmt.Errorf("invalid queue content")))
+						}
+						// remove last item from queue
+						q.Dequeue()
+						// make sure, we take a pause
+						if time.Now().After(loopExit) {
+							break
+						}
 					}
-					// remove last item from queue
-					q.Dequeue()
-					// make sure, we take a pause
-					if loopEntry.Add(time.Second*PingIntervall - 1).After(time.Now()) {
+					if time.Now().After(loopExit) {
 						break
 					}
-				}
-				// take a breath
-				time.Sleep(time.Second * 1)
-				if !a.IsConencted() {
-					a.logger.Warn("disconnected", zap.Any("agentId", a.AgentID))
-					break
+
+					// take a breath
+					time.Sleep(time.Second * 1)
+					if !a.IsConencted() {
+						a.logger.Warn("disconnectedUnexpectedly", zap.Any("agentId", a.AgentID))
+						break
+					}
 				}
 			}
 			if !a.IsConencted() {
+				// abort any open download
+				if a.CurrentRemoteFile != nil {
+					a.CurrentRemoteFile = nil
+				}
+
 				tries := 0
 
-				a.logger.Info("try reconnect", zap.Any("agentId", a.AgentID))
+				a.logger.Info("tryReconnect", zap.Any("agentId", a.AgentID))
 				for err = a.Connect(false); err != nil; {
 					time.Sleep(time.Second * 2)
 					tries++
 					if tries > 10 {
-						a.logger.Panic("failed to reconnect", zap.Any("agentId", a.AgentID), zap.Error(err))
+						a.logger.Panic("reconnectFailed", zap.Any("agentId", a.AgentID), zap.Error(err))
 						break
 					}
-					a.logger.Info("try reconnect", zap.Any("agentId", a.AgentID))
+					a.logger.Info("tryReconnect", zap.Any("agentId", a.AgentID))
 				}
 			} else {
 				err = a.PingServer()
 			}
-
 		}
 	}()
 
