@@ -780,6 +780,17 @@ func (a *Client) AgentLoop(ctx context.Context, closeOnError bool) (chan *QueueP
 						break
 					}
 
+					select {
+					case evt, ok := <-a.outChannel:
+						if ok {
+							a.logger.Error("eventRead", zap.Any("agentId", a.AgentID), zap.Any("event", evt))
+							fmt.Printf("Value %v was read.\n", evt)
+							// <- &FileUpdatedEvent{a.CurrentRemoteFile}
+						}
+					default:
+
+					}
+
 					// once a second check if there is any message
 					for item, dqErr := q.Peek(); dqErr != dque.ErrEmpty && item != nil; {
 						if dqErr != nil {
