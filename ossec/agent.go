@@ -329,7 +329,7 @@ func (a *Client) PingServer() error {
 func (a *Client) handleResponse(response string) error {
 
 	if strings.HasPrefix(string(response), CONTROL_HEADER) {
-		a.logger.Info("controlMsg", zap.Any("agentId", a.AgentID), zap.String("message", strings.Split(response, "\n")[0]))
+		a.logger.Debug("controlMsg", zap.Any("agentId", a.AgentID), zap.String("message", strings.Split(response, "\n")[0]))
 		if strings.HasPrefix(string(response), FILE_UPDATE_HEADER) {
 			fieleSpecs := strings.Split(strings.Trim(response[11:], "\n \t"), " ")
 			if len(fieleSpecs) == 2 {
@@ -337,7 +337,7 @@ func (a *Client) handleResponse(response string) error {
 					return nil
 				}
 				if a.logger != nil {
-					a.logger.Debug("receive file", zap.Any("agentId", a.AgentID), zap.String("fileName", fieleSpecs[1]))
+					a.logger.Debug("receiveFile", zap.Any("agentId", a.AgentID), zap.String("fileName", fieleSpecs[1]))
 				}
 				a.CurrentRemoteFile = &RemoteFileInfo{
 					Filename: fieleSpecs[1],
