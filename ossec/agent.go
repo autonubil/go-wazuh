@@ -352,6 +352,7 @@ func (a *Client) handleResponse(response string) error {
 			}
 			a.cacheFileHash(a.CurrentRemoteFile.Filename, a.CurrentRemoteFile.Hash, a.CurrentRemoteFile.Content.String())
 			a.outChannel <- &FileUpdatedEvent{a.CurrentRemoteFile}
+			a.CurrentRemoteFile = nil
 			return nil
 		} else if string(response) == HC_ACK {
 			return nil
@@ -783,7 +784,7 @@ func (a *Client) AgentLoop(ctx context.Context, closeOnError bool) (chan *QueueP
 					select {
 					case evt, ok := <-a.outChannel:
 						if ok {
-							a.logger.Error("eventRead", zap.Any("agentId", a.AgentID), zap.Any("event", evt))
+							a.logger.Info("eventRead", zap.Any("agentId", a.AgentID), zap.Any("event", evt))
 							fmt.Printf("Value %v was read.\n", evt)
 							// <- &FileUpdatedEvent{a.CurrentRemoteFile}
 						}
