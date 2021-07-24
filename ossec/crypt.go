@@ -142,7 +142,7 @@ func (a *Client) decryptMessage(encMsg []byte, msgSize uint32) (string, error) {
 		if agentID != a.AgentID {
 			return "", NewCorruptMessage("AgentID not matching")
 		}
-		msgSize = msgSize - uint32(endAgentID)
+		msgSize = msgSize - (uint32(endAgentID) + 2)
 		encMsg = encMsg[endAgentID+2:]
 	}
 
@@ -190,7 +190,6 @@ func (a *Client) decryptMessage(encMsg []byte, msgSize uint32) (string, error) {
 }
 
 func (a *Client) cryptMsg(msg string) ([]byte, uint32) {
-
 	msgSize := uint(len(msg))
 	/* Random number, take only 5 chars ~= 2^16=65536*/
 	rand1 := rand.Intn(65536)
@@ -202,11 +201,9 @@ func (a *Client) cryptMsg(msg string) ([]byte, uint32) {
 	}
 	a.localCount++
 
-	tmpMsg := fmt.Sprintf("%05d%010d:%04d:%s",
+	tmpMsg := fmt.Sprintf("%05d%010d:%04d:%s\x00",
 		rand1, a.globalCount, a.localCount,
 		msg)
-
-	// fmt.Printf("_tmpMsg: '%s'\n", tmpMsg)
 
 	/* Generate MD5 of the unencrypted string */
 
@@ -219,10 +216,13 @@ func (a *Client) cryptMsg(msg string) ([]byte, uint32) {
 	 */
 	var b bytes.Buffer
 	w, _ := zlib.NewWriterLevel(&b, 9)
-	/* written, _ := */ w.Write([]byte(finMsg))
+	// , _ :=
+	w.Write([]byte(finMsg))
+
 	w.Close()
 	compressedMsg := b.Bytes()
 	cmpSize := uint(len(compressedMsg))
+	// fmt.Printf("_tmpMsg: %d:%d:%d ->  '%s'\n", len([]byte(finMsg)), written, cmpSize, tmpMsg)
 
 	/* Pad the message (needs to be div by 8) */
 	bfSize := 8 - (cmpSize % 8)
@@ -254,16 +254,19 @@ func (a *Client) cryptMsg(msg string) ([]byte, uint32) {
 	}
 	var msgEncrypted string
 	if a.AgentAllowedIPs == "any" {
-		msgEncrypted = fmt.Sprintf("!%s!%s%s", a.AgentID, cryptoToken, encrypted)
+		msgEncrypted = fmt.Sprintf("!%s!%s%s\x00", a.AgentID, cryptoToken, encrypted)
 	} else {
-		msgEncrypted = fmt.Sprintf("%s%s", cryptoToken, encrypted)
+		msgEncrypted = fmt.Sprintf("%s%s\x00", cryptoToken, encrypted)
 	}
-
-	// msgSize = uint(len(msgEncrypted))
 
 	if cmpSize < uint(len(msgEncrypted)) {
 		cmpSize = uint(len(msgEncrypted))
 	}
+
+	// fmt.Printf("encMsg:  '%s' (%d)\n", msgEncrypted, cmpSize)
+	// decrypted, err := a.decryptMessage([]byte(msgEncrypted), (uint32)(cmpSize))
+
+	// fmt.Printf("decMsg:  '%s' (%v)\n", decrypted, err)
 	return []byte(msgEncrypted), (uint32)(cmpSize)
 }
 

@@ -40,7 +40,8 @@ const (
 	SendRateLimit = 450
 
 	// time between server pings
-	PingIntervall = 60
+	PingIntervall    = 10
+	SysinfoIntervall = 60 // each 60th  ping -> 1/h
 )
 
 const (
@@ -62,12 +63,19 @@ const (
 	HC_FIM_FILE        = "fim_file "
 	HC_FIM_REGISTRY    = "fim_registry "
 
-	LOCALFILE_MQ = '1'
-	SYSLOG_MQ    = '2'
-	HOSTINFO_MQ  = '3'
-	SECURE_MQ    = '4'
-	SYSCHECK_MQ  = '8'
-	ROOTCHECK_MQ = '9'
+	LOCALFILE_MQ    = '1'
+	SYSLOG_MQ       = '2'
+	HOSTINFO_MQ     = '3'
+	SECURE_MQ       = '4'
+	DBSYNC_MQ       = '5'
+	SYSCHECK_MQ     = '8'
+	ROOTCHECK_MQ    = '9'
+	MYSQL_MQ        = 'a'
+	POSTGRESQL_MQ   = 'b'
+	AUTH_MQ         = 'c'
+	SYSCOLLECTOR_MQ = 'd'
+
+	WM_SYS_LOCATION = "syscollector"
 
 	maxBufferSize        = 1024 * 1024 * 10
 	ReadWaitTimeout      = time.Duration(30 * time.Second)
@@ -87,6 +95,8 @@ type Client struct {
 	evtCount          uint
 	cOrigSize         uint
 	cCompSize         uint
+	sentBytes         int
+	sentBytesTotal    int
 	EncryptionMethod  EncryptionMethod
 	ClientName        string
 	ClientVersion     string
@@ -99,6 +109,8 @@ type Client struct {
 	outChannel        chan interface{}
 	RemoteFiles       map[string]RemoteFileInfo
 	CurrentRemoteFile *RemoteFileInfo
+	un                *goInfo.GoInfoObject
+	osInfo            *sysinfo.OS
 }
 
 type FileUpdatedEvent struct {
@@ -235,11 +247,13 @@ func NewAgent(server string, agentID string, agentName string, agentKey string, 
 		Server:           server,
 		Port:             1514,
 		UDP:              true,
-		EncryptionMethod: EncryptionMethodAES,
+		EncryptionMethod: EncryptionMethodBlowFish,
 		ClientName:       "go-wazuh",
 		ClientVersion:    "v1.0.0",
 		ratelimit:        ratelimit.New(SendRateLimit), // per second
 		RemoteFiles:      make(map[string]RemoteFileInfo),
+		un:               goInfo.GetInfo(),
+		osInfo:           sysinfo.GetOSInfo(),
 	}
 
 	// mutate agent and add all optional params
@@ -293,8 +307,10 @@ func (a *Client) close(sendCloseMsg bool) error {
 			}
 		}
 		a.connected = false
+		a.sentBytes = 0
 		return a.conn.Close()
 	}
+	a.sentBytes = 0
 	return nil
 }
 
@@ -371,7 +387,7 @@ func (a *Client) handleResponse(response string) error {
 			return nil
 		} else {
 			if a.logger != nil {
-				a.logger.Debug("receivedMessage", zap.Any("agentId", a.AgentID), zap.String("msg", string(response)))
+				a.logger.Debug("receivedMessage", zap.Any("agentId", a.AgentID), zap.String("msg", string(response)), zap.Uint("globalCount", a.globalCount), zap.Uint("localCount", a.localCount), zap.Uint("evtCount", a.evtCount))
 			}
 		}
 	}
@@ -424,22 +440,24 @@ func (a *Client) pingServer() error {
 	labelIP := fmt.Sprintf("#\"_agent_ip\":%s", a.AgentIP)
 	labelClientName := fmt.Sprintf("\"client_name\":%s\n", a.ClientName)
 	agentConfigMd5 := fmt.Sprintf("%00x", md5.Sum([]byte(a.AgentName)))
-	un := goInfo.GetInfo()
 
-	osInfo := sysinfo.GetOSInfo()
-
-	osRel := osInfo.Name
-	if strings.HasPrefix(strings.ToLower(osRel), strings.ToLower(osInfo.Vendor+" ")) {
-		osRel = osRel[len(osInfo.Vendor)+1:]
+	osRel := a.osInfo.Name
+	if strings.HasPrefix(strings.ToLower(osRel), strings.ToLower(a.osInfo.Vendor+" ")) {
+		osRel = osRel[len(a.osInfo.Vendor)+1:]
 	}
-	aname := fmt.Sprintf("%s |%s |%s |%s |%s [%s|%s: %s] - %s %s",
-		firstUpper(un.OS),
-		un.Hostname,
-		un.Core,
-		un.Kernel,
-		un.Platform,
+	codename := ""
+	if a.osInfo.Codename != "" {
+		codename = fmt.Sprintf("(%s) ", a.osInfo.Codename)
+	}
+	aname := fmt.Sprintf("%s |%s |%s |%s |%s [%s|%s: %s%s] - %s %s",
+		firstUpper(a.un.OS),
+		a.un.Hostname,
+		a.un.Core,
+		a.un.Kernel,
+		a.osInfo.Build,
 		firstUpper(runtime.GOOS),
 		runtime.GOARCH,
+		codename,
 		osRel,
 		a.ClientName, a.ClientVersion)
 
@@ -472,17 +490,23 @@ func (a *Client) writeMessage(msg string) error {
 	// ensure ratelimit is honored
 	prev := time.Now()
 	now := a.ratelimit.Take()
-
 	ret, err := a.conn.Write(encryptedMsg)
+	a.sentBytes += ret
+	a.sentBytesTotal += ret
+
 	if err != nil {
 		if a.logger != nil {
-			a.logger.Info("writeMessage", zap.Any("agentId", a.AgentID), zap.String("msg", msg), zap.Int("result", ret), zap.Duration("rateWait", now.Sub(prev)), zap.Error(err))
+			a.logger.Info("writeMessage", zap.Any("agentId", a.AgentID), zap.String("msg", msg), zap.Int("result", ret), zap.Int("sentBytes", a.sentBytes), zap.Int("sentBytesTotal", a.sentBytesTotal), zap.Duration("rateWait", now.Sub(prev)), zap.Uint("globalCount", a.globalCount), zap.Uint("localCount", a.localCount), zap.Uint("evtCount", a.evtCount), zap.Error(err))
 		}
-		a.close(false)
+		err2 := a.close(false)
+		if err2 != nil {
+			a.logger.Warn("closeFailed", zap.Any("agentId", a.AgentID), zap.Error(err2))
+		}
 		return err
 	}
+	time.Sleep(25 * time.Millisecond)
 	if a.logger != nil {
-		a.logger.Debug("writeMessage", zap.Any("agentId", a.AgentID), zap.String("msg", msg), zap.Int("result", ret), zap.Duration("rateWait", now.Sub(prev)))
+		a.logger.Debug("writeMessage", zap.Any("agentId", a.AgentID), zap.String("msg", msg), zap.Int("result", ret), zap.Int("sentBytes", a.sentBytes), zap.Int("sentBytesTotal", a.sentBytesTotal), zap.Duration("rateWait", now.Sub(prev)), zap.Uint("globalCount", a.globalCount), zap.Uint("localCount", a.localCount), zap.Uint("evtCount", a.evtCount))
 	}
 	return nil
 }
@@ -619,7 +643,7 @@ func (a *Client) readServerResponse(timeout time.Duration) error {
 		a.localCount = uint(localCount)
 		a.globalCount = uint(globalCount)
 		// rand1 := msg[:5]
-		// fmt.Printf("packet-received: bytes=%d (%s:%d:%d) '%s'\n", nRead, rand1, globalCount, localCount, msg)
+		//fmt.Printf("packet-received: bytes=%d (%s:%d:%d) '%s'\n", nRead, rand1, globalCount, localCount, msg)
 		// empty buffer for next read
 
 		err = a.handleResponse(msg)
@@ -686,7 +710,7 @@ func (a *Client) Connect(isStartup bool) error {
 			return err
 		}
 
-		err = a.pingServer()
+		err = a.reportIntegrity()
 		if err != nil {
 			return err
 		}
@@ -722,6 +746,12 @@ func (a *Client) openQueue(ctx context.Context) (chan *QueuePosting, *dque.DQue,
 				if msg.Timestamp == time.Unix(0, 0) {
 					msg.Timestamp = time.Now()
 				}
+
+				if msg == nil {
+					a.logger.Warn("enqueue", zap.Any("agentId", a.AgentID), zap.String("problem", "nil item"))
+					continue
+				}
+
 				if err = q.Enqueue(msg); err != nil {
 					a.logger.Error("enqueueItem", zap.Any("agentId", a.AgentID), zap.Any("item", msg), zap.Error(err))
 				}
@@ -769,12 +799,16 @@ func (a *Client) AgentLoop(ctx context.Context, closeOnError bool) (chan *QueueP
 			q.Close()
 		}()
 
+		nextSysinfoUpdate := SysinfoIntervall
+		a.PostSysinfo(input)
 		for {
 			if a.CurrentRemoteFile != nil {
 				a.logger.Debug("fileTransfer", zap.Any("agentId", a.AgentID), zap.String("fileName", a.CurrentRemoteFile.Filename))
 			} else {
 				loopEntry := time.Now()
 				loopExit := loopEntry.Add(time.Second * (PingIntervall - 1))
+				pingWait := ratelimit.New(1) // per second
+
 				for t := 0; t < PingIntervall; t++ {
 					if ctx.Err() != nil {
 						out <- err
@@ -793,10 +827,20 @@ func (a *Client) AgentLoop(ctx context.Context, closeOnError bool) (chan *QueueP
 					}
 
 					// once a second check if there is any message
-					for item, dqErr := q.Peek(); dqErr != dque.ErrEmpty && item != nil; {
+					for {
+						item, dqErr := q.Peek()
+						if dqErr == dque.ErrEmpty {
+							// a.logger.Debug("dequeue", zap.Any("agentId", a.AgentID), zap.String("problem", "queue empty"))
+							break
+						}
 						if dqErr != nil {
 							a.logger.Error("dequeue", zap.Any("agentId", a.AgentID), zap.Error(dqErr))
 							break
+						}
+
+						if item == nil {
+							a.logger.Warn("dequeue", zap.Any("agentId", a.AgentID), zap.String("problem", "nil item"))
+							continue
 						}
 
 						if msg, ok := item.(*QueuePosting); ok {
@@ -814,6 +858,7 @@ func (a *Client) AgentLoop(ctx context.Context, closeOnError bool) (chan *QueueP
 
 							wireMsg := fmt.Sprintf("%c:%s:%s %s %s:%s", msg.TargetQueue, msg.Location, msg.Timestamp.UTC().Format("Jan 02 15:04:05"), a.AgentName, msg.ProgramName, string(b))
 							err = a.WriteMessage(wireMsg)
+
 							item = nil
 							if err != nil {
 								a.Close()
@@ -823,18 +868,23 @@ func (a *Client) AgentLoop(ctx context.Context, closeOnError bool) (chan *QueueP
 							a.logger.Error("dequeue", zap.Any("agentId", a.AgentID), zap.Error(fmt.Errorf("invalid queue content")))
 						}
 						// remove last item from queue
-						q.Dequeue()
+						_, err = q.Dequeue()
+						if err != nil {
+							a.logger.Error("dequeue", zap.Any("agentId", a.AgentID), zap.Error(err))
+							item = nil
+						}
 						// make sure, we take a pause
 						if time.Now().After(loopExit) {
 							break
 						}
 					}
-					if time.Now().After(loopExit) {
-						break
-					}
 
 					// take a breath
-					time.Sleep(time.Second * 1)
+					// prev := time.Now()
+					//now :=
+					pingWait.Take()
+					// a.logger.Debug("pingWait", zap.Any("agentId", a.AgentID), zap.Duration("pingWait", now.Sub(prev)))
+
 					if !a.IsConencted() {
 						a.logger.Warn("disconnectedUnexpectedly", zap.Any("agentId", a.AgentID))
 						break
@@ -861,6 +911,11 @@ func (a *Client) AgentLoop(ctx context.Context, closeOnError bool) (chan *QueueP
 				}
 			} else {
 				err = a.PingServer()
+				nextSysinfoUpdate--
+				if nextSysinfoUpdate == 0 {
+					a.PostSysinfo(input)
+					nextSysinfoUpdate = SysinfoIntervall
+				}
 			}
 		}
 	}()

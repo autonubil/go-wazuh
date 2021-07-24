@@ -8,6 +8,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"os/exec"
 	"regexp"
 	"strings"
 )
@@ -19,6 +20,8 @@ type OS struct {
 	Version      string `json:"version,omitempty"`
 	Release      string `json:"release,omitempty"`
 	Architecture string `json:"architecture,omitempty"`
+	Build        string `json:"build,omitempty"`
+	Codename     string `json:"codename,omitempty"`
 }
 
 const (
@@ -52,6 +55,7 @@ var (
 	reID         = regexp.MustCompile(`^ID=(.*)$`)
 	reVersionID  = regexp.MustCompile(`^VERSION_ID=(.*)$`)
 	reUbuntu     = regexp.MustCompile(`[\( ]([\d\.]+)`)
+	reCodename   = regexp.MustCompile(`^Codename:\s*(.*)$`)
 	reCentOS     = regexp.MustCompile(`^CentOS( Linux)? release ([\d\.]+) `)
 	reCentOS6    = regexp.MustCompile(`^CentOS release 6\.\d+ (.*)`)
 	reRedhat     = regexp.MustCompile(`[\( ]([\d\.]+)`)
@@ -83,6 +87,37 @@ func genOSRelease() {
 			return
 		}
 	}
+}
+
+func readCommandOutput(cmd string, arg ...string) (result string, err error) {
+	command := exec.Command(cmd, arg...)
+	var bytes []byte
+	bytes, err = command.CombinedOutput()
+	if err == nil {
+		result = strings.TrimSpace(string(bytes))
+	}
+
+	return
+}
+
+func (osInfo *OS) getKernelCompileInfo() error {
+	contents, err := readCommandOutput("/usr/bin/uname", "-v")
+	if err != nil {
+		return err
+	}
+	osInfo.Build = contents
+	return nil
+}
+
+func (osInfo *OS) getCodeName() error {
+	contents, err := readCommandOutput("/usr/bin/lsb_release", "-c")
+	if err != nil {
+		return err
+	}
+	if m := reCodename.FindStringSubmatch(contents); m != nil {
+		osInfo.Codename = m[1]
+	}
+	return nil
 }
 
 // GetOSInfo return os information
@@ -129,6 +164,7 @@ func GetOSInfo() (osInfo *OS) {
 				osInfo.Release = m[2]
 			}
 		}
+
 	case "rhel":
 		if release := slurpFile("/etc/redhat-release"); release != "" {
 			if m := reRedhat.FindStringSubmatch(release); m != nil {
@@ -141,5 +177,7 @@ func GetOSInfo() (osInfo *OS) {
 			}
 		}
 	}
+	osInfo.getKernelCompileInfo()
+	osInfo.getCodeName()
 	return osInfo
 }
