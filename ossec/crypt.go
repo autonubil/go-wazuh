@@ -172,7 +172,7 @@ func (a *Client) decryptMessage(encMsg []byte, msgSize uint32) (string, error) {
 		msgSize--
 	}
 	// fmt.Printf("%0x %s\n", compressed, string(compressed))
-	b := bytes.NewReader(compressed)
+	b := bytes.NewReader(compressed[:msgSize])
 	var w bytes.Buffer
 	r, err := zlib.NewReader(b)
 	if err != nil {
@@ -241,7 +241,6 @@ func (a *Client) cryptMsg(msg string) ([]byte, uint32) {
 	/* Get average sizes */
 	a.cOrigSize += msgSize
 	a.cCompSize += cmpSize
-	a.evtCount++
 
 	var cryptoToken string
 	var encrypted []byte

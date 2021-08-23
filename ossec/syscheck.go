@@ -15,7 +15,7 @@ type FimData struct {
 	ID       int64  `json:"id,omitempty"`
 	Begin    string `json:"begin"`
 	End      string `json:"end"`
-	Checksum string `json:"end"`
+	Checksum string `json:"checksum"`
 }
 type FimMessage struct {
 	Component string  `json:"component,omitempty"`

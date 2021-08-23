@@ -93,6 +93,8 @@ type Client struct {
 	localCount        uint
 	globalCount       uint
 	evtCount          uint
+	sentCount         uint
+	receivedCount     uint
 	cOrigSize         uint
 	cCompSize         uint
 	sentBytes         int
@@ -387,7 +389,7 @@ func (a *Client) handleResponse(response string) error {
 			return nil
 		} else {
 			if a.logger != nil {
-				a.logger.Debug("receivedMessage", zap.Any("agentId", a.AgentID), zap.String("msg", string(response)), zap.Uint("globalCount", a.globalCount), zap.Uint("localCount", a.localCount), zap.Uint("evtCount", a.evtCount))
+				a.logger.Debug("receivedMessage", zap.Any("agentId", a.AgentID), zap.String("msg", string(response)), zap.Uint("globalCount", a.globalCount), zap.Uint("localCount", a.localCount), zap.Uint("evtCount", a.evtCount), zap.Uint("sentCount", a.sentCount), zap.Uint("receivedCount", a.receivedCount))
 			}
 		}
 	}
@@ -481,6 +483,8 @@ func (a *Client) pingServer() error {
 
 func (a *Client) writeMessage(msg string) error {
 	encryptedMsg, msgSize := a.cryptMsg(msg)
+	a.evtCount++
+
 	if !a.UDP {
 		// prepend a header containing message size as 4-byte little-endian unsigned integer.
 		encryptedMsg = append([]byte{0, 0, 0, 0}, encryptedMsg...)
@@ -496,7 +500,7 @@ func (a *Client) writeMessage(msg string) error {
 
 	if err != nil {
 		if a.logger != nil {
-			a.logger.Info("writeMessage", zap.Any("agentId", a.AgentID), zap.String("msg", msg), zap.Int("result", ret), zap.Int("sentBytes", a.sentBytes), zap.Int("sentBytesTotal", a.sentBytesTotal), zap.Duration("rateWait", now.Sub(prev)), zap.Uint("globalCount", a.globalCount), zap.Uint("localCount", a.localCount), zap.Uint("evtCount", a.evtCount), zap.Error(err))
+			a.logger.Info("writeMessage", zap.Any("agentId", a.AgentID), zap.String("msg", msg), zap.Int("result", ret), zap.Int("sentBytes", a.sentBytes), zap.Int("sentBytesTotal", a.sentBytesTotal), zap.Duration("rateWait", now.Sub(prev)), zap.Uint("globalCount", a.globalCount), zap.Uint("localCount", a.localCount), zap.Uint("evtCount", a.evtCount), zap.Uint("sentCount", a.sentCount), zap.Uint("receivedCount", a.receivedCount), zap.Error(err))
 		}
 		err2 := a.close(false)
 		if err2 != nil {
@@ -504,9 +508,10 @@ func (a *Client) writeMessage(msg string) error {
 		}
 		return err
 	}
+	a.sentCount++
 	time.Sleep(25 * time.Millisecond)
 	if a.logger != nil {
-		a.logger.Debug("writeMessage", zap.Any("agentId", a.AgentID), zap.String("msg", msg), zap.Int("result", ret), zap.Int("sentBytes", a.sentBytes), zap.Int("sentBytesTotal", a.sentBytesTotal), zap.Duration("rateWait", now.Sub(prev)), zap.Uint("globalCount", a.globalCount), zap.Uint("localCount", a.localCount), zap.Uint("evtCount", a.evtCount))
+		a.logger.Debug("writeMessage", zap.Any("agentId", a.AgentID), zap.String("msg", msg), zap.Int("result", ret), zap.Int("sentBytes", a.sentBytes), zap.Int("sentBytesTotal", a.sentBytesTotal), zap.Duration("rateWait", now.Sub(prev)), zap.Uint("globalCount", a.globalCount), zap.Uint("localCount", a.localCount), zap.Uint("evtCount", a.evtCount), zap.Uint("sentCount", a.sentCount), zap.Uint("receivedCount", a.receivedCount))
 	}
 	return nil
 }
@@ -561,6 +566,7 @@ func (a *Client) readServerResponse(timeout time.Duration) error {
 	messagesRead := 0
 	deadline := time.Now().Add(timeout)
 	err := a.conn.SetReadDeadline(deadline)
+
 	if err != nil {
 		a.logger.Warn("setReadDeadlineFailed", zap.Any("agentId", a.AgentID), zap.Any("deadline", deadline), zap.Error(err))
 		return err
@@ -623,11 +629,13 @@ func (a *Client) readServerResponse(timeout time.Duration) error {
 		if int(msgSize) > len(rawMsg) {
 			return errors.New("message exceeds buffer")
 		}
+		a.evtCount++
 		msg, err := a.decryptMessage(rawMsg[:msgSize], msgSize)
 		// fmt.Printf("%d\t%d\t'%s'\t%s\n", totallyRead, msgSize, msg, err)
 		if err != nil {
 			return err
 		}
+		a.receivedCount++
 
 		// parse result - get counters
 		msg = msg[32:]
@@ -642,10 +650,11 @@ func (a *Client) readServerResponse(timeout time.Duration) error {
 		msg = msg[21:]
 		localCountU := uint(localCount)
 		globalCountU := uint(globalCount)
-		if localCountU <= a.localCount {
-			if globalCountU <= a.globalCount {
-				a.logger.Warn(fmt.Sprintf("Invalid counter %d:%d (%d,%d)", localCountU, globalCountU, a.localCount, a.globalCount), zap.Skip())
-			}
+		if globalCountU == a.globalCount && (localCountU == a.localCount) {
+		} else if globalCountU > a.globalCount || (globalCountU == a.globalCount && localCountU > a.localCount) {
+			a.logger.Info(fmt.Sprintf("Updated to remote counters %d:%d (%d:%d)", localCountU, globalCountU, a.localCount, a.globalCount), zap.Skip())
+		} else {
+			a.logger.Info(fmt.Sprintf("Unexpected counter %d:%d (%d:%d)", localCountU, globalCountU, a.localCount, a.globalCount), zap.Skip())
 		}
 		a.localCount = localCountU
 		a.globalCount = globalCountU
@@ -718,10 +727,6 @@ func (a *Client) Connect(isStartup bool) error {
 			return err
 		}
 
-		err = a.reportIntegrity()
-		if err != nil {
-			return err
-		}
 		time.Sleep(1)
 		err = a.pingServer()
 		if err != nil {
@@ -730,6 +735,7 @@ func (a *Client) Connect(isStartup bool) error {
 
 	}
 	a.connected = true
+
 	return nil
 }
 
@@ -808,7 +814,7 @@ func (a *Client) AgentLoop(ctx context.Context, closeOnError bool) (chan *QueueP
 		}()
 
 		nextSysinfoUpdate := SysinfoIntervall
-		a.PostSysinfo(input)
+
 		for {
 			if a.CurrentRemoteFile != nil {
 				a.logger.Debug("fileTransfer", zap.Any("agentId", a.AgentID), zap.String("fileName", a.CurrentRemoteFile.Filename))
@@ -921,7 +927,7 @@ func (a *Client) AgentLoop(ctx context.Context, closeOnError bool) (chan *QueueP
 				err = a.PingServer()
 				nextSysinfoUpdate--
 				if nextSysinfoUpdate == 0 {
-					a.PostSysinfo(input)
+					// TODO: a.PostSysinfo(input)
 					nextSysinfoUpdate = SysinfoIntervall
 				}
 			}
