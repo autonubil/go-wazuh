@@ -652,7 +652,7 @@ func (a *Client) readServerResponse(timeout time.Duration) error {
 		globalCountU := uint(globalCount)
 		if globalCountU == a.globalCount && (localCountU == a.localCount) {
 		} else if globalCountU > a.globalCount || (globalCountU == a.globalCount && localCountU > a.localCount) {
-			a.logger.Info(fmt.Sprintf("Updated to remote counters %d:%d (%d:%d)", localCountU, globalCountU, a.localCount, a.globalCount), zap.Skip())
+			a.logger.Debug(fmt.Sprintf("Updated to remote counters %d:%d (%d:%d)", localCountU, globalCountU, a.localCount, a.globalCount), zap.Skip())
 		} else {
 			a.logger.Info(fmt.Sprintf("Unexpected counter %d:%d (%d:%d)", localCountU, globalCountU, a.localCount, a.globalCount), zap.Skip())
 		}

@@ -173,18 +173,21 @@ func (a *Client) decryptMessage(encMsg []byte, msgSize uint32) (string, error) {
 	}
 	// fmt.Printf("%0x %s\n", compressed, string(compressed))
 	b := bytes.NewReader(compressed[:msgSize])
-	var w bytes.Buffer
+
 	r, err := zlib.NewReader(b)
 	if err != nil {
 		return "", err
 	}
-	_, err = io.Copy(&w, r)
-	if err != nil {
-		r.Close()
+	defer r.Close()
+
+	buf := make([]byte, 1024)
+
+	// _, err = io.Copy(&w, r)
+	read, err := r.Read(buf)
+	if err != nil && err != io.EOF {
 		return "", err
 	}
-	msg := w.Bytes()
-	r.Close()
+	msg := buf[:read]
 
 	return string(msg), nil
 }
