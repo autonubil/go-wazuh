@@ -1,6 +1,7 @@
 module github.com/autonubil/go-wazuh
 
 require (
+	github.com/4kills/go-zlib v1.1.0 // indirect
 	github.com/coreos/go-semver v0.3.0
 	github.com/deepmap/oapi-codegen v1.5.0
 	github.com/getsentry/sentry-go v0.11.0

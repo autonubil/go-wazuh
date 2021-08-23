@@ -640,8 +640,16 @@ func (a *Client) readServerResponse(timeout time.Duration) error {
 			return err
 		}
 		msg = msg[21:]
-		a.localCount = uint(localCount)
-		a.globalCount = uint(globalCount)
+		localCountU := uint(localCount)
+		globalCountU := uint(globalCount)
+		if localCountU <= a.localCount {
+			if globalCountU <= a.globalCount {
+				a.logger.Warn(fmt.Sprintf("Invalid counter %d:%d (%d,%d)", localCountU, globalCountU, a.localCount, a.globalCount), zap.Skip())
+			}
+		}
+		a.localCount = localCountU
+		a.globalCount = globalCountU
+
 		// rand1 := msg[:5]
 		//fmt.Printf("packet-received: bytes=%d (%s:%d:%d) '%s'\n", nRead, rand1, globalCount, localCount, msg)
 		// empty buffer for next read
@@ -743,7 +751,7 @@ func (a *Client) openQueue(ctx context.Context) (chan *QueuePosting, *dque.DQue,
 	go func() {
 		for {
 			for msg := range input {
-				if msg.Timestamp == time.Unix(0, 0) {
+				if msg.Timestamp.Unix() == 0 {
 					msg.Timestamp = time.Now()
 				}
 

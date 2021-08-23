@@ -14,8 +14,8 @@ import (
 	"math/rand"
 	"strings"
 
-	// "github.com/4kills/go-zlib"
-	"compress/zlib"
+	"github.com/4kills/go-zlib"
+	// "compress/zlib"
 
 	"golang.org/x/crypto/blowfish"
 )
@@ -201,7 +201,7 @@ func (a *Client) cryptMsg(msg string) ([]byte, uint32) {
 	}
 	a.localCount++
 
-	tmpMsg := fmt.Sprintf("%05d%010d:%04d:%s\x00",
+	tmpMsg := fmt.Sprintf("%05d%010d:%04d:%s",
 		rand1, a.globalCount, a.localCount,
 		msg)
 
@@ -254,9 +254,9 @@ func (a *Client) cryptMsg(msg string) ([]byte, uint32) {
 	}
 	var msgEncrypted string
 	if a.AgentAllowedIPs == "any" {
-		msgEncrypted = fmt.Sprintf("!%s!%s%s\x00", a.AgentID, cryptoToken, encrypted)
+		msgEncrypted = fmt.Sprintf("!%s!%s%s", a.AgentID, cryptoToken, encrypted)
 	} else {
-		msgEncrypted = fmt.Sprintf("%s%s\x00", cryptoToken, encrypted)
+		msgEncrypted = fmt.Sprintf("%s%s", cryptoToken, encrypted)
 	}
 
 	if cmpSize < uint(len(msgEncrypted)) {
