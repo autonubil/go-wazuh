@@ -1341,7 +1341,7 @@ type NodeHealthcheck struct {
 					Extra      *int32  `json:"extra,omitempty"`
 					ExtraValid *int32  `json:"extra_valid,omitempty"`
 					Missing    *int32  `json:"missing,omitempty"`
-					Shared     *bool32 `json:"shared,omitempty"`
+					Shared     *bool `json:"shared,omitempty"`
 				} `json:"total_files,omitempty"`
 			} `json:"last_sync_integrity,omitempty"`
 			SyncAgentinfoFree  *bool `json:"sync_agentinfo_free,omitempty"`
