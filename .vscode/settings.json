@@ -8,5 +8,13 @@
         "execd",
         "header",
         "mq"
-    ]
+    ],
+
+    "go.testEnvVars": {
+        "WAZUH_URL": "https://wazuh.test.internal.exanio.net:55000",
+        "WAZUH_USER": "autonubil.automation",
+        "WAZUH_PASSWORD": "T1skq!r7UolH0vMAgsDv0",
+        "WAZUH_INSECURE": "true"
+      },
+
 }

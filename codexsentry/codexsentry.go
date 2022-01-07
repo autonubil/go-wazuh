@@ -117,7 +117,7 @@ type SentryCore struct {
 	innerCore zapcore.Core
 }
 
-func NewWrapedCore(innerCore zapcore.Core) zapcore.Core {
+func NewWrappedCore(innerCore zapcore.Core) zapcore.Core {
 	return SentryCore{innerCore}
 }
 

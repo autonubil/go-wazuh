@@ -236,6 +236,10 @@ func NewAgent(server string, agentID string, agentName string, agentKey string, 
 	filesum1 = fmt.Sprintf("%00x", md5.Sum([]byte(finalStr)))[0:15]
 	filesum2 = fmt.Sprintf("%00x", md5.Sum([]byte(agentKey)))
 	finalStr = fmt.Sprintf("%s%s", filesum2, filesum1)
+	un, err := goInfo.GetInfo()
+	if err != nil {
+		return nil, err
+	}
 
 	a := &Client{
 		AgentKey: &AgentKey{
@@ -254,7 +258,7 @@ func NewAgent(server string, agentID string, agentName string, agentKey string, 
 		ClientVersion:    "v1.0.0",
 		ratelimit:        ratelimit.New(SendRateLimit), // per second
 		RemoteFiles:      make(map[string]RemoteFileInfo),
-		un:               goInfo.GetInfo(),
+		un:               &un,
 		osInfo:           sysinfo.GetOSInfo(),
 	}
 
