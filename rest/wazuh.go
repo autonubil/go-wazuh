@@ -83,9 +83,9 @@ type Client struct {
 
 	innerClient HTTPRequestDoer
 
-	// A callback for modifying requests which are generated before sending over
+	// A list of callbacks for modifying requests which are generated before sending over
 	// the network.
-	RequestEditor RequestEditorFn
+	RequestEditors []RequestEditorFn
 
 	ctx       context.Context
 	userAgent string
@@ -160,22 +160,28 @@ func (c *Client) do(ctx context.Context, req *http.Request) error {
 // APIClient extended client with less abstract api access
 type APIClient struct {
 	*ClientWithResponses
-	ExperimentalController   ExperimentalControllerInterface
-	SyscheckController       SyscheckControllerInterface
-	AgentsController         AgentsControllerInterface
-	CiscatController         CiscatControllerInterface
-	ListsController          ListsControllerInterface
+	Lazy bool
+
+	DefaultController        DefaultControllerInterface
+	LogtestController        LogtestControllerInterface
 	ManagerController        ManagerControllerInterface
 	MitreController          MitreControllerInterface
-	ScaController            ScaControllerInterface
-	DefaultController        DefaultControllerInterface
 	OverviewController       OverviewControllerInterface
-	RulesController          RulesControllerInterface
-	SecurityController       SecurityControllerInterface
-	SyscollectorController   SyscollectorControllerInterface
+	RootcheckController      RootcheckControllerInterface
 	ActiveResponseController ActiveResponseControllerInterface
+	CiscatController         CiscatControllerInterface
+	SyscheckController       SyscheckControllerInterface
+	SyscollectorController   SyscollectorControllerInterface
+	ScaController            ScaControllerInterface
+	VulnerabilityController  VulnerabilityControllerInterface
 	ClusterController        ClusterControllerInterface
-	DecodersController       DecodersControllerInterface
+	ExperimentalController   ExperimentalControllerInterface
+	AgentController          AgentControllerInterface
+	DecoderController        DecoderControllerInterface
+	SecurityController       SecurityControllerInterface
+	TaskController           TaskControllerInterface
+	CdbListController        CdbListControllerInterface
+	RuleController           RuleControllerInterface
 }
 
 // NewClientFromEnvironment creates a new client from default environment variables
@@ -199,29 +205,33 @@ func NewClientFromEnvironment(opts ...ClientOption) (*APIClient, error) {
 // NewAPIClient Create a new API (yes, naming is awkward)
 func NewAPIClient(baseURL string, opts ...ClientOption) (*APIClient, error) {
 	cl, err := NewClient(baseURL, opts...)
-	cl.RequestEditor = cl.do
+	cl.RequestEditors = append(cl.RequestEditors, cl.do)
 	if err != nil {
 		return nil, err
 	}
-	clientWithResponses := &ClientWithResponses{cl, false}
+	clientWithResponses := &ClientWithResponses{cl}
 	return &APIClient{
 		ClientWithResponses:      clientWithResponses,
 		ExperimentalController:   &ExperimentalController{clientWithResponses},
-		SyscheckController:       &SyscheckController{clientWithResponses},
-		ListsController:          &ListsController{clientWithResponses},
+		ScaController:            &ScaController{clientWithResponses},
+		VulnerabilityController:  &VulnerabilityController{clientWithResponses},
+		ClusterController:        &ClusterController{clientWithResponses},
+		DecoderController:        &DecoderController{clientWithResponses},
+		AgentController:          &AgentController{clientWithResponses},
+		RuleController:           &RuleController{clientWithResponses},
+		SecurityController:       &SecurityController{clientWithResponses},
+		TaskController:           &TaskController{clientWithResponses},
+		CdbListController:        &CdbListController{clientWithResponses},
+		CiscatController:         &CiscatController{clientWithResponses},
+		DefaultController:        &DefaultController{clientWithResponses},
+		LogtestController:        &LogtestController{clientWithResponses},
 		ManagerController:        &ManagerController{clientWithResponses},
 		MitreController:          &MitreController{clientWithResponses},
-		ScaController:            &ScaController{clientWithResponses},
-		AgentsController:         &AgentsController{clientWithResponses},
-		CiscatController:         &CiscatController{clientWithResponses},
-		RulesController:          &RulesController{clientWithResponses},
-		SecurityController:       &SecurityController{clientWithResponses},
-		SyscollectorController:   &SyscollectorController{clientWithResponses},
-		DefaultController:        &DefaultController{clientWithResponses},
 		OverviewController:       &OverviewController{clientWithResponses},
-		DecodersController:       &DecodersController{clientWithResponses},
+		RootcheckController:      &RootcheckController{clientWithResponses},
 		ActiveResponseController: &ActiveResponseController{clientWithResponses},
-		ClusterController:        &ClusterController{clientWithResponses},
+		SyscollectorController:   &SyscollectorController{clientWithResponses},
+		SyscheckController:       &SyscheckController{clientWithResponses},
 	}, nil
 }
 
@@ -296,7 +306,6 @@ func (c *Client) Do(req *http.Request) (*http.Response, error) {
 		}
 	}
 	return r, e
-
 }
 
 // Errorf logs errors
@@ -325,6 +334,24 @@ type RawAPIResponse interface {
 	StatusCode() int
 }
 
+func (e *ApiError) Error() string {
+	if e.ApiDetail != "" {
+		return fmt.Sprintf("%s (%s)", e.ApiTitle, e.ApiDetail)
+	}
+	return e.ApiTitle
+}
+
+func (e *RequestError) Error() string {
+	if e.RequestDetail != "" {
+		return fmt.Sprintf("%s (%s)", e.RequestTitle, e.RequestDetail)
+	}
+	return e.RequestTitle
+}
+
+func (e *ApiResponse) Error() string {
+	return *e.Message
+}
+
 func getResponseObject(sr RawAPIResponse) (interface{}, error) {
 	fldForCode := fmt.Sprintf("JSON%d", sr.StatusCode())
 	v := reflect.ValueOf(sr).Elem()
@@ -334,7 +361,7 @@ func getResponseObject(sr RawAPIResponse) (interface{}, error) {
 			return nil, apiError
 		} else if requestError, ok := s.(*RequestError); ok && (requestError.RequestError != nil && *requestError.RequestError != 0) {
 			return nil, requestError
-		} else if apiResponse, ok := s.(*ApiResponse); ok && (apiResponse.Code() > 0) {
+		} else if apiResponse, ok := s.(*ApiResponse); ok && (apiResponse.ErrorCode != 0) && (apiResponse.Message != nil) {
 			return nil, apiResponse
 		} else {
 			v := reflect.ValueOf(s).Elem()
@@ -361,6 +388,36 @@ func (c *ClientWithResponses) Authenticated() bool {
 	return c.ClientInterface.(*Client).token != ""
 }
 
+func (c *ClientWithResponses) Logout() error {
+	c.ClientInterface.(*Client).token = ""
+	return nil
+}
+
+func (c *ClientWithResponses) RevokeAllTokens() error {
+	if !c.Authenticated() {
+		return fmt.Errorf("not authenticated")
+	}
+
+	// Call Delete on Authenticate
+	sr, err := c.SecurityControllerRevokeAllTokensWithResponse(c.ClientInterface.(*Client).ctx)
+	if err != nil {
+		return err
+	}
+	if sr == nil {
+		return fmt.Errorf("revoke tokens failed")
+	}
+	if sr.StatusCode() > 399 {
+		if sr != nil {
+			_, err = getResponseObject(sr)
+		}
+		if err != nil {
+			return err
+		}
+		return fmt.Errorf("%s returned %s", c.ClientInterface.(*Client).Server, sr.Status())
+	}
+	return nil
+}
+
 //Authenticate login using basic auth to optain a token
 func (c *ClientWithResponses) Authenticate() error {
 	// Authenticate
@@ -372,7 +429,7 @@ func (c *ClientWithResponses) Authenticate() error {
 		return err
 	}
 	if sr == nil {
-		return fmt.Errorf("Authentication failed")
+		return fmt.Errorf("authentication failed")
 	}
 	if sr.StatusCode() > 399 {
 		if sr != nil {
@@ -385,7 +442,7 @@ func (c *ClientWithResponses) Authenticate() error {
 	}
 
 	if sr.JSON200.Data.Token == nil {
-		return errors.New("Nil token!?")
+		return errors.New("nil token!?")
 	}
 	c.ClientInterface.(*Client).token = *sr.JSON200.Data.Token
 	return nil
@@ -396,6 +453,5 @@ func (c *ClientWithResponses) evaluateResponse(response RawAPIResponse, err erro
 		return nil, err
 	}
 
-	// log.Printf("[TRACE] %s  %v", response.Request.URL, reflect.ValueOf(response.Request.Result).Elem().FieldByName("Data").Interface())
 	return getResponseObject(response)
 }

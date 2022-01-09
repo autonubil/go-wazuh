@@ -99,9 +99,12 @@ func (f *Function) Declaration() {
 		} else if strings.HasPrefix(name, "agentId") {
 			name = "agentID" + name[7:]
 		}
-		fmt.Printf("%s %s", name, strings.ReplaceAll(inV.String(), "wazuh.", ""))
+
 		if i < numIn-1 {
+			fmt.Printf("%s %s", name, strings.ReplaceAll(inV.String(), "wazuh.", ""))
 			fmt.Printf(", ")
+		} else {
+			fmt.Printf("reqEditors ...RequestEditorFn")
 		}
 	}
 	fmt.Printf(")")
@@ -126,7 +129,10 @@ func (f *Function) Call() string {
 		} else if inV.String() == "string" && i == numIn-2 {
 			name = "contentType"
 		}
-		if strings.HasPrefix(name, "policyId") {
+
+		if i == numIn-1 {
+			name = "reqEditors"
+		} else if strings.HasPrefix(name, "policyId") {
 			name = "policyID" + name[8:]
 		} else if strings.HasPrefix(name, "securityRuleId") {
 			name = "securityRuleID" + name[14:]
@@ -141,9 +147,12 @@ func (f *Function) Call() string {
 		} else if strings.HasPrefix(name, "agentId") {
 			name = "agentID" + name[7:]
 		}
+
 		sb.WriteString(name)
 		if i < numIn-1 {
 			sb.WriteString(", ")
+		} else {
+			sb.WriteString("...")
 		}
 	}
 	return sb.String()

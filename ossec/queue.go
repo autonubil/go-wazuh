@@ -180,7 +180,7 @@ func (w *Queue) sendMessage(event interface{}, location string, programName stri
 		return e
 	}
 	if w.Logger != nil {
-		w.Logger.Debug("Sent Message", zap.String("queue", fmt.Sprintf("%c", w.TargetQueue)), zap.String("location", location), zap.String("programName", programName), zap.Any("event", event))
+		w.Logger.Debug("sendMessage", zap.String("queue", fmt.Sprintf("%c", w.TargetQueue)), zap.String("location", location), zap.String("programName", programName), zap.Any("event", event))
 	}
 	return nil
 }
@@ -212,7 +212,9 @@ func (w *Queue) AgentLoop(ctx context.Context, closeOnError bool) (chan *QueuePo
 					err = NewQueueError("sent", err)
 					if closeOnError {
 						out <- err
-						close(input)
+						if input != nil {
+							close(input)
+						}
 						return
 					} else {
 						if w.Logger != nil {

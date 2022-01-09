@@ -218,7 +218,10 @@ func (a *Client) cryptMsg(msg string) ([]byte, uint32) {
 	* We assign the first 8 bytes for padding
 	 */
 	var b bytes.Buffer
-	w, _ := zlib.NewWriterLevel(&b, 9)
+	w, err := zlib.NewWriterLevel(&b, 9)
+	if err != nil {
+		return nil, 0
+	}
 	// , _ :=
 	w.Write([]byte(finMsg))
 

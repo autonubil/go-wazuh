@@ -236,6 +236,10 @@ func NewAgent(server string, agentID string, agentName string, agentKey string, 
 	filesum1 = fmt.Sprintf("%00x", md5.Sum([]byte(finalStr)))[0:15]
 	filesum2 = fmt.Sprintf("%00x", md5.Sum([]byte(agentKey)))
 	finalStr = fmt.Sprintf("%s%s", filesum2, filesum1)
+	un, err := goInfo.GetInfo()
+	if err != nil {
+		return nil, err
+	}
 
 	a := &Client{
 		AgentKey: &AgentKey{
@@ -254,7 +258,7 @@ func NewAgent(server string, agentID string, agentName string, agentKey string, 
 		ClientVersion:    "v1.0.0",
 		ratelimit:        ratelimit.New(SendRateLimit), // per second
 		RemoteFiles:      make(map[string]RemoteFileInfo),
-		un:               goInfo.GetInfo(),
+		un:               &un,
 		osInfo:           sysinfo.GetOSInfo(),
 	}
 
@@ -344,44 +348,48 @@ func (a *Client) PingServer() error {
 	return a.pingServer()
 }
 
+func (a *Client) handleControlResponse(response string) error {
+	a.logger.Debug("controlMsg", zap.Any("agentId", a.AgentID), zap.String("message", strings.Split(response, "\n")[0]))
+	if strings.HasPrefix(string(response), FILE_UPDATE_HEADER) {
+		fieleSpecs := strings.Split(strings.Trim(response[11:], "\n \t"), " ")
+		if len(fieleSpecs) == 2 {
+			if existingFile, ok := a.RemoteFiles[fieleSpecs[1]]; ok && existingFile.Hash == fieleSpecs[0] {
+				return nil
+			}
+			if a.logger != nil {
+				a.logger.Debug("receiveFile", zap.Any("agentId", a.AgentID), zap.String("fileName", fieleSpecs[1]))
+			}
+			a.CurrentRemoteFile = &RemoteFileInfo{
+				Filename: fieleSpecs[1],
+				Hash:     fieleSpecs[0],
+				Content:  bytes.NewBuffer(nil),
+			}
+		}
+		return nil
+	} else if strings.HasPrefix(string(response), FILE_CLOSE_HEADER) {
+		if a.logger != nil {
+			a.logger.Debug("fileReceived", zap.Any("agentId", a.AgentID), zap.Int("len", a.CurrentRemoteFile.Content.Len()))
+		}
+		a.cacheFileHash(a.CurrentRemoteFile.Filename, a.CurrentRemoteFile.Hash, a.CurrentRemoteFile.Content.String())
+		a.outChannel <- &FileUpdatedEvent{a.CurrentRemoteFile}
+		a.CurrentRemoteFile = nil
+		return nil
+	} else if string(response) == HC_ACK {
+		return nil
+	} else {
+		if a.CurrentRemoteFile != nil {
+			// close any open file
+			a.CurrentRemoteFile = nil
+		}
+		a.logger.Warn("unhandledControlMessage", zap.Any("agentId", a.AgentID), zap.String("msg", string(response)))
+	}
+	return nil
+}
+
 func (a *Client) handleResponse(response string) error {
 
 	if strings.HasPrefix(string(response), CONTROL_HEADER) {
-		a.logger.Debug("controlMsg", zap.Any("agentId", a.AgentID), zap.String("message", strings.Split(response, "\n")[0]))
-		if strings.HasPrefix(string(response), FILE_UPDATE_HEADER) {
-			fieleSpecs := strings.Split(strings.Trim(response[11:], "\n \t"), " ")
-			if len(fieleSpecs) == 2 {
-				if existingFile, ok := a.RemoteFiles[fieleSpecs[1]]; ok && existingFile.Hash == fieleSpecs[0] {
-					return nil
-				}
-				if a.logger != nil {
-					a.logger.Debug("receiveFile", zap.Any("agentId", a.AgentID), zap.String("fileName", fieleSpecs[1]))
-				}
-				a.CurrentRemoteFile = &RemoteFileInfo{
-					Filename: fieleSpecs[1],
-					Hash:     fieleSpecs[0],
-					Content:  bytes.NewBuffer(nil),
-				}
-			}
-			return nil
-		} else if strings.HasPrefix(string(response), FILE_CLOSE_HEADER) {
-			if a.logger != nil {
-				a.logger.Debug("fileReceived", zap.Any("agentId", a.AgentID), zap.Int("len", a.CurrentRemoteFile.Content.Len()))
-			}
-			a.cacheFileHash(a.CurrentRemoteFile.Filename, a.CurrentRemoteFile.Hash, a.CurrentRemoteFile.Content.String())
-			a.outChannel <- &FileUpdatedEvent{a.CurrentRemoteFile}
-			a.CurrentRemoteFile = nil
-			return nil
-		} else if string(response) == HC_ACK {
-			return nil
-		} else {
-			if a.CurrentRemoteFile != nil {
-				// close any open file
-				a.CurrentRemoteFile = nil
-			}
-			a.logger.Warn("unhandledControlMessage", zap.Any("agentId", a.AgentID), zap.String("msg", string(response)))
-		}
-
+		return a.handleControlResponse(response)
 	} else {
 		if a.CurrentRemoteFile != nil {
 			a.CurrentRemoteFile.Content.WriteString(response)
@@ -651,6 +659,7 @@ func (a *Client) readServerResponse(timeout time.Duration) error {
 		localCountU := uint(localCount)
 		globalCountU := uint(globalCount)
 		if globalCountU == a.globalCount && (localCountU == a.localCount) {
+			// normal status, nothing to report
 		} else if globalCountU > a.globalCount || (globalCountU == a.globalCount && localCountU > a.localCount) {
 			a.logger.Debug(fmt.Sprintf("Updated to remote counters %d:%d (%d:%d)", localCountU, globalCountU, a.localCount, a.globalCount), zap.Skip())
 		} else {
@@ -746,7 +755,6 @@ func itemBuilder() interface{} {
 }
 
 func (a *Client) openQueue(ctx context.Context) (chan *QueuePosting, *dque.DQue, error) {
-
 	q, err := dque.NewOrOpen("event-queue", a.basePath, 500, itemBuilder)
 	if err != nil {
 		return nil, nil, err
