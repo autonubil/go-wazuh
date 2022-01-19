@@ -14,8 +14,10 @@ require (
 	github.com/tklauser/go-sysconf v0.3.9 // indirect
 	go.uber.org/ratelimit v0.2.0
 	go.uber.org/zap v1.19.1
-	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad
+	golang.org/x/crypto v0.0.0-20210921155107-089bfa567519
 )
+
+require github.com/getsentry/sentry-go v0.12.0
 
 require (
 	github.com/andres-erbsen/clock v0.0.0-20160526145045-9e14626cd129 // indirect
@@ -25,7 +27,7 @@ require (
 	github.com/tklauser/numcpus v0.3.0 // indirect
 	go.uber.org/atomic v1.7.0 // indirect
 	go.uber.org/multierr v1.6.0 // indirect
-	golang.org/x/sys v0.0.0-20210816074244-15123e1e1f71 // indirect
+	golang.org/x/sys v0.0.0-20211007075335-d3039528d8ac // indirect
 	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )

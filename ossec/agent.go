@@ -40,7 +40,7 @@ const (
 	SendRateLimit = 450
 
 	// time between server pings
-	PingIntervall    = 10
+	NotifyTime       = 10
 	SysinfoIntervall = 60 // each 60th  ping -> 1/h
 )
 
@@ -828,10 +828,10 @@ func (a *Client) AgentLoop(ctx context.Context, closeOnError bool) (chan *QueueP
 				a.logger.Debug("fileTransfer", zap.Any("agentId", a.AgentID), zap.String("fileName", a.CurrentRemoteFile.Filename))
 			} else {
 				loopEntry := time.Now()
-				loopExit := loopEntry.Add(time.Second * (PingIntervall - 1))
+				loopExit := loopEntry.Add(time.Second * (NotifyTime - 1))
 				pingWait := ratelimit.New(1) // per second
 
-				for t := 0; t < PingIntervall; t++ {
+				for t := 0; t < NotifyTime; t++ {
 					if ctx.Err() != nil {
 						out <- err
 						break
