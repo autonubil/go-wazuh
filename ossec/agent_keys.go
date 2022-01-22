@@ -59,7 +59,7 @@ func GetAgentKeyMap(filename string) (AgentKeyMap, error) {
 		agentMap[agentID] = key
 		return agentMap, nil
 	}
-	return LoadAgentKeyMap("")
+	return LoadAgentKeyMap(filename)
 }
 
 // LoadAgentKeyMap read all agent infos from a file (/var/ossec/etc/client.keys)

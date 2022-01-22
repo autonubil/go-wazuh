@@ -1,7 +1,6 @@
 module github.com/autonubil/go-wazuh
 
 require (
-	github.com/4kills/go-zlib v1.1.0
 	github.com/StackExchange/wmi v1.2.1 // indirect
 	github.com/coreos/go-semver v0.3.0
 	github.com/deepmap/oapi-codegen v1.8.3
@@ -17,7 +16,10 @@ require (
 	golang.org/x/crypto v0.0.0-20210921155107-089bfa567519
 )
 
-require github.com/getsentry/sentry-go v0.12.0
+require (
+	github.com/4kills/go-libdeflate v1.3.1
+	github.com/getsentry/sentry-go v0.12.0
+)
 
 require (
 	github.com/andres-erbsen/clock v0.0.0-20160526145045-9e14626cd129 // indirect

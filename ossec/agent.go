@@ -193,10 +193,6 @@ func WithPort(port uint16) AgentOption {
 // WithEncryptionMethod specify encryption method to use
 func WithEncryptionMethod(encryptionMethod EncryptionMethod) AgentOption {
 	return func(c *Client) error {
-		/**		if encryptionMethod == EncryptionMethodAES {
-			return errors.New("AES is currently not supported")
-		}
-		*/
 		c.EncryptionMethod = encryptionMethod
 		return nil
 	}
