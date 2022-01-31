@@ -249,7 +249,7 @@ func NewAgent(server string, agentID string, agentName string, agentKey string, 
 		Server:           server,
 		Port:             1514,
 		UDP:              true,
-		EncryptionMethod: EncryptionMethodBlowFish,
+		EncryptionMethod: EncryptionMethodAES,
 		ClientName:       "go-wazuh",
 		ClientVersion:    "v1.0.0",
 		ratelimit:        ratelimit.New(SendRateLimit), // per second
@@ -658,6 +658,8 @@ func (a *Client) readServerResponse(timeout time.Duration) error {
 			// normal status, nothing to report
 		} else if globalCountU > a.globalCount || (globalCountU == a.globalCount && localCountU > a.localCount) {
 			a.logger.Debug(fmt.Sprintf("Updated to remote counters %d:%d (%d:%d)", localCountU, globalCountU, a.localCount, a.globalCount), zap.Skip())
+			// move one ahaed
+			localCountU++
 		} else {
 			a.logger.Info(fmt.Sprintf("Unexpected counter %d:%d (%d:%d)", localCountU, globalCountU, a.localCount, a.globalCount), zap.Skip())
 		}

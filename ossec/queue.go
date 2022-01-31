@@ -7,6 +7,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"strconv"
 	"time"
 
 	"go.uber.org/zap"
@@ -163,9 +164,20 @@ func (w *Queue) SendMessage(event interface{}, location string, programName stri
 }
 
 func (w *Queue) sendMessage(event interface{}, location string, programName string) error {
-	b, err := json.Marshal(event)
-	if err != nil {
-		return err
+	var b []byte
+	var err error
+	switch v := event.(type) {
+	case int:
+		b = []byte(strconv.Itoa(v))
+	case float64:
+		b = []byte(fmt.Sprintf("%f", v))
+	case string:
+		b = []byte(v)
+	default:
+		b, err = json.Marshal(event)
+		if err != nil {
+			return err
+		}
 	}
 
 	s, e := net.Dial("unixgram", w.QueuePath)
