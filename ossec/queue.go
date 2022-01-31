@@ -212,8 +212,8 @@ func (w *Queue) AgentLoop(ctx context.Context, closeOnError bool) (chan *QueuePo
 				location = msg.Location
 				if location == "" {
 					location = "ossec"
-
 				}
+
 				programName = msg.ProgramName
 				if location == "" {
 					programName = filepath.Base(os.Args[0])
