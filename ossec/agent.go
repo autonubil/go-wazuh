@@ -876,7 +876,13 @@ func (a *Client) AgentLoop(ctx context.Context, closeOnError bool) (chan *QueueP
 								msg.TargetQueue = LOCALFILE_MQ
 							}
 
-							wireMsg := fmt.Sprintf("%c:%s:%s %s %s:%s", msg.TargetQueue, msg.Location, msg.Timestamp.UTC().Format("Jan 02 15:04:05"), a.AgentName, msg.ProgramName, string(b))
+							var wireMsg string
+							if msg.TargetQueue == LOCALFILE_MQ {
+								wireMsg = fmt.Sprintf("%c:%s:%s %s %s:%s", msg.TargetQueue, msg.Location, msg.Timestamp.UTC().Format("Jan 02 15:04:05"), a.AgentName, msg.ProgramName, string(b))
+							} else {
+								wireMsg = string(b)
+							}
+
 							err = a.WriteMessage(wireMsg)
 
 							item = nil
