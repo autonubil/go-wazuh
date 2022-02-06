@@ -19,6 +19,11 @@ func mapType(name string, spec map[string]interface{}) string {
 	sb.WriteString(fmt.Sprintf("type %s struct {\n", strcase.ToCamel(name)))
 
 	for jKey, v := range spec {
+
+		if strings.Contains(jKey, "-") {
+			continue
+		}
+
 		spec := v.(map[string]interface{})
 		var gKey string
 		if strings.HasPrefix(jKey, "@") {

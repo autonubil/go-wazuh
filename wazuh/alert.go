@@ -169,7 +169,6 @@ type Execve struct {
 
 type DataAudit struct {
 	Dev          *string    `json:"dev,omitempty"`
-	OldAuid      *string    `json:"old-auid,omitempty"`
 	Ppid         *string    `json:"ppid,omitempty"`
 	Subj         *string    `json:"subj,omitempty"`
 	OldProm      *string    `json:"old_prom,omitempty"`
@@ -178,7 +177,6 @@ type DataAudit struct {
 	Exe          *string    `json:"exe,omitempty"`
 	Exit         *string    `json:"exit,omitempty"`
 	Fsgid        *string    `json:"fsgid,omitempty"`
-	OldSes       *string    `json:"old-ses,omitempty"`
 	OldEnforcing *string    `json:"old_enforcing,omitempty"`
 	Key          *string    `json:"key,omitempty"`
 	Res          *string    `json:"res,omitempty"`
