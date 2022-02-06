@@ -146,9 +146,9 @@ type Event struct {
 
 // QueuePosting a massage for the queue
 type QueuePosting struct {
+	TargetQueue rune        `json:"queue"`
 	Location    string      `json:"location"`
 	ProgramName string      `json:"program"`
-	TargetQueue rune        `json:"queue"`
 	Timestamp   time.Time   `json:"timestamp,omitempty"`
 	Raw         interface{} `json:"raw,omitempty"`
 }

@@ -864,7 +864,20 @@ func (a *Client) AgentLoop(ctx context.Context, closeOnError bool) (chan *QueueP
 						}
 
 						if msg, ok := item.(*QueuePosting); ok {
-							b, err := json.Marshal(msg.Raw)
+							var b []byte
+							var err error
+
+							switch v := msg.Raw.(type) {
+							case int:
+								b = []byte(strconv.Itoa(v))
+							case float64:
+								b = []byte(fmt.Sprintf("%f", v))
+							case string:
+								b = []byte(v)
+							default:
+								b, err = json.Marshal(msg.Raw)
+							}
+
 							if err != nil {
 								a.logger.Error("marshall", zap.Any("agentId", a.AgentID), zap.Error(err))
 								item = nil
@@ -880,7 +893,7 @@ func (a *Client) AgentLoop(ctx context.Context, closeOnError bool) (chan *QueueP
 							if msg.TargetQueue == LOCALFILE_MQ {
 								wireMsg = fmt.Sprintf("%c:%s:%s %s %s:%s", msg.TargetQueue, msg.Location, msg.Timestamp.UTC().Format("Jan 02 15:04:05"), a.AgentName, msg.ProgramName, string(b))
 							} else {
-								wireMsg = string(b)
+								wireMsg = fmt.Sprintf("%c:%s", msg.TargetQueue, string(b))
 							}
 
 							err = a.WriteMessage(wireMsg)

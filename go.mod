@@ -25,6 +25,7 @@ require (
 	github.com/andres-erbsen/clock v0.0.0-20160526145045-9e14626cd129 // indirect
 	github.com/go-ole/go-ole v1.2.5 // indirect
 	github.com/gofrs/flock v0.7.1 // indirect
+	github.com/iancoleman/strcase v0.2.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/tklauser/numcpus v0.3.0 // indirect
 	go.uber.org/atomic v1.7.0 // indirect
