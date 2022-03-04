@@ -6376,7 +6376,7 @@ func (a *ApiError_DapiErrors) UnmarshalJSON(b []byte) error {
 			}
 			err := json.Unmarshal(fieldBuf, &fieldVal)
 			if err != nil {
-				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
+				return fmt.Errorf("error unmarshalling field %s: %w", fieldName, err)
 			}
 			a.AdditionalProperties[fieldName] = fieldVal
 		}
@@ -6392,7 +6392,7 @@ func (a ApiError_DapiErrors) MarshalJSON() ([]byte, error) {
 	for fieldName, field := range a.AdditionalProperties {
 		object[fieldName], err = json.Marshal(field)
 		if err != nil {
-			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
+			return nil, fmt.Errorf("error marshalling '%s': %w", fieldName, err)
 		}
 	}
 	return json.Marshal(object)
