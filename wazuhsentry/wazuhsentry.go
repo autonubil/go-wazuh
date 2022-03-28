@@ -16,6 +16,7 @@ import (
 	"github.com/getsentry/sentry-go"
 	"github.com/golang-jwt/jwt"
 	"github.com/pkg/errors"
+	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
 
@@ -39,6 +40,7 @@ type SentryEvent struct {
 func init() {
 	gob.Register(SentryIntegrationEvent{})
 	gob.Register(SentryEvent{})
+	gob.Register(zap.Strings("reg", []string{""}).Interface)
 }
 
 func (t *AgentTransport) Flush(timeout time.Duration) bool {
@@ -167,6 +169,9 @@ func (t *AgentTransport) SendEvent(event *sentry.Event) {
 }
 
 func NewAgentTransport(channel chan *ossec.QueuePosting) (*AgentTransport, error) {
+	if channel == nil {
+		return nil, errors.New("no channel specified")
+	}
 	t := &AgentTransport{
 		channel:          channel,
 		wrappedTransport: sentry.NewHTTPTransport(),
