@@ -129,6 +129,10 @@ type RemoteFileInfo struct {
 
 func init() {
 	gob.Register(map[string]interface{}{})
+	gob.Register(FileUpdatedEvent{})
+	gob.Register(AgentShutDownEvent{})
+	gob.Register(RemoteFileInfo{})
+	gob.Register(Client{})
 }
 
 // AgentOption allows setting custom parameters during construction
