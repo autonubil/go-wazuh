@@ -1,6 +1,7 @@
 package ossec
 
 import (
+	"bufio"
 	"bytes"
 	"errors"
 	"io/ioutil"
@@ -75,6 +76,8 @@ const (
 	AUTH_MQ         = 'c'
 	SYSCOLLECTOR_MQ = 'd'
 
+	RIDS_DIR        = "rids"
+	REMOTE_DIR      = "remote"
 	WM_SYS_LOCATION = "syscollector"
 
 	maxBufferSize        = 1024 * 1024 * 10
@@ -90,6 +93,7 @@ type Client struct {
 	UDP               bool
 	basePath          string
 	remotePath        string
+	ridsPath          string
 	localCount        uint
 	globalCount       uint
 	evtCount          uint
@@ -288,15 +292,81 @@ func NewAgent(server string, agentID string, agentName string, agentKey string, 
 		}
 	}
 
-	a.remotePath = filepath.Join(a.basePath, "remote")
+	a.remotePath = filepath.Join(a.basePath, REMOTE_DIR)
 	if _, err := os.Stat(a.remotePath); os.IsNotExist(err) {
 		os.MkdirAll(a.remotePath, 0770)
 	}
+
+	a.ridsPath = filepath.Join(a.basePath, RIDS_DIR)
+	if _, err := os.Stat(a.ridsPath); os.IsNotExist(err) {
+		os.MkdirAll(a.ridsPath, 0770)
+	}
+
+	err = a.ReadClientCounter()
+	if err != nil {
+		return nil, err
+	}
+
 	return a, nil
 }
 
 func (a *Client) IsConencted() bool {
 	return a.connected
+}
+
+// WriteClientCounter persist current counters
+func (a *Client) WriteClientCounter() error {
+	ridsFile := filepath.Join(a.ridsPath, a.AgentID)
+	file, err := os.Create(ridsFile)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	file.WriteString(fmt.Sprintf("%d:%d", a.globalCount, a.localCount))
+	return nil
+}
+
+// ReadClientCounter read counters from disk
+func (a *Client) ReadClientCounter() error {
+	ridsFile := filepath.Join(a.ridsPath, a.AgentID)
+	_, err := os.Stat(ridsFile)
+	if os.IsNotExist(err) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+
+	file, err := os.Open(ridsFile)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	scanner := bufio.NewScanner(file)
+	// optionally, resize scanner's capacity for lines over 64K, see next example
+	if scanner.Scan() {
+		strVal := scanner.Text()
+		if err := scanner.Err(); err != nil {
+			return err
+		}
+		parts := strings.Split(strVal, ":")
+		var gc int
+		var lc int
+		if len(parts) == 2 {
+			gc, err = strconv.Atoi(parts[0])
+			if err == nil {
+				lc, err = strconv.Atoi(parts[1])
+			}
+		}
+
+		if err != nil {
+			return err
+		}
+		a.globalCount = uint(gc)
+		a.localCount = uint(lc)
+		return nil
+	}
+	return nil
 }
 
 func (a *Client) close(sendCloseMsg bool) error {
@@ -670,6 +740,7 @@ func (a *Client) readServerResponse(timeout time.Duration) error {
 		a.localCount = localCountU
 		a.globalCount = globalCountU
 
+		a.WriteClientCounter()
 		// rand1 := msg[:5]
 		//fmt.Printf("packet-received: bytes=%d (%s:%d:%d) '%s'\n", nRead, rand1, globalCount, localCount, msg)
 		// empty buffer for next read
