@@ -62,6 +62,19 @@ func GetAgentKeyMap(filename string) (AgentKeyMap, error) {
 	return LoadAgentKeyMap(filename)
 }
 
+func GetAgentKeyFromFile(agentName string, filename string) (*AgentKey, error) {
+	keyMap, err := LoadAgentKeyMap(filename)
+	if err != nil {
+		return nil, err
+	}
+	for _, key := range keyMap {
+		if key.AgentName == agentName {
+			return key, nil
+		}
+	}
+	return nil, nil
+}
+
 // LoadAgentKeyMap read all agent infos from a file (/var/ossec/etc/client.keys)
 func LoadAgentKeyMap(filename string) (AgentKeyMap, error) {
 	if filename == "" {
