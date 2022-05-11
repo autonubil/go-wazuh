@@ -45,9 +45,13 @@ func (c *EnrollmentConfig) SetLogger(logger *zap.Logger) {
 }
 
 func DefaultAgentName() (string, error) {
-	hostname, err := os.Hostname()
-	if err != nil {
-		return "", err
+	hostname := os.Getenv("WAZUH_AGENT_NAME")
+	if hostname == "" {
+		var err error
+		hostname, err = os.Hostname()
+		if err != nil {
+			return "", err
+		}
 	}
 	return hostname, nil
 }
