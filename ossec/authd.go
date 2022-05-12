@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"go.uber.org/zap"
@@ -43,6 +44,74 @@ func (c *EnrollmentConfig) SetLogger(logger *zap.Logger) {
 	c.logger = logger
 }
 
+func DefaultAgentName() (string, error) {
+	hostname := os.Getenv("WAZUH_AGENT_NAME")
+	if hostname == "" {
+		var err error
+		hostname, err = os.Hostname()
+		if err != nil {
+			return "", err
+		}
+	}
+	return hostname, nil
+}
+
+func InitAgent(cfg *EnrollmentConfig) (*AgentKey, error) {
+	var keyFile string
+	if LocalInitInfo != nil {
+		keyFile = fmt.Sprintf("%s/etc/client.keys", LocalInitInfo.Directory)
+	} else {
+		keyFile = "/var/ossec/etc/client.keys"
+	}
+
+	hostname, err := DefaultAgentName()
+	if err != nil {
+		return nil, err
+	}
+
+	if cfg.AuthPass != "" {
+
+		agentKey, err := GetAgentKeyFromFile(hostname, keyFile)
+		keyMapValid := err == nil && agentKey != nil
+
+		if !keyMapValid {
+			var err2 error
+			// Try to register agent
+
+			//ensure path...
+			path := filepath.Dir(keyFile)
+			if _, err2 = os.Stat(path); os.IsNotExist(err2) {
+				err2 = os.MkdirAll(path, os.ModePerm)
+				if err2 != nil {
+					if cfg.logger != nil {
+						cfg.logger.Error("register agent - create path", zap.String("authdServer", cfg.ManagerName), zap.String("agentID", cfg.AgentName), zap.String("agentIP", cfg.AgentIP), zap.String("keyfile", keyFile), zap.Error(err2))
+					}
+					return nil, err
+				}
+			}
+
+			err2 = agentKey.WriteAgentKey(keyFile)
+			if err2 != nil {
+				if cfg.logger != nil {
+					cfg.logger.Error("register agent - write key file", zap.String("authdServer", cfg.ManagerName), zap.String("agentID", cfg.AgentName), zap.String("agentIP", cfg.AgentIP), zap.String("path", path), zap.String("keyfile", keyFile), zap.Error(err2))
+				}
+				return nil, err
+			}
+		}
+	}
+
+	agentInfo, err := GetAgentKeyFromFile(hostname, keyFile)
+	if err != nil {
+		return nil, err
+	}
+
+	if agentInfo == nil {
+		return nil, errors.New("no agent key configured")
+	}
+	return agentInfo, nil
+
+}
+
 // NewEnrollmentConfig initialize new enrolment config
 func NewEnrollmentConfig() (*EnrollmentConfig, error) {
 	cfg := &EnrollmentConfig{
@@ -54,7 +123,7 @@ func NewEnrollmentConfig() (*EnrollmentConfig, error) {
 	}
 	var err error
 	if cfg.AgentName == "" {
-		hostname, err := os.Hostname()
+		hostname, err := DefaultAgentName()
 		if err != nil {
 			return nil, err
 		}
@@ -114,14 +183,14 @@ func RegisterAgent(cfg *EnrollmentConfig) (*AgentKey, error) {
 	}
 
 	readBuf := make([]byte, 1024)
-	_, err = conn.Read(readBuf)
+	read, err := conn.Read(readBuf)
 
 	if err != nil {
 		return nil, err
 	}
 
 	defer conn.Close()
-	s := strings.Trim(string(readBuf), "\n\t ")
+	s := strings.Trim(string(readBuf[:read]), "\n\t ")
 	if strings.HasPrefix(s, "OSSEC K:'") {
 		s := s[9:]
 		end := strings.LastIndex(s, "'")
@@ -131,6 +200,5 @@ func RegisterAgent(cfg *EnrollmentConfig) (*AgentKey, error) {
 			return ParseAgentKey(s)
 		}
 	}
-
 	return nil, fmt.Errorf("invalid result: %s", s)
 }

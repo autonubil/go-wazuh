@@ -388,6 +388,36 @@ func (c *ClientWithResponses) Authenticated() bool {
 	return c.ClientInterface.(*Client).token != ""
 }
 
+func (c *ClientWithResponses) Logout() error {
+	c.ClientInterface.(*Client).token = ""
+	return nil
+}
+
+func (c *ClientWithResponses) RevokeAllTokens() error {
+	if !c.Authenticated() {
+		return fmt.Errorf("not authenticated")
+	}
+
+	// Call Delete on Authenticate
+	sr, err := c.SecurityControllerRevokeAllTokensWithResponse(c.ClientInterface.(*Client).ctx)
+	if err != nil {
+		return err
+	}
+	if sr == nil {
+		return fmt.Errorf("revoke tokens failed")
+	}
+	if sr.StatusCode() > 399 {
+		if sr != nil {
+			_, err = getResponseObject(sr)
+		}
+		if err != nil {
+			return err
+		}
+		return fmt.Errorf("%s returned %s", c.ClientInterface.(*Client).Server, sr.Status())
+	}
+	return nil
+}
+
 //Authenticate login using basic auth to optain a token
 func (c *ClientWithResponses) Authenticate() error {
 	// Authenticate

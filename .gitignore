@@ -34,3 +34,8 @@ _testmain.go
 
 # Dependency directories (remove the comment below to include it)
 # vendor/
+
+
+.vscode
+.vscode/settings.json
+generator/spec.yaml.old

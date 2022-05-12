@@ -6,6 +6,7 @@ package ossec
 
 import (
 	"bytes"
+	"compress/zlib"
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/md5"
@@ -14,8 +15,7 @@ import (
 	"math/rand"
 	"strings"
 
-	"github.com/4kills/go-zlib"
-	// "compress/zlib"
+	"github.com/4kills/go-libdeflate"
 
 	"golang.org/x/crypto/blowfish"
 )
@@ -88,6 +88,7 @@ func aesEncrypt(ppt, key []byte) []byte {
 	// create the encrypter
 	// fmt.Println(aesCipher.BlockSize())
 	ivBytes := []byte("FEDCBA0987654321")
+
 	ecbc := cipher.NewCBCEncrypter(aesCipher, ivBytes)
 
 	ppt = PKCS7Padding(ppt, ecbc.BlockSize())
@@ -171,7 +172,7 @@ func (a *Client) decryptMessage(encMsg []byte, msgSize uint32) (string, error) {
 		compressed = compressed[1:]
 		msgSize--
 	}
-	// fmt.Printf("%0x %s\n", compressed, string(compressed))
+
 	b := bytes.NewReader(compressed[:msgSize])
 
 	r, err := zlib.NewReader(b)
@@ -217,32 +218,28 @@ func (a *Client) cryptMsg(msg string) ([]byte, uint32) {
 	/* Compress the message
 	* We assign the first 8 bytes for padding
 	 */
-	var b bytes.Buffer
-	w, err := zlib.NewWriterLevel(&b, 9)
+
+	c, err := libdeflate.NewCompressorLevel(9)
 	if err != nil {
 		return nil, 0
 	}
-	// , _ :=
-	w.Write([]byte(finMsg))
-
-	w.Close()
-	compressedMsg := b.Bytes()
-	cmpSize := uint(len(compressedMsg))
-	// fmt.Printf("_tmpMsg: %d:%d:%d ->  '%s'\n", len([]byte(finMsg)), written, cmpSize, tmpMsg)
+	compressedMsg := make([]byte, len(finMsg)+32)
+	cmp, _, err := c.Compress([]byte(finMsg), compressedMsg, libdeflate.ModeZlib)
+	if err != nil {
+		return nil, 0
+	}
+	compressedMsg = compressedMsg[:cmp]
+	cmpSize := uint(cmp)
 
 	/* Pad the message (needs to be div by 8) */
 	bfSize := 8 - (cmpSize % 8)
 	if bfSize == 8 {
 		bfSize = 0
+		tmpMsg = string(compressedMsg)
+	} else {
+		tmpMsg = fmt.Sprintf("%s%s", "!!!!!!!!"[:bfSize], string(compressedMsg))
+		cmpSize += bfSize
 	}
-
-	// fmt.Printf("compressed: <%s>: %s (%d -> %d)\n", fmt.Sprintf("%00x", md5.Sum([]byte(compressedMsg))), compressedMsg, written, cmpSize)
-	// fmt.Printf("%00x", []byte(compressedMsg))
-	// fmt.Printf("\n")
-
-	tmpMsg = fmt.Sprintf("%s%s", "!!!!!!!!"[:bfSize], string(compressedMsg))
-	cmpSize += bfSize
-	// fmt.Printf("tmpMsg:  '%s' (%d)\n", tmpMsg, len(tmpMsg))
 
 	/* Get average sizes */
 	a.cOrigSize += msgSize
@@ -257,6 +254,7 @@ func (a *Client) cryptMsg(msg string) ([]byte, uint32) {
 		cryptoToken = ":"
 		encrypted = blowfishEncrypt([]byte(tmpMsg), []byte(a.AgentHashedKey))
 	}
+
 	var msgEncrypted string
 	if a.AgentAllowedIPs == "any" {
 		msgEncrypted = fmt.Sprintf("!%s!%s%s", a.AgentID, cryptoToken, encrypted)
@@ -268,10 +266,6 @@ func (a *Client) cryptMsg(msg string) ([]byte, uint32) {
 		cmpSize = uint(len(msgEncrypted))
 	}
 
-	// fmt.Printf("encMsg:  '%s' (%d)\n", msgEncrypted, cmpSize)
-	// decrypted, err := a.decryptMessage([]byte(msgEncrypted), (uint32)(cmpSize))
-
-	// fmt.Printf("decMsg:  '%s' (%v)\n", decrypted, err)
 	return []byte(msgEncrypted), (uint32)(cmpSize)
 }
 

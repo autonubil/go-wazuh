@@ -1,6 +1,7 @@
 package ossec
 
 import (
+	"bufio"
 	"bytes"
 	"errors"
 	"io/ioutil"
@@ -40,7 +41,7 @@ const (
 	SendRateLimit = 450
 
 	// time between server pings
-	PingIntervall    = 10
+	NotifyTime       = 10
 	SysinfoIntervall = 60 // each 60th  ping -> 1/h
 )
 
@@ -75,6 +76,8 @@ const (
 	AUTH_MQ         = 'c'
 	SYSCOLLECTOR_MQ = 'd'
 
+	RIDS_DIR        = "rids"
+	REMOTE_DIR      = "remote"
 	WM_SYS_LOCATION = "syscollector"
 
 	maxBufferSize        = 1024 * 1024 * 10
@@ -90,6 +93,7 @@ type Client struct {
 	UDP               bool
 	basePath          string
 	remotePath        string
+	ridsPath          string
 	localCount        uint
 	globalCount       uint
 	evtCount          uint
@@ -129,6 +133,10 @@ type RemoteFileInfo struct {
 
 func init() {
 	gob.Register(map[string]interface{}{})
+	gob.Register(FileUpdatedEvent{})
+	gob.Register(AgentShutDownEvent{})
+	gob.Register(RemoteFileInfo{})
+	gob.Register(Client{})
 }
 
 // AgentOption allows setting custom parameters during construction
@@ -193,10 +201,6 @@ func WithPort(port uint16) AgentOption {
 // WithEncryptionMethod specify encryption method to use
 func WithEncryptionMethod(encryptionMethod EncryptionMethod) AgentOption {
 	return func(c *Client) error {
-		/**		if encryptionMethod == EncryptionMethodAES {
-			return errors.New("AES is currently not supported")
-		}
-		*/
 		c.EncryptionMethod = encryptionMethod
 		return nil
 	}
@@ -253,7 +257,7 @@ func NewAgent(server string, agentID string, agentName string, agentKey string, 
 		Server:           server,
 		Port:             1514,
 		UDP:              true,
-		EncryptionMethod: EncryptionMethodBlowFish,
+		EncryptionMethod: EncryptionMethodAES,
 		ClientName:       "go-wazuh",
 		ClientVersion:    "v1.0.0",
 		ratelimit:        ratelimit.New(SendRateLimit), // per second
@@ -288,15 +292,81 @@ func NewAgent(server string, agentID string, agentName string, agentKey string, 
 		}
 	}
 
-	a.remotePath = filepath.Join(a.basePath, "remote")
+	a.remotePath = filepath.Join(a.basePath, REMOTE_DIR)
 	if _, err := os.Stat(a.remotePath); os.IsNotExist(err) {
 		os.MkdirAll(a.remotePath, 0770)
 	}
+
+	a.ridsPath = filepath.Join(a.basePath, RIDS_DIR)
+	if _, err := os.Stat(a.ridsPath); os.IsNotExist(err) {
+		os.MkdirAll(a.ridsPath, 0770)
+	}
+
+	err = a.ReadClientCounter()
+	if err != nil {
+		return nil, err
+	}
+
 	return a, nil
 }
 
 func (a *Client) IsConencted() bool {
 	return a.connected
+}
+
+// WriteClientCounter persist current counters
+func (a *Client) WriteClientCounter() error {
+	ridsFile := filepath.Join(a.ridsPath, a.AgentID)
+	file, err := os.Create(ridsFile)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	file.WriteString(fmt.Sprintf("%d:%d", a.globalCount, a.localCount))
+	return nil
+}
+
+// ReadClientCounter read counters from disk
+func (a *Client) ReadClientCounter() error {
+	ridsFile := filepath.Join(a.ridsPath, a.AgentID)
+	_, err := os.Stat(ridsFile)
+	if os.IsNotExist(err) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+
+	file, err := os.Open(ridsFile)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	scanner := bufio.NewScanner(file)
+	// optionally, resize scanner's capacity for lines over 64K, see next example
+	if scanner.Scan() {
+		strVal := scanner.Text()
+		if err := scanner.Err(); err != nil {
+			return err
+		}
+		parts := strings.Split(strVal, ":")
+		var gc int
+		var lc int
+		if len(parts) == 2 {
+			gc, err = strconv.Atoi(parts[0])
+			if err == nil {
+				lc, err = strconv.Atoi(parts[1])
+			}
+		}
+
+		if err != nil {
+			return err
+		}
+		a.globalCount = uint(gc)
+		a.localCount = uint(lc)
+		return nil
+	}
+	return nil
 }
 
 func (a *Client) close(sendCloseMsg bool) error {
@@ -348,44 +418,48 @@ func (a *Client) PingServer() error {
 	return a.pingServer()
 }
 
+func (a *Client) handleControlResponse(response string) error {
+	a.logger.Debug("controlMsg", zap.Any("agentId", a.AgentID), zap.String("message", strings.Split(response, "\n")[0]))
+	if strings.HasPrefix(string(response), FILE_UPDATE_HEADER) {
+		fieleSpecs := strings.Split(strings.Trim(response[11:], "\n \t"), " ")
+		if len(fieleSpecs) == 2 {
+			if existingFile, ok := a.RemoteFiles[fieleSpecs[1]]; ok && existingFile.Hash == fieleSpecs[0] {
+				return nil
+			}
+			if a.logger != nil {
+				a.logger.Debug("receiveFile", zap.Any("agentId", a.AgentID), zap.String("fileName", fieleSpecs[1]))
+			}
+			a.CurrentRemoteFile = &RemoteFileInfo{
+				Filename: fieleSpecs[1],
+				Hash:     fieleSpecs[0],
+				Content:  bytes.NewBuffer(nil),
+			}
+		}
+		return nil
+	} else if strings.HasPrefix(string(response), FILE_CLOSE_HEADER) {
+		if a.logger != nil {
+			a.logger.Debug("fileReceived", zap.Any("agentId", a.AgentID), zap.Int("len", a.CurrentRemoteFile.Content.Len()))
+		}
+		a.cacheFileHash(a.CurrentRemoteFile.Filename, a.CurrentRemoteFile.Hash, a.CurrentRemoteFile.Content.String())
+		a.outChannel <- &FileUpdatedEvent{a.CurrentRemoteFile}
+		a.CurrentRemoteFile = nil
+		return nil
+	} else if string(response) == HC_ACK {
+		return nil
+	} else {
+		if a.CurrentRemoteFile != nil {
+			// close any open file
+			a.CurrentRemoteFile = nil
+		}
+		a.logger.Warn("unhandledControlMessage", zap.Any("agentId", a.AgentID), zap.String("msg", string(response)))
+	}
+	return nil
+}
+
 func (a *Client) handleResponse(response string) error {
 
 	if strings.HasPrefix(string(response), CONTROL_HEADER) {
-		a.logger.Debug("controlMsg", zap.Any("agentId", a.AgentID), zap.String("message", strings.Split(response, "\n")[0]))
-		if strings.HasPrefix(string(response), FILE_UPDATE_HEADER) {
-			fieleSpecs := strings.Split(strings.Trim(response[11:], "\n \t"), " ")
-			if len(fieleSpecs) == 2 {
-				if existingFile, ok := a.RemoteFiles[fieleSpecs[1]]; ok && existingFile.Hash == fieleSpecs[0] {
-					return nil
-				}
-				if a.logger != nil {
-					a.logger.Debug("receiveFile", zap.Any("agentId", a.AgentID), zap.String("fileName", fieleSpecs[1]))
-				}
-				a.CurrentRemoteFile = &RemoteFileInfo{
-					Filename: fieleSpecs[1],
-					Hash:     fieleSpecs[0],
-					Content:  bytes.NewBuffer(nil),
-				}
-			}
-			return nil
-		} else if strings.HasPrefix(string(response), FILE_CLOSE_HEADER) {
-			if a.logger != nil {
-				a.logger.Debug("fileReceived", zap.Any("agentId", a.AgentID), zap.Int("len", a.CurrentRemoteFile.Content.Len()))
-			}
-			a.cacheFileHash(a.CurrentRemoteFile.Filename, a.CurrentRemoteFile.Hash, a.CurrentRemoteFile.Content.String())
-			a.outChannel <- &FileUpdatedEvent{a.CurrentRemoteFile}
-			a.CurrentRemoteFile = nil
-			return nil
-		} else if string(response) == HC_ACK {
-			return nil
-		} else {
-			if a.CurrentRemoteFile != nil {
-				// close any open file
-				a.CurrentRemoteFile = nil
-			}
-			a.logger.Warn("unhandledControlMessage", zap.Any("agentId", a.AgentID), zap.String("msg", string(response)))
-		}
-
+		return a.handleControlResponse(response)
 	} else {
 		if a.CurrentRemoteFile != nil {
 			a.CurrentRemoteFile.Content.WriteString(response)
@@ -508,7 +582,7 @@ func (a *Client) writeMessage(msg string) error {
 
 	if err != nil {
 		if a.logger != nil {
-			a.logger.Info("writeMessage", zap.Any("agentId", a.AgentID), zap.String("msg", msg), zap.Int("result", ret), zap.Int("sentBytes", a.sentBytes), zap.Int("sentBytesTotal", a.sentBytesTotal), zap.Duration("rateWait", now.Sub(prev)), zap.Uint("globalCount", a.globalCount), zap.Uint("localCount", a.localCount), zap.Uint("evtCount", a.evtCount), zap.Uint("sentCount", a.sentCount), zap.Uint("receivedCount", a.receivedCount), zap.Error(err))
+			a.logger.Warn("writeMessage", zap.Any("agentId", a.AgentID),  zap.String("msg", msg), zap.Int("result", ret), zap.Int("sentBytes", a.sentBytes), zap.Int("sentBytesTotal", a.sentBytesTotal), zap.Duration("rateWait", now.Sub(prev)), zap.Uint("globalCount", a.globalCount), zap.Uint("localCount", a.localCount), zap.Uint("evtCount", a.evtCount), zap.Uint("sentCount", a.sentCount), zap.Uint("receivedCount", a.receivedCount), zap.Error(err))
 		}
 		err2 := a.close(false)
 		if err2 != nil {
@@ -663,14 +737,18 @@ func (a *Client) readServerResponse(timeout time.Duration) error {
 		localCountU := uint(localCount)
 		globalCountU := uint(globalCount)
 		if globalCountU == a.globalCount && (localCountU == a.localCount) {
+			// normal status, nothing to report
 		} else if globalCountU > a.globalCount || (globalCountU == a.globalCount && localCountU > a.localCount) {
 			a.logger.Debug(fmt.Sprintf("Updated to remote counters %d:%d (%d:%d)", localCountU, globalCountU, a.localCount, a.globalCount), zap.Skip())
+			// move one ahaed
+			localCountU++
 		} else {
 			a.logger.Info(fmt.Sprintf("Unexpected counter %d:%d (%d:%d)", localCountU, globalCountU, a.localCount, a.globalCount), zap.Skip())
 		}
 		a.localCount = localCountU
 		a.globalCount = globalCountU
 
+		a.WriteClientCounter()
 		// rand1 := msg[:5]
 		//fmt.Printf("packet-received: bytes=%d (%s:%d:%d) '%s'\n", nRead, rand1, globalCount, localCount, msg)
 		// empty buffer for next read
@@ -758,7 +836,6 @@ func itemBuilder() interface{} {
 }
 
 func (a *Client) openQueue(ctx context.Context) (chan *QueuePosting, *dque.DQue, error) {
-
 	q, err := dque.NewOrOpen("event-queue", a.basePath, 500, itemBuilder)
 	if err != nil {
 		return nil, nil, err
@@ -832,10 +909,10 @@ func (a *Client) AgentLoop(ctx context.Context, closeOnError bool) (chan *QueueP
 				a.logger.Debug("fileTransfer", zap.Any("agentId", a.AgentID), zap.String("fileName", a.CurrentRemoteFile.Filename))
 			} else {
 				loopEntry := time.Now()
-				loopExit := loopEntry.Add(time.Second * (PingIntervall - 1))
+				loopExit := loopEntry.Add(time.Second * (NotifyTime - 1))
 				pingWait := ratelimit.New(1) // per second
 
-				for t := 0; t < PingIntervall; t++ {
+				for t := 0; t < NotifyTime; t++ {
 					if ctx.Err() != nil {
 						out <- err
 						break
@@ -870,7 +947,20 @@ func (a *Client) AgentLoop(ctx context.Context, closeOnError bool) (chan *QueueP
 						}
 
 						if msg, ok := item.(*QueuePosting); ok {
-							b, err := json.Marshal(msg.Raw)
+							var b []byte
+							var err error
+
+							switch v := msg.Raw.(type) {
+							case int:
+								b = []byte(strconv.Itoa(v))
+							case float64:
+								b = []byte(fmt.Sprintf("%f", v))
+							case string:
+								b = []byte(v)
+							default:
+								b, err = json.Marshal(msg.Raw)
+							}
+
 							if err != nil {
 								a.logger.Error("marshall", zap.Any("agentId", a.AgentID), zap.Error(err))
 								item = nil
@@ -882,7 +972,13 @@ func (a *Client) AgentLoop(ctx context.Context, closeOnError bool) (chan *QueueP
 								msg.TargetQueue = LOCALFILE_MQ
 							}
 
-							wireMsg := fmt.Sprintf("%c:%s:%s %s %s:%s", msg.TargetQueue, msg.Location, msg.Timestamp.UTC().Format("Jan 02 15:04:05"), a.AgentName, msg.ProgramName, string(b))
+							var wireMsg string
+							if msg.TargetQueue == LOCALFILE_MQ {
+								wireMsg = fmt.Sprintf("%c:%s:%s %s %s:%s", msg.TargetQueue, msg.Location, msg.Timestamp.UTC().Format("Jan 02 15:04:05"), a.AgentName, msg.ProgramName, string(b))
+							} else {
+								wireMsg = fmt.Sprintf("%c:%s", msg.TargetQueue, string(b))
+							}
+
 							err = a.WriteMessage(wireMsg)
 
 							item = nil
