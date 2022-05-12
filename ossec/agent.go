@@ -486,6 +486,10 @@ func (a *Client) pingServer() error {
 }
 
 func (a *Client) writeMessage(msg string) error {
+	if a.conn == nil {
+		return fmt.Errorf("client is not connected")
+	}
+
 	encryptedMsg, msgSize := a.cryptMsg(msg)
 	a.evtCount++
 
@@ -564,6 +568,10 @@ func (a *Client) sendMessage(msg string, readTimeout time.Duration) error {
 }
 
 func (a *Client) readServerResponse(timeout time.Duration) error {
+	if a.conn == nil {
+		return fmt.Errorf("client is not connected")
+	}
+
 	var buf bytes.Buffer
 	buffer := make([]byte, maxBufferSize)
 	totallyRead := 0
