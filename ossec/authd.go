@@ -63,33 +63,32 @@ func InitAgent(cfg *EnrollmentConfig) (*AgentKey, error) {
 	} else {
 		keyFile = "/var/ossec/etc/client.keys"
 	}
+	//ensure path...
+	path := filepath.Dir(keyFile)
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		err = os.MkdirAll(path, os.ModePerm)
+		if err != nil {
+			if cfg.logger != nil {
+				cfg.logger.Error("register agent - create path", zap.String("authdServer", cfg.ManagerName), zap.String("agentID", cfg.AgentName), zap.String("agentIP", cfg.AgentIP), zap.String("keyfile", keyFile), zap.Error(err))
+			}
+			return nil, err
+		}
+	}
 
 	hostname, err := DefaultAgentName()
 	if err != nil {
 		return nil, err
 	}
 
-	if cfg.AuthPass != "" {
+	agentKey, err := GetAgentKeyFromFile(hostname, keyFile)
+	keyMapValid := err == nil && agentKey != nil
 
-		agentKey, err := GetAgentKeyFromFile(hostname, keyFile)
-		keyMapValid := err == nil && agentKey != nil
-
-		if !keyMapValid {
-			var err2 error
-			// Try to register agent
-
-			//ensure path...
-			path := filepath.Dir(keyFile)
-			if _, err2 = os.Stat(path); os.IsNotExist(err2) {
-				err2 = os.MkdirAll(path, os.ModePerm)
-				if err2 != nil {
-					if cfg.logger != nil {
-						cfg.logger.Error("register agent - create path", zap.String("authdServer", cfg.ManagerName), zap.String("agentID", cfg.AgentName), zap.String("agentIP", cfg.AgentIP), zap.String("keyfile", keyFile), zap.Error(err2))
-					}
-					return nil, err
-				}
-			}
-
+	if !keyMapValid && cfg.AuthPass != "" {
+		var err2 error
+		// Try to register agent
+		agentKey, err2 = RegisterAgent(cfg)
+		if err2 == nil && agentKey != nil {
+			// persist new key
 			err2 = agentKey.WriteAgentKey(keyFile)
 			if err2 != nil {
 				if cfg.logger != nil {
@@ -97,19 +96,17 @@ func InitAgent(cfg *EnrollmentConfig) (*AgentKey, error) {
 				}
 				return nil, err
 			}
+			agentKey, err = GetAgentKeyFromFile(hostname, keyFile)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 
-	agentInfo, err := GetAgentKeyFromFile(hostname, keyFile)
-	if err != nil {
-		return nil, err
-	}
-
-	if agentInfo == nil {
+	if agentKey == nil {
 		return nil, errors.New("no agent key configured")
 	}
-	return agentInfo, nil
-
+	return agentKey, nil
 }
 
 // NewEnrollmentConfig initialize new enrolment config

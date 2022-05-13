@@ -103,6 +103,21 @@ func LoadAgentKeyMap(filename string) (AgentKeyMap, error) {
 }
 
 func (a *AgentKey) WriteAgentKey(filename string) error {
+	if a == nil {
+		return errors.New("key is null")
+	}
+	if a.AgentID == "" {
+		return errors.New("agent id is empty")
+	}
+	if a.AgentName == "" {
+		return errors.New("agent name is empty")
+	}
+	if a.AgentKey == "" {
+		return errors.New("agent key is empty")
+	}
+	if a.AgentAllowedIPs == "" {
+		return errors.New("agent allowed ips is empty")
+	}
 	if filename == "" {
 		filename = "/etc/client.keys"
 	}
