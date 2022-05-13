@@ -43,6 +43,8 @@ const (
 	// time between server pings
 	NotifyTime       = 10
 	SysinfoIntervall = 60 // each 60th  ping -> 1/h
+
+	WazuhVersion = "4.3.0"
 )
 
 const (
@@ -106,6 +108,7 @@ type Client struct {
 	EncryptionMethod  EncryptionMethod
 	ClientName        string
 	ClientVersion     string
+	ConfigHash        string
 	ctx               context.Context
 	conn              net.Conn
 	mx                sync.Mutex
@@ -206,6 +209,14 @@ func WithEncryptionMethod(encryptionMethod EncryptionMethod) AgentOption {
 	}
 }
 
+// WithConfigHash specify a local config hash
+func WithConfigHash(configHash string) AgentOption {
+	return func(c *Client) error {
+		c.ConfigHash = configHash
+		return nil
+	}
+}
+
 // WithAgentIP use specific Agent IP in messages
 func WithAgentIP(agentIP string) AgentOption {
 	return func(c *Client) error {
@@ -254,6 +265,7 @@ func NewAgent(server string, agentID string, agentName string, agentKey string, 
 			AgentIP:         os.Getenv("OSSEC_AGENT_IP"),
 			AgentHashedKey:  finalStr,
 		},
+		ConfigHash:       "",
 		Server:           server,
 		Port:             1514,
 		UDP:              true,
@@ -518,8 +530,9 @@ func (a *Client) cacheFileHash(fileName string, hash string, content string) err
 
 func (a *Client) pingServer() error {
 	labelIP := fmt.Sprintf("#\"_agent_ip\":%s", a.AgentIP)
-	labelClientName := fmt.Sprintf("\"client_name\":%s\n", a.ClientName)
-	agentConfigMd5 := fmt.Sprintf("%00x", md5.Sum([]byte(a.AgentName)))
+	// deprecated? labelClientName := fmt.Sprintf("\"client_name\":%s\n", a.ClientName)
+	// labelWazuhVersion := fmt.Sprintf("#\"_wazuh_version\":%s\n", WazuhVersion)
+	// labelNodeName := fmt.Sprintf("#\"_node_name\":%s\n", a.AgentName)
 
 	osRel := a.osInfo.Name
 	if strings.HasPrefix(strings.ToLower(osRel), strings.ToLower(a.osInfo.Vendor+" ")) {
@@ -541,16 +554,24 @@ func (a *Client) pingServer() error {
 		osRel,
 		a.ClientName, a.ClientVersion)
 
-	labels := labelClientName
-
 	sharedFiles := a.getSharedFiles()
 
 	// test example:
 	//"Linux |debian10 |4.19.0-9-amd64 |#1 SMP Debian 4.19.118-2+deb10u1 (2020-06-07) |x86_64 \
 	// [Debian GNU/Linux|debian: 10 (buster)] - Wazuh v3.13.0 / ab73af41699f13fdd81903b5f23d8d00\nfd756ba04d9c32c8848d4608bec41251 \
 	// merged.mg\n#\"_agent_ip\":192.168.0.143\n"
-	msg := fmt.Sprintf("%s%s / %s\n%s%s%s\n", CONTROL_HEADER, aname, agentConfigMd5, labels, sharedFiles, labelIP)
 
+	// Linux |exanio-nubo-test-m0-kula-001 |5.4.0-74-generic |#83-Ubuntu SMP Sat May 8 02:35:39 UTC 2021 |x86_64 [Ubuntu|ubuntu: 20.04.2 LTS (Focal Fossa)] - Wazuh v4.2.5 / ab73af41699f13fdd81903b5f23d8d00
+	// 2c45c95db2954d2c7d0ea533f09e81a5 merged.mg
+	// #"_agent_ip":10.160.220.10
+	// '
+
+	var msg string
+	if a.ConfigHash != "" {
+		msg = fmt.Sprintf("%s%s / %s\n%s%s\n", CONTROL_HEADER, aname, a.ConfigHash, sharedFiles, labelIP)
+	} else {
+		msg = fmt.Sprintf("%s%s\n%s%s\n", CONTROL_HEADER, aname, sharedFiles, labelIP)
+	}
 	err := a.sendMessage(msg, ReadWaitTimeout)
 	if err != nil {
 		return err
@@ -578,7 +599,7 @@ func (a *Client) writeMessage(msg string) error {
 
 	if err != nil {
 		if a.logger != nil {
-			a.logger.Warn("writeMessage", zap.Any("agentId", a.AgentID),  zap.String("msg", msg), zap.Int("result", ret), zap.Int("sentBytes", a.sentBytes), zap.Int("sentBytesTotal", a.sentBytesTotal), zap.Duration("rateWait", now.Sub(prev)), zap.Uint("globalCount", a.globalCount), zap.Uint("localCount", a.localCount), zap.Uint("evtCount", a.evtCount), zap.Uint("sentCount", a.sentCount), zap.Uint("receivedCount", a.receivedCount), zap.Error(err))
+			a.logger.Warn("writeMessage", zap.Any("agentId", a.AgentID), zap.String("msg", msg), zap.Int("result", ret), zap.Int("sentBytes", a.sentBytes), zap.Int("sentBytesTotal", a.sentBytesTotal), zap.Duration("rateWait", now.Sub(prev)), zap.Uint("globalCount", a.globalCount), zap.Uint("localCount", a.localCount), zap.Uint("evtCount", a.evtCount), zap.Uint("sentCount", a.sentCount), zap.Uint("receivedCount", a.receivedCount), zap.Error(err))
 		}
 		err2 := a.close(false)
 		if err2 != nil {
@@ -802,14 +823,20 @@ func (a *Client) Connect(isStartup bool) error {
 
 	if isStartup {
 		// log start startup
-		msg = fmt.Sprintf("ossec: Agent started: '%s->%s'.", a.AgentID, a.AgentIP)
+		var agentIP string
+		if a.AgentAllowedIPs == "any" {
+			agentIP = "any"
+		} else {
+			agentIP = a.AgentIP
+		}
+		msg = fmt.Sprintf("ossec: Agent started: '%s->%s'.", a.AgentID, agentIP)
 		msg = fmt.Sprintf("%c:%s:%s", LOCALFILE_MQ, "ossec", msg)
 		err = a.writeMessage(msg)
 		if err != nil {
 			return err
 		}
 
-		time.Sleep(1)
+		time.Sleep(1 * time.Second)
 		err = a.pingServer()
 		if err != nil {
 			return err
