@@ -38,15 +38,17 @@ func ParseAgentKey(line string) (*AgentKey, error) {
 	return &agent, nil
 }
 
-// GetAgentKeyMap read from Environment and if not found there, try default file
-func GetAgentKeyMap(filename string) (AgentKeyMap, error) {
+// GetAgentKey read from Environment and if not found there, try default file
+func GetAgentKey(filename string) (*AgentKey, error) {
+	agentName, err := DefaultAgentName()
+	if err != nil {
+		return nil, err
+	}
 	agentID := os.Getenv("WAZUH_AGENT_ID")
-	agentName := os.Getenv("WAZUH_AGENT_NAME")
 	agentIP := os.Getenv("WAZUH_AGENT_IP")
 	agentKey := os.Getenv("WAZUH_AGENT_KEY")
 
 	if agentID != "" && agentName != "" && agentKey != "" {
-		agentMap := AgentKeyMap{}
 		if agentIP == "" {
 			agentIP = "any"
 		}
@@ -56,10 +58,9 @@ func GetAgentKeyMap(filename string) (AgentKeyMap, error) {
 			AgentHashedKey:  agentKey,
 			AgentAllowedIPs: agentIP,
 		}
-		agentMap[agentID] = key
-		return agentMap, nil
+		return key, nil
 	}
-	return LoadAgentKeyMap(filename)
+	return GetAgentKeyFromFile(agentName, filename)
 }
 
 func GetAgentKeyFromFile(agentName string, filename string) (*AgentKey, error) {

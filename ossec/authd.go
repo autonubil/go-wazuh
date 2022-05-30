@@ -75,12 +75,7 @@ func InitAgent(cfg *EnrollmentConfig) (*AgentKey, error) {
 		}
 	}
 
-	hostname, err := DefaultAgentName()
-	if err != nil {
-		return nil, err
-	}
-
-	agentKey, err := GetAgentKeyFromFile(hostname, keyFile)
+	agentKey, err := GetAgentKey(keyFile)
 	keyMapValid := err == nil && agentKey != nil
 
 	if !keyMapValid && cfg.AuthPass != "" {
@@ -96,7 +91,7 @@ func InitAgent(cfg *EnrollmentConfig) (*AgentKey, error) {
 				}
 				return nil, err
 			}
-			agentKey, err = GetAgentKeyFromFile(hostname, keyFile)
+			agentKey, err = GetAgentKey(keyFile)
 			if err != nil {
 				return nil, err
 			}

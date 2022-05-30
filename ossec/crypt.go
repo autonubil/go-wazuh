@@ -77,7 +77,6 @@ func PKCS7UnPadding(origData []byte) []byte {
 }
 
 func aesEncrypt(ppt, key []byte) []byte {
-	// ppt = []byte("TestString123456TestString123456")
 	// create the cipher
 	aesCipher, err := aes.NewCipher(key[:32])
 	if err != nil {
@@ -86,11 +85,8 @@ func aesEncrypt(ppt, key []byte) []byte {
 	}
 
 	// create the encrypter
-	// fmt.Println(aesCipher.BlockSize())
 	ivBytes := []byte("FEDCBA0987654321")
-
 	ecbc := cipher.NewCBCEncrypter(aesCipher, ivBytes)
-
 	ppt = PKCS7Padding(ppt, ecbc.BlockSize())
 
 	// make ciphertext big enough to store len(ppt)
@@ -233,13 +229,11 @@ func (a *Client) cryptMsg(msg string) ([]byte, uint32) {
 
 	/* Pad the message (needs to be div by 8) */
 	bfSize := 8 - (cmpSize % 8)
-	if bfSize == 8 {
-		bfSize = 0
-		tmpMsg = string(compressedMsg)
-	} else {
-		tmpMsg = fmt.Sprintf("%s%s", "!!!!!!!!"[:bfSize], string(compressedMsg))
-		cmpSize += bfSize
+	if bfSize == 0 {
+		bfSize = 8
 	}
+	tmpMsg = fmt.Sprintf("%s%s", "!!!!!!!!!!!!!!!!"[:bfSize], string(compressedMsg))
+	cmpSize += bfSize
 
 	/* Get average sizes */
 	a.cOrigSize += msgSize
@@ -278,6 +272,7 @@ func NewCorruptMessage(typ string) CorruptMessage {
 		typ: typ,
 	}
 }
+
 func (cme CorruptMessage) Error() string {
 	return fmt.Sprintf("corrupt message (%s)", cme.typ)
 }
