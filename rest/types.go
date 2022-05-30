@@ -15,6 +15,45 @@ type N200DataNodeType string
 type N200DataEnabled bool
 type N200DataRunning bool
 
+
+// RequestError defines model for RequestError.
+type RequestError struct {
+	RequestDetail string `json:"detail"`
+	RequestError  *int32 `json:"error,omitempty"`
+	RequestTitle  string `json:"title"`
+	// Explain how to fix the check, this field is very useful in case the check failed
+	Remediation *string `json:"remediation,omitempty"`
+}
+
+ 
+// ApiResponse defines model for ApiResponse.
+type ApiResponse struct {
+	// Human readable description to explain the result of the request
+	Message   *string `json:"message,omitempty"`
+	ErrorCode int     `json:"error,omitempty"`
+}
+
+
+
+// ApiError defines model for ApiError.
+type ApiError struct {
+	ApiCode        *int32               `json:"code,omitempty"`
+	ApiDapiErrors  *ApiError_DapiErrors `json:"dapi_errors,omitempty"`
+	ApiDetail      string               `json:"detail"`
+	ApiInstance    *string              `json:"instance,omitempty"`
+	ApiRemediation *string              `json:"remediation,omitempty"`
+	ApiTitle       string               `json:"title"`
+}
+
+// ApiError_DapiErrors defines model for ApiError.DapiErrors.
+type ApiError_DapiErrors struct {
+	AdditionalProperties map[string]struct {
+		Error   *string `json:"error,omitempty"`
+		Logfile *string `json:"logfile,omitempty"`
+	} `json:"-"`
+}
+
+
 const (
 	BasicAuthScopes = "basicAuth.Scopes"
 	JwtScopes       = "jwt.Scopes"
@@ -609,21 +648,39 @@ type AgentGroup struct {
 
 // AgentGroupDeleted defines model for AgentGroupDeleted.
 type AgentGroupDeleted struct {
-	// List of agents which belonged to the group and might have been reassigned to group default
-	AffectedAgents []AgentID `json:"affected_agents"`
+	// List of removed groups with the agents which belonged to it and might have been reassigned to group default
+	AffectedItems []GroupDelete `json:"affected_items"`
 }
 
 // Agent ID
 type AgentID string
 
 // Agent ID|all
-type AgentIDDELETE string
+type AgentIDListAll string
 
 // AgentIdKey defines model for AgentIdKey.
 type AgentIdKey struct {
 	// Agent ID
 	Id  AgentID `json:"id"`
 	Key string  `json:"key"`
+}
+
+
+type DisconnectedTime struct {
+	// Enable force disconnected_time option
+	Enabled *bool `json:"enabled,omitempty"`
+
+	// Time the agent must has been disconnected to force the insertion. Time in seconds, ‘[n_days]d’, ‘[n_hours]h’, ‘[n_minutes]m’ or ‘[n_seconds]s’. For example, `7d`, `10s` and `10` are valid values. If no time unit is specified, seconds are used
+	Value *string `json:"value,omitempty"`
+}
+
+// Remove the old agent with the same name, ID or IP if the configuration is matched
+type AgentInsertForce struct {
+	// Time the agent must has been registered to force the insertion. Time in seconds, ‘[n_days]d’, ‘[n_hours]h’, ‘[n_minutes]m’ or ‘[n_seconds]s’. For example, `7d`, `10s` and `10` are valid values. If no time unit is specified, seconds are used
+	AfterRegistrationTime *string `json:"after_registration_time,omitempty"`
+	// Enable force option
+	Enabled *bool `json:"enabled,omitempty"`
+	DisconnectedTime      *DisconnectedTime `json:"disconnected_time,omitempty"`
 }
 
 // AgentSimple defines model for AgentSimple.
@@ -779,6 +836,15 @@ type AllItemsResponseGroups struct {
 	AllItemsResponse `yaml:",inline"`
 }
 
+// AllItemsResponseLastScan defines model for AllItemsResponseLastScan.
+type AllItemsResponseLastScan struct {
+	// Embedded struct due to allOf(#/components/schemas/AllItemsResponse)
+	AllItemsResponse `yaml:",inline"`
+	// Embedded fields due to inline allOf schema
+	// Items that successfully applied the API call action
+	AffectedItems []LastScan `json:"affected_items"`
+}
+
 // AllItemsResponseLists defines model for AllItemsResponseLists.
 type AllItemsResponseLists struct {
 	// Embedded struct due to allOf(#/components/schemas/AllItemsResponse)
@@ -867,15 +933,6 @@ type AllItemsResponseSCADatabase struct {
 	// Embedded fields due to inline allOf schema
 	// Items that successfully applied the API call action
 	AffectedItems []SCADatabase `json:"affected_items"`
-}
-
-// AllItemsResponseSyscheckLastScan defines model for AllItemsResponseSyscheckLastScan.
-type AllItemsResponseSyscheckLastScan struct {
-	// Embedded struct due to allOf(#/components/schemas/AllItemsResponse)
-	AllItemsResponse `yaml:",inline"`
-	// Embedded fields due to inline allOf schema
-	// Items that successfully applied the API call action
-	AffectedItems []LastScan `json:"affected_items"`
 }
 
 // AllItemsResponseSyscheckResult defines model for AllItemsResponseSyscheckResult.
@@ -1002,31 +1059,6 @@ type AllItemsResponseWazuhStats struct {
 	AffectedItems []interface{} `json:"affected_items"`
 	// Embedded struct due to allOf(#/components/schemas/AllItemsResponse)
 	AllItemsResponse `yaml:",inline"`
-}
-
-// ApiError defines model for ApiError.
-type ApiError struct {
-	ApiCode        *int32               `json:"code,omitempty"`
-	ApiDapiErrors  *ApiError_DapiErrors `json:"dapi_errors,omitempty"`
-	ApiDetail      string               `json:"detail"`
-	ApiInstance    *string              `json:"instance,omitempty"`
-	ApiRemediation *string              `json:"remediation,omitempty"`
-	ApiTitle       string               `json:"title"`
-}
-
-// ApiError_DapiErrors defines model for ApiError.DapiErrors.
-type ApiError_DapiErrors struct {
-	AdditionalProperties map[string]struct {
-		Error   *string `json:"error,omitempty"`
-		Logfile *string `json:"logfile,omitempty"`
-	} `json:"-"`
-}
-
-// ApiResponse defines model for ApiResponse.
-type ApiResponse struct {
-	// Human readable description to explain the result of the request
-	Message   *string `json:"message,omitempty"`
-	ErrorCode int     `json:"error,omitempty"`
 }
 
 // BasicInfo defines model for BasicInfo.
@@ -1222,11 +1254,16 @@ type GroupConfiguration struct {
 	} `json:"filters"`
 }
 
+// Deleted group with a list of agents that were assigned to it
+type GroupDelete struct {
+	AdditionalProperties map[string][]interface{} `json:"-"`
+}
+
 // Group name
 type GroupID string
 
 // Group name|all
-type GroupIDDELETE string
+type GroupIDListAll string
 
 // ItemAffected defines model for ItemAffected.
 type ItemAffected struct {
@@ -1276,6 +1313,24 @@ type LogtestRequest struct {
 	// Token for the logtest session
 	Token *string `json:"token,omitempty"`
 }
+
+// MITRE group ID
+type MitreGroupId string
+
+// MITRE mitigation ID
+type MitreMitigationId string
+
+// MITRE Reference ID
+type MitreReferenceId string
+
+// MITRE software ID
+type MitreSoftwareId string
+
+// MITRE tactic ID
+type MitreTacticId string
+
+// MITRE technique ID
+type MitreTechniqueId string
 
 // Information related to received packets in the network interface
 type NetworkInterfaceReceivedPackets struct {
@@ -1338,15 +1393,14 @@ type NodeHealthcheck struct {
 				DateEndMaster   *string `json:"date_end_master,omitempty"`
 				DateStartMaster *string `json:"date_start_master,omitempty"`
 				TotalFiles      *struct {
-					Extra      *int32  `json:"extra,omitempty"`
-					ExtraValid *int32  `json:"extra_valid,omitempty"`
-					Missing    *int32  `json:"missing,omitempty"`
-					Shared     *bool `json:"shared,omitempty"`
+					Extra      *int32 `json:"extra,omitempty"`
+					ExtraValid *int32 `json:"extra_valid,omitempty"`
+					Missing    *int32 `json:"missing,omitempty"`
+					Shared     *int32 `json:"shared,omitempty"`
 				} `json:"total_files,omitempty"`
 			} `json:"last_sync_integrity,omitempty"`
-			SyncAgentinfoFree  *bool `json:"sync_agentinfo_free,omitempty"`
-			SyncExtravalidFree *bool `json:"sync_extravalid_free,omitempty"`
-			SyncIntegrityFree  *bool `json:"sync_integrity_free,omitempty"`
+			SyncAgentInfoFree *bool `json:"sync_agent_info_free,omitempty"`
+			SyncIntegrityFree *bool `json:"sync_integrity_free,omitempty"`
 		} `json:"status,omitempty"`
 	} `json:"name,omitempty"`
 }
@@ -1456,14 +1510,7 @@ type RemotePortInfo struct {
 	Port *int32 `json:"port,omitempty"`
 }
 
-// RequestError defines model for RequestError.
-type RequestError struct {
-	RequestDetail string `json:"detail"`
-	RequestError  *int32 `json:"error,omitempty"`
-	RequestTitle  string `json:"title"`
-	// Explain how to fix the check, this field is very useful in case the check failed
-	Remediation *string `json:"remediation,omitempty"`
-}
+ 
 
 // Role ID
 type RoleId string
@@ -1686,13 +1733,13 @@ type SecurityRuleIdDELETE string
 // SimpleApiError defines model for SimpleApiError.
 type SimpleApiError struct {
 	Error SimpleApiError_Error `json:"error"`
-	Id    *[]string            `json:"id,omitempty"`
+	Ids    []string       `json:"id,omitempty"`
 }
 
 // SimpleApiError_Error defines model for SimpleApiError.Error.
 type SimpleApiError_Error struct {
-	Code        *int32  `json:"code,omitempty"`
-	Message     *string `json:"message,omitempty"`
+	Code        int32  `json:"code,omitempty"`
+	Message     string `json:"message,omitempty"`
 	Remediation *string `json:"remediation,omitempty"`
 }
 
@@ -2153,7 +2200,7 @@ type WazuhAnalysisdStats struct {
 	// Same as `alerts_written` but focusing in firewall alerts
 	FirewallWritten *float32 `json:"firewall_written,omitempty"`
 
-	// Same as `alerts_written` but focusing in [FTS alerts] (https://documentation.wazuh.com/4.2/user-manual/ruleset/ruleset-xml-syntax/decoders.html?highlight=fts #fts)
+	// Same as `alerts_written` but focusing in [FTS alerts] (https://documentation.wazuh.com/4.3/user-manual/ruleset/ruleset-xml-syntax/decoders.html?highlight=fts #fts)
 	FtsWritten *float32 `json:"fts_written,omitempty"`
 
 	// Hostinfo events decoded per second
@@ -2398,14 +2445,17 @@ type WazuhRemotedStats struct {
 	// Number of events sent to analysisd during the last five seconds
 	EvtCount *float32 `json:"evt_count,omitempty"`
 
-	// Number of messages sent to the agents during the last five seconds
-	MsgSent *float32 `json:"msg_sent,omitempty"`
-
 	// Usage of the queue to storage events from agents
 	QueueSize *float32 `json:"queue_size,omitempty"`
 
+	// Number of messages queued to be sent to agents during the last five seconds
+	QueuedMsgs *float32 `json:"queued_msgs,omitempty"`
+
 	// Number of received bytes from all agents during the last five seconds
 	RecvBytes *float32 `json:"recv_bytes,omitempty"`
+
+	// Number of sent bytes to the agents during the last five seconds
+	SentBytes *float32 `json:"sent_bytes,omitempty"`
 
 	// Number of TCP active sessions during the last five seconds
 	TcpSessions *float32 `json:"tcp_sessions,omitempty"`
@@ -2443,20 +2493,14 @@ type AgentName string
 // AgentsList defines model for agents_list.
 type AgentsList []AgentID
 
-// AgentsListDelete defines model for agents_list_delete.
-type AgentsListDelete []AgentIDDELETE
-
-// AgentsListUpgrade defines model for agents_list_upgrade.
-type AgentsListUpgrade []AgentID
+// AgentsListAll defines model for agents_list_all.
+type AgentsListAll []AgentIDListAll
 
 // AllowRunAs defines model for allow_run_as.
 type AllowRunAs bool
 
 // Architecture defines model for architecture.
 type Architecture string
-
-// AttackId defines model for attack_id.
-type AttackId string
 
 // Benchmark defines model for benchmark.
 type Benchmark string
@@ -2493,6 +2537,15 @@ type CpuName string
 
 // Cve defines model for cve.
 type Cve string
+
+// CveSeverity defines model for cve_severity.
+type CveSeverity string
+
+// CveStatus defines model for cve_status.
+type CveStatus string
+
+// CveType defines model for cve_type.
+type CveType string
 
 // CveVersion defines model for cve_version.
 type CveVersion string
@@ -2587,8 +2640,8 @@ type GroupIdQuery GroupID
 // GroupsList defines model for groups_list.
 type GroupsList []GroupID
 
-// GroupsListDelete defines model for groups_list_delete.
-type GroupsListDelete []GroupIDDELETE
+// GroupsListAll defines model for groups_list_all.
+type GroupsListAll []GroupIDListAll
 
 // Hash defines model for hash.
 type Hash string
@@ -2643,6 +2696,24 @@ type Md5 string
 
 // Mitre defines model for mitre.
 type Mitre string
+
+// MitreGroupIds defines model for mitre_group_ids.
+type MitreGroupIds []MitreGroupId
+
+// MitreMitigationIds defines model for mitre_mitigation_ids.
+type MitreMitigationIds []MitreMitigationId
+
+// MitreReferenceIds defines model for mitre_reference_ids.
+type MitreReferenceIds []MitreReferenceId
+
+// MitreSoftwareIds defines model for mitre_software_ids.
+type MitreSoftwareIds []MitreSoftwareId
+
+// MitreTacticIds defines model for mitre_tactic_ids.
+type MitreTacticIds []MitreTacticId
+
+// MitreTechniqueIds defines model for mitre_technique_ids.
+type MitreTechniqueIds []MitreTechniqueId
 
 // Module defines model for module.
 type Module string
@@ -2713,14 +2784,8 @@ type PciDss string
 // Pgrp defines model for pgrp.
 type Pgrp string
 
-// PhaseName defines model for phase_name.
-type PhaseName string
-
 // Pid defines model for pid.
 type Pid string
-
-// PlatformName defines model for platform_name.
-type PlatformName string
 
 // Policy ID
 type PolicyIdRbac PolicyId
@@ -2781,9 +2846,6 @@ type Rationale string
 
 // Raw defines model for raw.
 type Raw bool
-
-// RawConf defines model for raw_conf.
-type RawConf bool
 
 // Reason defines model for reason.
 type Reason string
@@ -2977,6 +3039,9 @@ type Vendor string
 // Version defines model for version.
 type Version string
 
+// VulnerabilityField defines model for vulnerability_field.
+type VulnerabilityField string
+
 // WaitForComplete defines model for wait_for_complete.
 type WaitForComplete bool
 
@@ -3046,7 +3111,7 @@ type AgentControllerDeleteAgentsParams struct {
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 
 	// List of agent IDs (separated by comma), use the keyword `all` to select all agents
-	AgentsList AgentsListDelete `json:"agents_list"`
+	AgentsList AgentsListAll `json:"agents_list"`
 
 	// Permanently delete an agent from the key store
 	Purge *Purge `json:"purge,omitempty"`
@@ -3117,7 +3182,7 @@ type AgentControllerGetAgentsParams struct {
 	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
 	Sort *Sort `json:"sort,omitempty"`
 
-	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beggining
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
 
 	// Filter by agent status (use commas to enter multiple statuses)
@@ -3165,9 +3230,6 @@ type AgentControllerGetAgentsParamsStatus string
 
 // AgentControllerAddAgentJSONBody defines parameters for AgentControllerAddAgent.
 type AgentControllerAddAgentJSONBody struct {
-	// Remove the old agent with the same IP if disconnected since <force_time> seconds
-	ForceTime *int32 `json:"force_time,omitempty"`
-
 	// If this is not included, the API will get the IP automatically. Allowed values: IP, IP/NET, ANY
 	Ip *string `json:"ip,omitempty"`
 
@@ -3193,7 +3255,7 @@ type AgentControllerDeleteMultipleAgentSingleGroupParams struct {
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 
 	// List of agent IDs (separated by comma), use the keyword `all` to select all agents
-	AgentsList AgentsListDelete `json:"agents_list"`
+	AgentsList AgentsListAll `json:"agents_list"`
 
 	// Group ID. (Name of the group)
 	GroupId GroupIdQuery `json:"group_id"`
@@ -3213,7 +3275,7 @@ type AgentControllerPutMultipleAgentSingleGroupParams struct {
 	// Group ID. (Name of the group)
 	GroupId GroupIdQuery `json:"group_id"`
 
-	// Whether to append the new group to current agent's multigroup or replace it
+	// Removes the agent from all groups to which it belongs and assigns it to the specified group
 	ForceSingleGroup *ForceSingleGroup `json:"force_single_group,omitempty"`
 }
 
@@ -3228,8 +3290,8 @@ type AgentControllerRestartAgentsByGroupParams struct {
 
 // AgentControllerInsertAgentJSONBody defines parameters for AgentControllerInsertAgent.
 type AgentControllerInsertAgentJSONBody struct {
-	// Remove the old agent with the same IP if disconnected for <force_time> seconds
-	ForceTime *int32 `json:"force_time,omitempty"`
+	// Remove the old agent with the same name, ID or IP if the configuration is matched
+	Force *AgentInsertForce `json:"force,omitempty"`
 
 	// Agent ID
 	Id *AgentID `json:"id,omitempty"`
@@ -3261,7 +3323,7 @@ type AgentControllerPostNewAgentParams struct {
 	// Disable timeout response
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 
-	// Agent name
+	// Agent name. The special characters allowed are: '-','_','.'
 	AgentName AgentName `json:"agent_name"`
 }
 
@@ -3285,7 +3347,7 @@ type AgentControllerGetAgentNoGroupParams struct {
 	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
 	Sort *Sort `json:"sort,omitempty"`
 
-	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beggining
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
 
 	// Query to filter results by. For example q=&quot;status=active&quot;
@@ -3318,11 +3380,23 @@ type AgentControllerGetAgentOutdatedParams struct {
 	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
 	Sort *Sort `json:"sort,omitempty"`
 
-	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beggining
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
 
 	// Query to filter results by. For example q=&quot;status=active&quot;
 	Q *Query `json:"q,omitempty"`
+}
+
+// AgentControllerReconnectAgentsParams defines parameters for AgentControllerReconnectAgents.
+type AgentControllerReconnectAgentsParams struct {
+	// Show results in human-readable format
+	Pretty *Pretty `json:"pretty,omitempty"`
+
+	// Disable timeout response
+	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
+
+	// List of agent IDs (separated by comma), all agents selected by default if not specified
+	AgentsList *AgentsList `json:"agents_list,omitempty"`
 }
 
 // AgentControllerRestartAgentsParams defines parameters for AgentControllerRestartAgents.
@@ -3357,11 +3431,8 @@ type AgentControllerGetAgentFieldsParams struct {
 	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
 	Sort *Sort `json:"sort,omitempty"`
 
-	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beggining
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
-
-	// Select which fields to return (separated by comma). Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
-	Select *Select `json:"select,omitempty"`
 
 	// Query to filter results by. For example q=&quot;status=active&quot;
 	Q *Query `json:"q,omitempty"`
@@ -3393,20 +3464,53 @@ type AgentControllerPutUpgradeAgentsParams struct {
 	// Disable timeout response
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 
-	// List of agent IDs (separated by comma), select a list of agents with size less or equal than 100
-	AgentsList AgentsListUpgrade `json:"agents_list"`
+	// List of agent IDs (separated by comma), use the keyword `all` to select all agents
+	AgentsList AgentsListAll `json:"agents_list"`
 
 	// WPK repository
 	WpkRepo *WpkRepo `json:"wpk_repo,omitempty"`
 
 	// Wazuh version to upgrade to
-	Version *UpgradeVersion `json:"version,omitempty"`
+	UpgradeVersion *UpgradeVersion `json:"upgrade_version,omitempty"`
 
 	// Use http protocol. If it's false use https. By default the value is set to false
 	UseHttp *UseHttp `json:"use_http,omitempty"`
 
 	// Force upgrade
 	Force *Force `json:"force,omitempty"`
+
+	// Query to filter results by. For example q=&quot;status=active&quot;
+	Q *Query `json:"q,omitempty"`
+
+	// Filter by OS platform
+	OsPlatform *OsPlatform `json:"os.platform,omitempty"`
+
+	// Filter by OS version
+	OsVersion *OsVersion `json:"os.version,omitempty"`
+
+	// Filter by OS name
+	OsName *OsName `json:"os.name,omitempty"`
+
+	// Filter by manager hostname where agents are connected to
+	Manager *ManagerHost `json:"manager,omitempty"`
+
+	// Filter by agents version
+	Version *Version `json:"version,omitempty"`
+
+	// Filter by group of agents
+	Group *AgentGroup `json:"group,omitempty"`
+
+	// Filter by node name
+	NodeName *NodeName `json:"node_name,omitempty"`
+
+	// Filter by name
+	Name *Name `json:"name,omitempty"`
+
+	// Filter by the IP used by the agent to communicate with the manager. If it's not available, it will have the same value as registerIP
+	Ip *Ip `json:"ip,omitempty"`
+
+	// Filter by the IP used when registering the agent
+	RegisterIP *RegisterIP `json:"registerIP,omitempty"`
 }
 
 // AgentControllerPutUpgradeCustomAgentsParams defines parameters for AgentControllerPutUpgradeCustomAgents.
@@ -3417,14 +3521,47 @@ type AgentControllerPutUpgradeCustomAgentsParams struct {
 	// Disable timeout response
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 
-	// List of agent IDs (separated by comma), select a list of agents with size less or equal than 100
-	AgentsList AgentsListUpgrade `json:"agents_list"`
+	// List of agent IDs (separated by comma), use the keyword `all` to select all agents
+	AgentsList AgentsListAll `json:"agents_list"`
 
 	// Full path to the WPK file. The file must be on a folder on the Wazuh's installation directory (by default, <code>/var/ossec</code>)
 	FilePath FilePath `json:"file_path"`
 
 	// Installation script. Default is <code>upgrade.sh</code> or <code>upgrade.bat</code> for windows agents
 	Installer *Installer `json:"installer,omitempty"`
+
+	// Query to filter results by. For example q=&quot;status=active&quot;
+	Q *Query `json:"q,omitempty"`
+
+	// Filter by OS platform
+	OsPlatform *OsPlatform `json:"os.platform,omitempty"`
+
+	// Filter by OS version
+	OsVersion *OsVersion `json:"os.version,omitempty"`
+
+	// Filter by OS name
+	OsName *OsName `json:"os.name,omitempty"`
+
+	// Filter by manager hostname where agents are connected to
+	Manager *ManagerHost `json:"manager,omitempty"`
+
+	// Filter by agents version
+	Version *Version `json:"version,omitempty"`
+
+	// Filter by group of agents
+	Group *AgentGroup `json:"group,omitempty"`
+
+	// Filter by node name
+	NodeName *NodeName `json:"node_name,omitempty"`
+
+	// Filter by name
+	Name *Name `json:"name,omitempty"`
+
+	// Filter by the IP used by the agent to communicate with the manager. If it's not available, it will have the same value as registerIP
+	Ip *Ip `json:"ip,omitempty"`
+
+	// Filter by the IP used when registering the agent
+	RegisterIP *RegisterIP `json:"registerIP,omitempty"`
 }
 
 // AgentControllerGetAgentUpgradeParams defines parameters for AgentControllerGetAgentUpgrade.
@@ -3437,6 +3574,39 @@ type AgentControllerGetAgentUpgradeParams struct {
 
 	// List of agent IDs (separated by comma), all agents selected by default if not specified
 	AgentsList *AgentsList `json:"agents_list,omitempty"`
+
+	// Query to filter results by. For example q=&quot;status=active&quot;
+	Q *Query `json:"q,omitempty"`
+
+	// Filter by OS platform
+	OsPlatform *OsPlatform `json:"os.platform,omitempty"`
+
+	// Filter by OS version
+	OsVersion *OsVersion `json:"os.version,omitempty"`
+
+	// Filter by OS name
+	OsName *OsName `json:"os.name,omitempty"`
+
+	// Filter by manager hostname where agents are connected to
+	Manager *ManagerHost `json:"manager,omitempty"`
+
+	// Filter by agents version
+	Version *Version `json:"version,omitempty"`
+
+	// Filter by group of agents
+	Group *AgentGroup `json:"group,omitempty"`
+
+	// Filter by node name
+	NodeName *NodeName `json:"node_name,omitempty"`
+
+	// Filter by name
+	Name *Name `json:"name,omitempty"`
+
+	// Filter by the IP used by the agent to communicate with the manager. If it's not available, it will have the same value as registerIP
+	Ip *Ip `json:"ip,omitempty"`
+
+	// Filter by the IP used when registering the agent
+	RegisterIP *RegisterIP `json:"registerIP,omitempty"`
 }
 
 // AgentControllerGetAgentConfigParams defines parameters for AgentControllerGetAgentConfig.
@@ -3492,7 +3662,7 @@ type AgentControllerPutAgentSingleGroupParams struct {
 	// Disable timeout response
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 
-	// Whether to append the new group to current agent's multigroup or replace it
+	// Removes the agent from all groups to which it belongs and assigns it to the specified group
 	ForceSingleGroup *ForceSingleGroup `json:"force_single_group,omitempty"`
 }
 
@@ -3543,7 +3713,7 @@ type CiscatControllerGetAgentsCiscatResultsParams struct {
 	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
 	Sort *Sort `json:"sort,omitempty"`
 
-	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beggining
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
 
 	// Select which fields to return (separated by comma). Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
@@ -3648,7 +3818,7 @@ type ClusterControllerGetClusterNodesParams struct {
 	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
 	Sort *Sort `json:"sort,omitempty"`
 
-	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beggining
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
 
 	// Select which fields to return (separated by comma). Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
@@ -3697,7 +3867,7 @@ type ClusterControllerGetConfigurationNodeParams struct {
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 
 	// Format response in plain text
-	Raw *RawConf `json:"raw,omitempty"`
+	Raw *Raw `json:"raw,omitempty"`
 
 	// Indicates the wazuh configuration section
 	Section *ClusterControllerGetConfigurationNodeParamsSection `json:"section,omitempty"`
@@ -3759,7 +3929,7 @@ type ClusterControllerGetLogNodeParams struct {
 	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
 	Sort *Sort `json:"sort,omitempty"`
 
-	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beggining
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
 
 	// Wazuh component that logged the event
@@ -3867,7 +4037,7 @@ type DecoderControllerGetDecodersParams struct {
 	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
 	Sort *Sort `json:"sort,omitempty"`
 
-	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beggining
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
 
 	// Query to filter results by. For example q=&quot;status=active&quot;
@@ -3903,7 +4073,7 @@ type DecoderControllerGetDecodersFilesParams struct {
 	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
 	Sort *Sort `json:"sort,omitempty"`
 
-	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beggining
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
 
 	// Filter by filename of one or more rule or decoder files.
@@ -3972,7 +4142,7 @@ type DecoderControllerGetDecodersParentsParams struct {
 	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
 	Sort *Sort `json:"sort,omitempty"`
 
-	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beggining
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
 }
 
@@ -3996,7 +4166,7 @@ type ExperimentalControllerGetCisCatResultsParams struct {
 	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
 	Sort *Sort `json:"sort,omitempty"`
 
-	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beggining
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
 
 	// Select which fields to return (separated by comma). Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
@@ -4027,6 +4197,18 @@ type ExperimentalControllerGetCisCatResultsParams struct {
 	Score *Score `json:"score,omitempty"`
 }
 
+// ExperimentalControllerClearRootcheckDatabaseParams defines parameters for ExperimentalControllerClearRootcheckDatabase.
+type ExperimentalControllerClearRootcheckDatabaseParams struct {
+	// Show results in human-readable format
+	Pretty *Pretty `json:"pretty,omitempty"`
+
+	// Disable timeout response
+	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
+
+	// List of agent IDs (separated by comma), use the keyword `all` to select all agents
+	AgentsList AgentsListAll `json:"agents_list"`
+}
+
 // ExperimentalControllerClearSyscheckDatabaseParams defines parameters for ExperimentalControllerClearSyscheckDatabase.
 type ExperimentalControllerClearSyscheckDatabaseParams struct {
 	// Show results in human-readable format
@@ -4036,7 +4218,7 @@ type ExperimentalControllerClearSyscheckDatabaseParams struct {
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 
 	// List of agent IDs (separated by comma), use the keyword `all` to select all agents
-	AgentsList AgentsListDelete `json:"agents_list"`
+	AgentsList AgentsListAll `json:"agents_list"`
 }
 
 // ExperimentalControllerGetHardwareInfoParams defines parameters for ExperimentalControllerGetHardwareInfo.
@@ -4059,7 +4241,7 @@ type ExperimentalControllerGetHardwareInfoParams struct {
 	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
 	Sort *Sort `json:"sort,omitempty"`
 
-	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beggining
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
 
 	// Select which fields to return (separated by comma). Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
@@ -4104,7 +4286,7 @@ type ExperimentalControllerGetHotfixesInfoParams struct {
 	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
 	Sort *Sort `json:"sort,omitempty"`
 
-	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beggining
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
 
 	// Select which fields to return (separated by comma). Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
@@ -4134,7 +4316,7 @@ type ExperimentalControllerGetNetworkAddressInfoParams struct {
 	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
 	Sort *Sort `json:"sort,omitempty"`
 
-	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beggining
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
 
 	// Select which fields to return (separated by comma). Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
@@ -4173,7 +4355,7 @@ type ExperimentalControllerGetNetworkInterfaceInfoParams struct {
 	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
 	Sort *Sort `json:"sort,omitempty"`
 
-	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beggining
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
 
 	// Select which fields to return (separated by comma). Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
@@ -4239,7 +4421,7 @@ type ExperimentalControllerGetNetworkProtocolInfoParams struct {
 	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
 	Sort *Sort `json:"sort,omitempty"`
 
-	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beggining
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
 
 	// Select which fields to return (separated by comma). Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
@@ -4278,7 +4460,7 @@ type ExperimentalControllerGetOsInfoParams struct {
 	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
 	Sort *Sort `json:"sort,omitempty"`
 
-	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beggining
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
 
 	// Select which fields to return (separated by comma). Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
@@ -4320,7 +4502,7 @@ type ExperimentalControllerGetPackagesInfoParams struct {
 	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
 	Sort *Sort `json:"sort,omitempty"`
 
-	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beggining
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
 
 	// Select which fields to return (separated by comma). Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
@@ -4338,7 +4520,7 @@ type ExperimentalControllerGetPackagesInfoParams struct {
 	// Filter by file format. For example 'deb' will output deb files
 	Format *FileFormat `json:"format,omitempty"`
 
-	// Filter by version name
+	// Filter by package version
 	Version *PackageVersion `json:"version,omitempty"`
 }
 
@@ -4362,7 +4544,7 @@ type ExperimentalControllerGetPortsInfoParams struct {
 	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
 	Sort *Sort `json:"sort,omitempty"`
 
-	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beggining
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
 
 	// Select which fields to return (separated by comma). Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
@@ -4413,7 +4595,7 @@ type ExperimentalControllerGetProcessesInfoParams struct {
 	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
 	Sort *Sort `json:"sort,omitempty"`
 
-	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beggining
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
 
 	// Select which fields to return (separated by comma). Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
@@ -4471,7 +4653,7 @@ type AgentControllerDeleteGroupsParams struct {
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 
 	// List of group IDs (separated by comma), use the keyword 'all' to select all groups
-	GroupsList GroupsListDelete `json:"groups_list"`
+	GroupsList GroupsListAll `json:"groups_list"`
 }
 
 // AgentControllerGetListGroupParams defines parameters for AgentControllerGetListGroup.
@@ -4494,7 +4676,7 @@ type AgentControllerGetListGroupParams struct {
 	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
 	Sort *Sort `json:"sort,omitempty"`
 
-	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beggining
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
 
 	// Select algorithm to generate the returned checksums
@@ -4539,7 +4721,7 @@ type AgentControllerGetAgentsInGroupParams struct {
 	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
 	Sort *Sort `json:"sort,omitempty"`
 
-	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beggining
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
 
 	// Filter by agent status (use commas to enter multiple statuses)
@@ -4593,7 +4775,7 @@ type AgentControllerGetGroupFilesParams struct {
 	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
 	Sort *Sort `json:"sort,omitempty"`
 
-	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beggining
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
 
 	// Select algorithm to generate the returned checksums
@@ -4653,7 +4835,7 @@ type CdbListControllerGetListsParams struct {
 	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
 	Sort *Sort `json:"sort,omitempty"`
 
-	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beggining
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
 
 	// Filter by relative directory name
@@ -4680,7 +4862,7 @@ type CdbListControllerGetListsFilesParams struct {
 	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
 	Sort *Sort `json:"sort,omitempty"`
 
-	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beggining
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
 
 	// Filter by relative directory name
@@ -4762,7 +4944,7 @@ type ManagerControllerGetConfigurationParams struct {
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 
 	// Format response in plain text
-	Raw *RawConf `json:"raw,omitempty"`
+	Raw *Raw `json:"raw,omitempty"`
 
 	// Indicates the wazuh configuration section
 	Section *ManagerControllerGetConfigurationParamsSection `json:"section,omitempty"`
@@ -4833,7 +5015,7 @@ type ManagerControllerGetLogParams struct {
 	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
 	Sort *Sort `json:"sort,omitempty"`
 
-	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beggining
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
 
 	// Wazuh component that logged the event
@@ -4927,22 +5109,16 @@ type ManagerControllerGetStatusParams struct {
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 }
 
-// MitreControllerGetAttackParams defines parameters for MitreControllerGetAttack.
-type MitreControllerGetAttackParams struct {
+// MitreControllerGetGroupsParams defines parameters for MitreControllerGetGroups.
+type MitreControllerGetGroupsParams struct {
+	// List of MITRE's group IDs (separated by comma)
+	GroupIds *MitreGroupIds `json:"group_ids,omitempty"`
+
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
 	// Disable timeout response
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
-
-	// MITRE attack ID
-	Id *AttackId `json:"id,omitempty"`
-
-	// Show results filtered by phase
-	PhaseName *PhaseName `json:"phase_name,omitempty"`
-
-	// Show results filtered by platform
-	PlatformName *PlatformName `json:"platform_name,omitempty"`
 
 	// First element to return in the collection
 	Offset *Offset `json:"offset,omitempty"`
@@ -4950,17 +5126,176 @@ type MitreControllerGetAttackParams struct {
 	// Maximum number of elements to return. Although up to 100.000 can be specified, it is recommended not to exceed 500 elements. Responses may be slower the more this number is exceeded.
 	Limit *Limit `json:"limit,omitempty"`
 
-	// Query to filter results by. For example q=&quot;status=active&quot;
-	Q *Query `json:"q,omitempty"`
+	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
+	Sort *Sort `json:"sort,omitempty"`
 
-	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beggining
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
 
 	// Select which fields to return (separated by comma). Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
 	Select *Select `json:"select,omitempty"`
 
+	// Query to filter results by. For example q=&quot;status=active&quot;
+	Q *Query `json:"q,omitempty"`
+}
+
+// MitreControllerGetMetadataParams defines parameters for MitreControllerGetMetadata.
+type MitreControllerGetMetadataParams struct {
+	// Show results in human-readable format
+	Pretty *Pretty `json:"pretty,omitempty"`
+
+	// Disable timeout response
+	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
+}
+
+// MitreControllerGetMitigationsParams defines parameters for MitreControllerGetMitigations.
+type MitreControllerGetMitigationsParams struct {
+	// List of MITRE's mitigations IDs (separated by comma)
+	MitigationIds *MitreMitigationIds `json:"mitigation_ids,omitempty"`
+
+	// Show results in human-readable format
+	Pretty *Pretty `json:"pretty,omitempty"`
+
+	// Disable timeout response
+	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
+
+	// First element to return in the collection
+	Offset *Offset `json:"offset,omitempty"`
+
+	// Maximum number of elements to return. Although up to 100.000 can be specified, it is recommended not to exceed 500 elements. Responses may be slower the more this number is exceeded.
+	Limit *Limit `json:"limit,omitempty"`
+
 	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
 	Sort *Sort `json:"sort,omitempty"`
+
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
+	Search *Search `json:"search,omitempty"`
+
+	// Select which fields to return (separated by comma). Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
+	Select *Select `json:"select,omitempty"`
+
+	// Query to filter results by. For example q=&quot;status=active&quot;
+	Q *Query `json:"q,omitempty"`
+}
+
+// MitreControllerGetReferencesParams defines parameters for MitreControllerGetReferences.
+type MitreControllerGetReferencesParams struct {
+	// List of MITRE's references IDs (separated by comma)
+	ReferenceIds *MitreReferenceIds `json:"reference_ids,omitempty"`
+
+	// Show results in human-readable format
+	Pretty *Pretty `json:"pretty,omitempty"`
+
+	// Disable timeout response
+	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
+
+	// First element to return in the collection
+	Offset *Offset `json:"offset,omitempty"`
+
+	// Maximum number of elements to return. Although up to 100.000 can be specified, it is recommended not to exceed 500 elements. Responses may be slower the more this number is exceeded.
+	Limit *Limit `json:"limit,omitempty"`
+
+	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
+	Sort *Sort `json:"sort,omitempty"`
+
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
+	Search *Search `json:"search,omitempty"`
+
+	// Select which fields to return (separated by comma). Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
+	Select *Select `json:"select,omitempty"`
+
+	// Query to filter results by. For example q=&quot;status=active&quot;
+	Q *Query `json:"q,omitempty"`
+}
+
+// MitreControllerGetSoftwareParams defines parameters for MitreControllerGetSoftware.
+type MitreControllerGetSoftwareParams struct {
+	// List of MITRE's software IDs (separated by comma)
+	SoftwareIds *MitreSoftwareIds `json:"software_ids,omitempty"`
+
+	// Show results in human-readable format
+	Pretty *Pretty `json:"pretty,omitempty"`
+
+	// Disable timeout response
+	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
+
+	// First element to return in the collection
+	Offset *Offset `json:"offset,omitempty"`
+
+	// Maximum number of elements to return. Although up to 100.000 can be specified, it is recommended not to exceed 500 elements. Responses may be slower the more this number is exceeded.
+	Limit *Limit `json:"limit,omitempty"`
+
+	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
+	Sort *Sort `json:"sort,omitempty"`
+
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
+	Search *Search `json:"search,omitempty"`
+
+	// Select which fields to return (separated by comma). Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
+	Select *Select `json:"select,omitempty"`
+
+	// Query to filter results by. For example q=&quot;status=active&quot;
+	Q *Query `json:"q,omitempty"`
+}
+
+// MitreControllerGetTacticsParams defines parameters for MitreControllerGetTactics.
+type MitreControllerGetTacticsParams struct {
+	// List of MITRE's tactics IDs (separated by comma)
+	TacticIds *MitreTacticIds `json:"tactic_ids,omitempty"`
+
+	// Show results in human-readable format
+	Pretty *Pretty `json:"pretty,omitempty"`
+
+	// Disable timeout response
+	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
+
+	// First element to return in the collection
+	Offset *Offset `json:"offset,omitempty"`
+
+	// Maximum number of elements to return. Although up to 100.000 can be specified, it is recommended not to exceed 500 elements. Responses may be slower the more this number is exceeded.
+	Limit *Limit `json:"limit,omitempty"`
+
+	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
+	Sort *Sort `json:"sort,omitempty"`
+
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
+	Search *Search `json:"search,omitempty"`
+
+	// Select which fields to return (separated by comma). Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
+	Select *Select `json:"select,omitempty"`
+
+	// Query to filter results by. For example q=&quot;status=active&quot;
+	Q *Query `json:"q,omitempty"`
+}
+
+// MitreControllerGetTechniquesParams defines parameters for MitreControllerGetTechniques.
+type MitreControllerGetTechniquesParams struct {
+	// List of MITRE's techniques IDs (separated by comma)
+	TechniqueIds *MitreTechniqueIds `json:"technique_ids,omitempty"`
+
+	// Show results in human-readable format
+	Pretty *Pretty `json:"pretty,omitempty"`
+
+	// Disable timeout response
+	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
+
+	// First element to return in the collection
+	Offset *Offset `json:"offset,omitempty"`
+
+	// Maximum number of elements to return. Although up to 100.000 can be specified, it is recommended not to exceed 500 elements. Responses may be slower the more this number is exceeded.
+	Limit *Limit `json:"limit,omitempty"`
+
+	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
+	Sort *Sort `json:"sort,omitempty"`
+
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
+	Search *Search `json:"search,omitempty"`
+
+	// Select which fields to return (separated by comma). Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
+	Select *Select `json:"select,omitempty"`
+
+	// Query to filter results by. For example q=&quot;status=active&quot;
+	Q *Query `json:"q,omitempty"`
 }
 
 // OverviewControllerGetOverviewAgentsParams defines parameters for OverviewControllerGetOverviewAgents.
@@ -4970,18 +5305,6 @@ type OverviewControllerGetOverviewAgentsParams struct {
 
 	// Disable timeout response
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
-}
-
-// RootcheckControllerDeleteRootcheckParams defines parameters for RootcheckControllerDeleteRootcheck.
-type RootcheckControllerDeleteRootcheckParams struct {
-	// Show results in human-readable format
-	Pretty *Pretty `json:"pretty,omitempty"`
-
-	// Disable timeout response
-	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
-
-	// List of agent IDs (separated by comma), all agents selected by default if not specified
-	AgentsList *AgentsList `json:"agents_list,omitempty"`
 }
 
 // RootcheckControllerPutRootcheckParams defines parameters for RootcheckControllerPutRootcheck.
@@ -4994,6 +5317,15 @@ type RootcheckControllerPutRootcheckParams struct {
 
 	// List of agent IDs (separated by comma), all agents selected by default if not specified
 	AgentsList *AgentsList `json:"agents_list,omitempty"`
+}
+
+// RootcheckControllerDeleteRootcheckParams defines parameters for RootcheckControllerDeleteRootcheck.
+type RootcheckControllerDeleteRootcheckParams struct {
+	// Show results in human-readable format
+	Pretty *Pretty `json:"pretty,omitempty"`
+
+	// Disable timeout response
+	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 }
 
 // RootcheckControllerGetRootcheckAgentParams defines parameters for RootcheckControllerGetRootcheckAgent.
@@ -5013,7 +5345,7 @@ type RootcheckControllerGetRootcheckAgentParams struct {
 	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
 	Sort *Sort `json:"sort,omitempty"`
 
-	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beggining
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
 
 	// Select which fields to return (separated by comma). Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
@@ -5067,7 +5399,7 @@ type RuleControllerGetRulesParams struct {
 	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
 	Sort *Sort `json:"sort,omitempty"`
 
-	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beggining
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
 
 	// Query to filter results by. For example q=&quot;status=active&quot;
@@ -5106,7 +5438,7 @@ type RuleControllerGetRulesParams struct {
 	// Filters by TSC requirement
 	Tsc *Tsc `json:"tsc,omitempty"`
 
-	// Filters by MITRE attack ID
+	// Filters by MITRE technique ID
 	Mitre *Mitre `json:"mitre,omitempty"`
 }
 
@@ -5130,7 +5462,7 @@ type RuleControllerGetRulesFilesParams struct {
 	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
 	Sort *Sort `json:"sort,omitempty"`
 
-	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beggining
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
 
 	// Filter by relative directory name
@@ -5196,7 +5528,7 @@ type RuleControllerGetRulesGroupsParams struct {
 	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
 	Sort *Sort `json:"sort,omitempty"`
 
-	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beggining
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
 }
 
@@ -5217,7 +5549,7 @@ type RuleControllerGetRulesRequirementParams struct {
 	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
 	Sort *Sort `json:"sort,omitempty"`
 
-	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beggining
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
 }
 
@@ -5250,7 +5582,7 @@ type ScaControllerGetScaAgentParams struct {
 	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
 	Sort *Sort `json:"sort,omitempty"`
 
-	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beggining
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
 
 	// Query to filter results by. For example q=&quot;status=active&quot;
@@ -5316,7 +5648,7 @@ type ScaControllerGetScaChecksParams struct {
 	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
 	Sort *Sort `json:"sort,omitempty"`
 
-	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beggining
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
 
 	// Query to filter results by. For example q=&quot;status=active&quot;
@@ -5388,8 +5720,11 @@ type SecurityControllerGetPoliciesParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
-	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beggining
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
+
+	// Select which fields to return (separated by comma). Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
+	Select *Select `json:"select,omitempty"`
 
 	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
 	Sort *Sort `json:"sort,omitempty"`
@@ -5460,8 +5795,11 @@ type SecurityControllerGetRolesParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
-	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beggining
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
+
+	// Select which fields to return (separated by comma). Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
+	Select *Select `json:"select,omitempty"`
 
 	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
 	Sort *Sort `json:"sort,omitempty"`
@@ -5571,8 +5909,11 @@ type SecurityControllerGetRulesParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
-	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beggining
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
+
+	// Select which fields to return (separated by comma). Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
+	Select *Select `json:"select,omitempty"`
 
 	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
 	Sort *Sort `json:"sort,omitempty"`
@@ -5646,8 +5987,11 @@ type SecurityControllerGetUsersParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
-	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beggining
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
+
+	// Select which fields to return (separated by comma). Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
+	Select *Select `json:"select,omitempty"`
 
 	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
 	Sort *Sort `json:"sort,omitempty"`
@@ -5777,7 +6121,7 @@ type SyscheckControllerGetSyscheckAgentParams struct {
 	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
 	Sort *Sort `json:"sort,omitempty"`
 
-	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beggining
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
 
 	// Select which fields to return (separated by comma). Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
@@ -5864,7 +6208,7 @@ type SyscollectorControllerGetHotfixInfoParams struct {
 	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
 	Sort *Sort `json:"sort,omitempty"`
 
-	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beggining
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
 
 	// Select which fields to return (separated by comma). Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
@@ -5894,7 +6238,7 @@ type SyscollectorControllerGetNetworkAddressInfoParams struct {
 	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
 	Sort *Sort `json:"sort,omitempty"`
 
-	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beggining
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
 
 	// Select which fields to return (separated by comma). Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
@@ -5936,7 +6280,7 @@ type SyscollectorControllerGetNetworkInterfaceInfoParams struct {
 	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
 	Sort *Sort `json:"sort,omitempty"`
 
-	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beggining
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
 
 	// Select which fields to return (separated by comma). Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
@@ -5948,7 +6292,7 @@ type SyscollectorControllerGetNetworkInterfaceInfoParams struct {
 	// Filter by adapter
 	Adapter *Adapter `json:"adapter,omitempty"`
 
-	// Type of file
+	// Type of interface
 	Type *Typesys `json:"type,omitempty"`
 
 	// Filter by state
@@ -6002,7 +6346,7 @@ type SyscollectorControllerGetNetworkProtocolInfoParams struct {
 	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
 	Sort *Sort `json:"sort,omitempty"`
 
-	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beggining
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
 
 	// Select which fields to return (separated by comma). Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
@@ -6053,7 +6397,7 @@ type SyscollectorControllerGetPackagesInfoParams struct {
 	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
 	Sort *Sort `json:"sort,omitempty"`
 
-	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beggining
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
 
 	// Select which fields to return (separated by comma). Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
@@ -6071,7 +6415,7 @@ type SyscollectorControllerGetPackagesInfoParams struct {
 	// Filter by file format. For example 'deb' will output deb files
 	Format *FileFormat `json:"format,omitempty"`
 
-	// Filter by version name
+	// Filter by package version
 	Version *PackageVersion `json:"version,omitempty"`
 
 	// Query to filter results by. For example q=&quot;status=active&quot;
@@ -6095,7 +6439,7 @@ type SyscollectorControllerGetPortsInfoParams struct {
 	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
 	Sort *Sort `json:"sort,omitempty"`
 
-	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beggining
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
 
 	// Select which fields to return (separated by comma). Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
@@ -6146,7 +6490,7 @@ type SyscollectorControllerGetProcessesInfoParams struct {
 	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
 	Sort *Sort `json:"sort,omitempty"`
 
-	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beggining
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
 
 	// Select which fields to return (separated by comma). Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
@@ -6215,7 +6559,7 @@ type TaskControllerGetTasksStatusParams struct {
 	// Query to filter results by. For example q=&quot;status=active&quot;
 	Q *Query `json:"q,omitempty"`
 
-	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beggining
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
 
 	// Select which fields to return (separated by comma). Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
@@ -6260,7 +6604,7 @@ type VulnerabilityControllerGetVulnerabilityAgentParams struct {
 	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
 	Sort *Sort `json:"sort,omitempty"`
 
-	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beggining
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
 
 	// Select which fields to return (separated by comma). Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
@@ -6283,7 +6627,46 @@ type VulnerabilityControllerGetVulnerabilityAgentParams struct {
 
 	// Filter by CVE version
 	Version *CveVersion `json:"version,omitempty"`
+
+	// Filter by CVE type
+	Type *VulnerabilityControllerGetVulnerabilityAgentParamsType `json:"type,omitempty"`
+
+	// Filter by CVE status
+	Status *VulnerabilityControllerGetVulnerabilityAgentParamsStatus `json:"status,omitempty"`
+
+	// Filter by CVE severity
+	Severity *CveSeverity `json:"severity,omitempty"`
 }
+
+// VulnerabilityControllerGetVulnerabilityAgentParamsType defines parameters for VulnerabilityControllerGetVulnerabilityAgent.
+type VulnerabilityControllerGetVulnerabilityAgentParamsType string
+
+// VulnerabilityControllerGetVulnerabilityAgentParamsStatus defines parameters for VulnerabilityControllerGetVulnerabilityAgent.
+type VulnerabilityControllerGetVulnerabilityAgentParamsStatus string
+
+// VulnerabilityControllerGetLastScanAgentParams defines parameters for VulnerabilityControllerGetLastScanAgent.
+type VulnerabilityControllerGetLastScanAgentParams struct {
+	// Show results in human-readable format
+	Pretty *Pretty `json:"pretty,omitempty"`
+
+	// Disable timeout response
+	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
+}
+
+// VulnerabilityControllerGetVulnerabilitiesFieldSummaryParams defines parameters for VulnerabilityControllerGetVulnerabilitiesFieldSummary.
+type VulnerabilityControllerGetVulnerabilitiesFieldSummaryParams struct {
+	// Show results in human-readable format
+	Pretty *Pretty `json:"pretty,omitempty"`
+
+	// Disable timeout response
+	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
+
+	// Maximum number of elements to return. Although up to 100.000 can be specified, it is recommended not to exceed 500 elements. Responses may be slower the more this number is exceeded.
+	Limit *Limit `json:"limit,omitempty"`
+}
+
+// VulnerabilityControllerGetVulnerabilitiesFieldSummaryParamsField defines parameters for VulnerabilityControllerGetVulnerabilitiesFieldSummary.
+type VulnerabilityControllerGetVulnerabilitiesFieldSummaryParamsField string
 
 // ActiveResponseControllerRunCommandJSONRequestBody defines body for ActiveResponseControllerRunCommand for application/json ContentType.
 type ActiveResponseControllerRunCommandJSONRequestBody ActiveResponseControllerRunCommandJSONBody
@@ -6376,7 +6759,7 @@ func (a *ApiError_DapiErrors) UnmarshalJSON(b []byte) error {
 			}
 			err := json.Unmarshal(fieldBuf, &fieldVal)
 			if err != nil {
-				return fmt.Errorf("error unmarshalling field %s: %w", fieldName, err)
+				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
 			}
 			a.AdditionalProperties[fieldName] = fieldVal
 		}
@@ -6392,99 +6775,136 @@ func (a ApiError_DapiErrors) MarshalJSON() ([]byte, error) {
 	for fieldName, field := range a.AdditionalProperties {
 		object[fieldName], err = json.Marshal(field)
 		if err != nil {
-			return nil, fmt.Errorf("error marshalling '%s': %w", fieldName, err)
+			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
 		}
 	}
 	return json.Marshal(object)
 }
 
-func (e *ApiResponse) Code() int {
-	return e.ErrorCode
-}
-func (e *ApiResponse) Title() string {
-	if e.Message == nil {
-		return "Error"
+// Getter for additional properties for GroupDelete. Returns the specified
+// element and whether it was found
+func (a GroupDelete) Get(fieldName string) (value []interface{}, found bool) {
+	if a.AdditionalProperties != nil {
+		value, found = a.AdditionalProperties[fieldName]
 	}
-	return *e.Message
+	return
 }
 
-// WazuhError generic Wazuh error
-type WazuhError interface {
-	Code() int32
-	Title() string
-	Detail() string
-}
-
-// WazuhRequestError information about a failed wazuh request
-type WazuhRequestError interface {
-	Code() int32
-	Title() string
-	Detail() string
-}
-
-// Code return the error code
-func (e *RequestError) Code() int32 {
-	if e.RequestError == nil {
-		return -1
+// Setter for additional properties for GroupDelete
+func (a *GroupDelete) Set(fieldName string, value []interface{}) {
+	if a.AdditionalProperties == nil {
+		a.AdditionalProperties = make(map[string][]interface{})
 	}
-	return *e.RequestError
+	a.AdditionalProperties[fieldName] = value
 }
 
-// Title of the problem
-func (e *RequestError) Title() string {
-	return e.RequestTitle
-}
-
-// Detail of the problem
-func (e *RequestError) Detail() string {
-	return e.RequestDetail
-}
-
-// WazuhAPIError api errors returned by wazuh
-type WazuhAPIError interface {
-	Code() int32
-	Title() string
-	Detail() string
-	DapiErrors() *ApiError_DapiErrors
-	Instance() string
-	Remediation() string
-}
-
-// Code return the error code
-func (e *ApiError) Code() int32 {
-	if e.ApiCode == nil {
-		return -1
+// Override default JSON handling for GroupDelete to handle AdditionalProperties
+func (a *GroupDelete) UnmarshalJSON(b []byte) error {
+	object := make(map[string]json.RawMessage)
+	err := json.Unmarshal(b, &object)
+	if err != nil {
+		return err
 	}
-	return *e.ApiCode
-}
 
-// Title of the problem
-func (e *ApiError) Title() string {
-	return e.ApiTitle
-}
-
-// Detail of the problem
-func (e *ApiError) Detail() string {
-	return e.ApiDetail
-}
-
-// DAPIErrors optional list of DAPI Errors
-func (e *ApiError) DAPIErrors() *ApiError_DapiErrors {
-	return e.ApiDapiErrors
-}
-
-// Instance information of the affected instance
-func (e *ApiError) Instance() string {
-	if e.ApiInstance == nil {
-		return ""
+	if len(object) != 0 {
+		a.AdditionalProperties = make(map[string][]interface{})
+		for fieldName, fieldBuf := range object {
+			var fieldVal []interface{}
+			err := json.Unmarshal(fieldBuf, &fieldVal)
+			if err != nil {
+				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
+			}
+			a.AdditionalProperties[fieldName] = fieldVal
+		}
 	}
-	return *e.ApiInstance
+	return nil
 }
 
-// Remediation hint how to fix the problem
-func (e *ApiError) Remediation() string {
-	if e.ApiRemediation == nil {
-		return ""
+// Override default JSON handling for GroupDelete to handle AdditionalProperties
+func (a GroupDelete) MarshalJSON() ([]byte, error) {
+	var err error
+	object := make(map[string]json.RawMessage)
+
+	for fieldName, field := range a.AdditionalProperties {
+		object[fieldName], err = json.Marshal(field)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
+		}
 	}
-	return *e.ApiRemediation
+	return json.Marshal(object)
 }
+
+/*
+// Getter for additional properties for SimpleApiError_Error. Returns the specified
+// element and whether it was found
+func (a SimpleApiError_Error) Get(fieldName string) (value struct {
+	Code        *int32  `json:"code,omitempty"`
+	Message     *string `json:"message,omitempty"`
+	Remediation *string `json:"remediation,omitempty"`
+}, found bool) {
+	if a.AdditionalProperties != nil {
+		value, found = a.AdditionalProperties[fieldName]
+	}
+	return
+}
+
+// Setter for additional properties for SimpleApiError_Error
+func (a *SimpleApiError_Error) Set(fieldName string, value struct {
+	Code        *int32  `json:"code,omitempty"`
+	Message     *string `json:"message,omitempty"`
+	Remediation *string `json:"remediation,omitempty"`
+}) {
+	if a.AdditionalProperties == nil {
+		a.AdditionalProperties = make(map[string]struct {
+			Code        *int32  `json:"code,omitempty"`
+			Message     *string `json:"message,omitempty"`
+			Remediation *string `json:"remediation,omitempty"`
+		})
+	}
+	a.AdditionalProperties[fieldName] = value
+}
+
+// Override default JSON handling for SimpleApiError_Error to handle AdditionalProperties
+func (a *SimpleApiError_Error) UnmarshalJSON(b []byte) error {
+	object := make(map[string]json.RawMessage)
+	err := json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if len(object) != 0 {
+		a.AdditionalProperties = make(map[string]struct {
+			Code        *int32  `json:"code,omitempty"`
+			Message     *string `json:"message,omitempty"`
+			Remediation *string `json:"remediation,omitempty"`
+		})
+		for fieldName, fieldBuf := range object {
+			var fieldVal struct {
+				Code        *int32  `json:"code,omitempty"`
+				Message     *string `json:"message,omitempty"`
+				Remediation *string `json:"remediation,omitempty"`
+			}
+			err := json.Unmarshal(fieldBuf, &fieldVal)
+			if err != nil {
+				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
+			}
+			a.AdditionalProperties[fieldName] = fieldVal
+		}
+	}
+	return nil
+}
+
+// Override default JSON handling for SimpleApiError_Error to handle AdditionalProperties
+func (a SimpleApiError_Error) MarshalJSON() ([]byte, error) {
+	var err error
+	object := make(map[string]json.RawMessage)
+
+	for fieldName, field := range a.AdditionalProperties {
+		object[fieldName], err = json.Marshal(field)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
+		}
+	}
+	return json.Marshal(object)
+}
+*/

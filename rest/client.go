@@ -27,9 +27,10 @@ type RequestEditorFn func(ctx context.Context, req *http.Request) error
 type HttpRequestDoer interface {
 	Do(req *http.Request) (*http.Response, error)
 }
-
+ 
 // ClientOption allows setting custom parameters during construction
 type ClientOption func(*Client) error
+ 
 
 // WithHTTPClient allows overriding the default Doer, which is
 // automatically created using http.Client. This is useful for tests.
@@ -42,9 +43,9 @@ func WithHTTPClient(doer HttpRequestDoer) ClientOption {
 
 // WithRequestEditorFn allows setting up a callback function, which will be
 // called right before sending the request. This can be used to mutate the request.
-func WithRequestEditorFn(fn []RequestEditorFn) ClientOption {
+func WithRequestEditorFn(fn RequestEditorFn) ClientOption {
 	return func(c *Client) error {
-		c.RequestEditors = fn
+		c.RequestEditors = append(c.RequestEditors, fn)
 		return nil
 	}
 }
@@ -95,6 +96,9 @@ type ClientInterface interface {
 
 	// AgentControllerGetAgentOutdated request
 	AgentControllerGetAgentOutdated(ctx context.Context, params *AgentControllerGetAgentOutdatedParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// AgentControllerReconnectAgents request
+	AgentControllerReconnectAgents(ctx context.Context, params *AgentControllerReconnectAgentsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// AgentControllerRestartAgents request
 	AgentControllerRestartAgents(ctx context.Context, params *AgentControllerRestartAgentsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -225,6 +229,9 @@ type ClientInterface interface {
 	// ExperimentalControllerGetCisCatResults request
 	ExperimentalControllerGetCisCatResults(ctx context.Context, params *ExperimentalControllerGetCisCatResultsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// ExperimentalControllerClearRootcheckDatabase request
+	ExperimentalControllerClearRootcheckDatabase(ctx context.Context, params *ExperimentalControllerClearRootcheckDatabaseParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// ExperimentalControllerClearSyscheckDatabase request
 	ExperimentalControllerClearSyscheckDatabase(ctx context.Context, params *ExperimentalControllerClearSyscheckDatabaseParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -352,17 +359,35 @@ type ClientInterface interface {
 	// ManagerControllerGetStatus request
 	ManagerControllerGetStatus(ctx context.Context, params *ManagerControllerGetStatusParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// MitreControllerGetAttack request
-	MitreControllerGetAttack(ctx context.Context, params *MitreControllerGetAttackParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// MitreControllerGetGroups request
+	MitreControllerGetGroups(ctx context.Context, params *MitreControllerGetGroupsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// MitreControllerGetMetadata request
+	MitreControllerGetMetadata(ctx context.Context, params *MitreControllerGetMetadataParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// MitreControllerGetMitigations request
+	MitreControllerGetMitigations(ctx context.Context, params *MitreControllerGetMitigationsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// MitreControllerGetReferences request
+	MitreControllerGetReferences(ctx context.Context, params *MitreControllerGetReferencesParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// MitreControllerGetSoftware request
+	MitreControllerGetSoftware(ctx context.Context, params *MitreControllerGetSoftwareParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// MitreControllerGetTactics request
+	MitreControllerGetTactics(ctx context.Context, params *MitreControllerGetTacticsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// MitreControllerGetTechniques request
+	MitreControllerGetTechniques(ctx context.Context, params *MitreControllerGetTechniquesParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// OverviewControllerGetOverviewAgents request
 	OverviewControllerGetOverviewAgents(ctx context.Context, params *OverviewControllerGetOverviewAgentsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// RootcheckControllerDeleteRootcheck request
-	RootcheckControllerDeleteRootcheck(ctx context.Context, params *RootcheckControllerDeleteRootcheckParams, reqEditors ...RequestEditorFn) (*http.Response, error)
-
 	// RootcheckControllerPutRootcheck request
 	RootcheckControllerPutRootcheck(ctx context.Context, params *RootcheckControllerPutRootcheckParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// RootcheckControllerDeleteRootcheck request
+	RootcheckControllerDeleteRootcheck(ctx context.Context, agentId AgentId, params *RootcheckControllerDeleteRootcheckParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// RootcheckControllerGetRootcheckAgent request
 	RootcheckControllerGetRootcheckAgent(ctx context.Context, agentId AgentId, params *RootcheckControllerGetRootcheckAgentParams, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -563,6 +588,12 @@ type ClientInterface interface {
 
 	// VulnerabilityControllerGetVulnerabilityAgent request
 	VulnerabilityControllerGetVulnerabilityAgent(ctx context.Context, agentId AgentId, params *VulnerabilityControllerGetVulnerabilityAgentParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// VulnerabilityControllerGetLastScanAgent request
+	VulnerabilityControllerGetLastScanAgent(ctx context.Context, agentId AgentId, params *VulnerabilityControllerGetLastScanAgentParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// VulnerabilityControllerGetVulnerabilitiesFieldSummary request
+	VulnerabilityControllerGetVulnerabilitiesFieldSummary(ctx context.Context, agentId AgentId, field VulnerabilityControllerGetVulnerabilitiesFieldSummaryParamsField, params *VulnerabilityControllerGetVulnerabilitiesFieldSummaryParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 }
 
 func (c *Client) DefaultControllerDefaultInfo(ctx context.Context, params *DefaultControllerDefaultInfoParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -747,6 +778,18 @@ func (c *Client) AgentControllerRestartAgentsByNode(ctx context.Context, nodeId 
 
 func (c *Client) AgentControllerGetAgentOutdated(ctx context.Context, params *AgentControllerGetAgentOutdatedParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewApiControllersAgentControllerGetAgentOutdatedRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) AgentControllerReconnectAgents(ctx context.Context, params *AgentControllerReconnectAgentsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewApiControllersAgentControllerReconnectAgentsRequest(c.Server, params)
 	if err != nil {
 		return nil, err
 	}
@@ -1273,6 +1316,18 @@ func (c *Client) ExperimentalControllerGetCisCatResults(ctx context.Context, par
 	return c.Client.Do(req)
 }
 
+func (c *Client) ExperimentalControllerClearRootcheckDatabase(ctx context.Context, params *ExperimentalControllerClearRootcheckDatabaseParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewApiControllersExperimentalControllerClearRootcheckDatabaseRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 func (c *Client) ExperimentalControllerClearSyscheckDatabase(ctx context.Context, params *ExperimentalControllerClearSyscheckDatabaseParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewApiControllersExperimentalControllerClearSyscheckDatabaseRequest(c.Server, params)
 	if err != nil {
@@ -1789,8 +1844,80 @@ func (c *Client) ManagerControllerGetStatus(ctx context.Context, params *Manager
 	return c.Client.Do(req)
 }
 
-func (c *Client) MitreControllerGetAttack(ctx context.Context, params *MitreControllerGetAttackParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewApiControllersMitreControllerGetAttackRequest(c.Server, params)
+func (c *Client) MitreControllerGetGroups(ctx context.Context, params *MitreControllerGetGroupsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewApiControllersMitreControllerGetGroupsRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) MitreControllerGetMetadata(ctx context.Context, params *MitreControllerGetMetadataParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewApiControllersMitreControllerGetMetadataRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) MitreControllerGetMitigations(ctx context.Context, params *MitreControllerGetMitigationsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewApiControllersMitreControllerGetMitigationsRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) MitreControllerGetReferences(ctx context.Context, params *MitreControllerGetReferencesParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewApiControllersMitreControllerGetReferencesRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) MitreControllerGetSoftware(ctx context.Context, params *MitreControllerGetSoftwareParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewApiControllersMitreControllerGetSoftwareRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) MitreControllerGetTactics(ctx context.Context, params *MitreControllerGetTacticsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewApiControllersMitreControllerGetTacticsRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) MitreControllerGetTechniques(ctx context.Context, params *MitreControllerGetTechniquesParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewApiControllersMitreControllerGetTechniquesRequest(c.Server, params)
 	if err != nil {
 		return nil, err
 	}
@@ -1813,8 +1940,8 @@ func (c *Client) OverviewControllerGetOverviewAgents(ctx context.Context, params
 	return c.Client.Do(req)
 }
 
-func (c *Client) RootcheckControllerDeleteRootcheck(ctx context.Context, params *RootcheckControllerDeleteRootcheckParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewApiControllersRootcheckControllerDeleteRootcheckRequest(c.Server, params)
+func (c *Client) RootcheckControllerPutRootcheck(ctx context.Context, params *RootcheckControllerPutRootcheckParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewApiControllersRootcheckControllerPutRootcheckRequest(c.Server, params)
 	if err != nil {
 		return nil, err
 	}
@@ -1825,8 +1952,8 @@ func (c *Client) RootcheckControllerDeleteRootcheck(ctx context.Context, params 
 	return c.Client.Do(req)
 }
 
-func (c *Client) RootcheckControllerPutRootcheck(ctx context.Context, params *RootcheckControllerPutRootcheckParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewApiControllersRootcheckControllerPutRootcheckRequest(c.Server, params)
+func (c *Client) RootcheckControllerDeleteRootcheck(ctx context.Context, agentId AgentId, params *RootcheckControllerDeleteRootcheckParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewApiControllersRootcheckControllerDeleteRootcheckRequest(c.Server, agentId, params)
 	if err != nil {
 		return nil, err
 	}
@@ -2667,6 +2794,30 @@ func (c *Client) TaskControllerGetTasksStatus(ctx context.Context, params *TaskC
 
 func (c *Client) VulnerabilityControllerGetVulnerabilityAgent(ctx context.Context, agentId AgentId, params *VulnerabilityControllerGetVulnerabilityAgentParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewApiControllersVulnerabilityControllerGetVulnerabilityAgentRequest(c.Server, agentId, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) VulnerabilityControllerGetLastScanAgent(ctx context.Context, agentId AgentId, params *VulnerabilityControllerGetLastScanAgentParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewApiControllersVulnerabilityControllerGetLastScanAgentRequest(c.Server, agentId, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) VulnerabilityControllerGetVulnerabilitiesFieldSummary(ctx context.Context, agentId AgentId, field VulnerabilityControllerGetVulnerabilitiesFieldSummaryParamsField, params *VulnerabilityControllerGetVulnerabilitiesFieldSummaryParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewApiControllersVulnerabilityControllerGetVulnerabilitiesFieldSummaryRequest(c.Server, agentId, field, params)
 	if err != nil {
 		return nil, err
 	}
@@ -4341,6 +4492,85 @@ func NewApiControllersAgentControllerGetAgentOutdatedRequest(server string, para
 	return req, nil
 }
 
+// NewApiControllersAgentControllerReconnectAgentsRequest generates requests for AgentControllerReconnectAgents
+func NewApiControllersAgentControllerReconnectAgentsRequest(server string, params *AgentControllerReconnectAgentsParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/agents/reconnect")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	queryValues := queryURL.Query()
+
+	if params.Pretty != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pretty", runtime.ParamLocationQuery, *params.Pretty); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.WaitForComplete != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "wait_for_complete", runtime.ParamLocationQuery, *params.WaitForComplete); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.AgentsList != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "agents_list", runtime.ParamLocationQuery, *params.AgentsList); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	queryURL.RawQuery = queryValues.Encode()
+
+	req, err := http.NewRequest("PUT", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewApiControllersAgentControllerRestartAgentsRequest generates requests for AgentControllerRestartAgents
 func NewApiControllersAgentControllerRestartAgentsRequest(server string, params *AgentControllerRestartAgentsParams) (*http.Request, error) {
 	var err error
@@ -4540,22 +4770,6 @@ func NewApiControllersAgentControllerGetAgentFieldsRequest(server string, params
 	if params.Search != nil {
 
 		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "search", runtime.ParamLocationQuery, *params.Search); err != nil {
-			return nil, err
-		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-			return nil, err
-		} else {
-			for k, v := range parsed {
-				for _, v2 := range v {
-					queryValues.Add(k, v2)
-				}
-			}
-		}
-
-	}
-
-	if params.Select != nil {
-
-		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "select", runtime.ParamLocationQuery, *params.Select); err != nil {
 			return nil, err
 		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
 			return nil, err
@@ -4802,9 +5016,9 @@ func NewApiControllersAgentControllerPutUpgradeAgentsRequest(server string, para
 
 	}
 
-	if params.Version != nil {
+	if params.UpgradeVersion != nil {
 
-		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "version", runtime.ParamLocationQuery, *params.Version); err != nil {
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "upgrade_version", runtime.ParamLocationQuery, *params.UpgradeVersion); err != nil {
 			return nil, err
 		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
 			return nil, err
@@ -4837,6 +5051,182 @@ func NewApiControllersAgentControllerPutUpgradeAgentsRequest(server string, para
 	if params.Force != nil {
 
 		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "force", runtime.ParamLocationQuery, *params.Force); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.Q != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "q", runtime.ParamLocationQuery, *params.Q); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.OsPlatform != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "os.platform", runtime.ParamLocationQuery, *params.OsPlatform); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.OsVersion != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "os.version", runtime.ParamLocationQuery, *params.OsVersion); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.OsName != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "os.name", runtime.ParamLocationQuery, *params.OsName); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.Manager != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "manager", runtime.ParamLocationQuery, *params.Manager); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.Version != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "version", runtime.ParamLocationQuery, *params.Version); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.Group != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "group", runtime.ParamLocationQuery, *params.Group); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.NodeName != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "node_name", runtime.ParamLocationQuery, *params.NodeName); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.Name != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "name", runtime.ParamLocationQuery, *params.Name); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.Ip != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "ip", runtime.ParamLocationQuery, *params.Ip); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.RegisterIP != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "registerIP", runtime.ParamLocationQuery, *params.RegisterIP); err != nil {
 			return nil, err
 		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
 			return nil, err
@@ -4953,6 +5343,182 @@ func NewApiControllersAgentControllerPutUpgradeCustomAgentsRequest(server string
 
 	}
 
+	if params.Q != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "q", runtime.ParamLocationQuery, *params.Q); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.OsPlatform != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "os.platform", runtime.ParamLocationQuery, *params.OsPlatform); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.OsVersion != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "os.version", runtime.ParamLocationQuery, *params.OsVersion); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.OsName != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "os.name", runtime.ParamLocationQuery, *params.OsName); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.Manager != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "manager", runtime.ParamLocationQuery, *params.Manager); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.Version != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "version", runtime.ParamLocationQuery, *params.Version); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.Group != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "group", runtime.ParamLocationQuery, *params.Group); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.NodeName != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "node_name", runtime.ParamLocationQuery, *params.NodeName); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.Name != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "name", runtime.ParamLocationQuery, *params.Name); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.Ip != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "ip", runtime.ParamLocationQuery, *params.Ip); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.RegisterIP != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "registerIP", runtime.ParamLocationQuery, *params.RegisterIP); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
 	queryURL.RawQuery = queryValues.Encode()
 
 	req, err := http.NewRequest("PUT", queryURL.String(), nil)
@@ -5019,6 +5585,182 @@ func NewApiControllersAgentControllerGetAgentUpgradeRequest(server string, param
 	if params.AgentsList != nil {
 
 		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "agents_list", runtime.ParamLocationQuery, *params.AgentsList); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.Q != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "q", runtime.ParamLocationQuery, *params.Q); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.OsPlatform != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "os.platform", runtime.ParamLocationQuery, *params.OsPlatform); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.OsVersion != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "os.version", runtime.ParamLocationQuery, *params.OsVersion); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.OsName != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "os.name", runtime.ParamLocationQuery, *params.OsName); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.Manager != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "manager", runtime.ParamLocationQuery, *params.Manager); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.Version != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "version", runtime.ParamLocationQuery, *params.Version); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.Group != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "group", runtime.ParamLocationQuery, *params.Group); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.NodeName != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "node_name", runtime.ParamLocationQuery, *params.NodeName); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.Name != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "name", runtime.ParamLocationQuery, *params.Name); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.Ip != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "ip", runtime.ParamLocationQuery, *params.Ip); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.RegisterIP != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "registerIP", runtime.ParamLocationQuery, *params.RegisterIP); err != nil {
 			return nil, err
 		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
 			return nil, err
@@ -8756,6 +9498,81 @@ func NewApiControllersExperimentalControllerGetCisCatResultsRequest(server strin
 	queryURL.RawQuery = queryValues.Encode()
 
 	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewApiControllersExperimentalControllerClearRootcheckDatabaseRequest generates requests for ExperimentalControllerClearRootcheckDatabase
+func NewApiControllersExperimentalControllerClearRootcheckDatabaseRequest(server string, params *ExperimentalControllerClearRootcheckDatabaseParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/experimental/rootcheck")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	queryValues := queryURL.Query()
+
+	if params.Pretty != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pretty", runtime.ParamLocationQuery, *params.Pretty); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.WaitForComplete != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "wait_for_complete", runtime.ParamLocationQuery, *params.WaitForComplete); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if queryFrag, err := runtime.StyleParamWithLocation("form", true, "agents_list", runtime.ParamLocationQuery, params.AgentsList); err != nil {
+		return nil, err
+	} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+		return nil, err
+	} else {
+		for k, v := range parsed {
+			for _, v2 := range v {
+				queryValues.Add(k, v2)
+			}
+		}
+	}
+
+	queryURL.RawQuery = queryValues.Encode()
+
+	req, err := http.NewRequest("DELETE", queryURL.String(), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -14092,8 +14909,8 @@ func NewApiControllersManagerControllerGetStatusRequest(server string, params *M
 	return req, nil
 }
 
-// NewApiControllersMitreControllerGetAttackRequest generates requests for MitreControllerGetAttack
-func NewApiControllersMitreControllerGetAttackRequest(server string, params *MitreControllerGetAttackParams) (*http.Request, error) {
+// NewApiControllersMitreControllerGetGroupsRequest generates requests for MitreControllerGetGroups
+func NewApiControllersMitreControllerGetGroupsRequest(server string, params *MitreControllerGetGroupsParams) (*http.Request, error) {
 	var err error
 
 	serverURL, err := url.Parse(server)
@@ -14101,7 +14918,7 @@ func NewApiControllersMitreControllerGetAttackRequest(server string, params *Mit
 		return nil, err
 	}
 
-	operationPath := fmt.Sprintf("/mitre")
+	operationPath := fmt.Sprintf("/mitre/groups")
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -14112,6 +14929,22 @@ func NewApiControllersMitreControllerGetAttackRequest(server string, params *Mit
 	}
 
 	queryValues := queryURL.Query()
+
+	if params.GroupIds != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "group_ids", runtime.ParamLocationQuery, *params.GroupIds); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
 
 	if params.Pretty != nil {
 
@@ -14132,54 +14965,6 @@ func NewApiControllersMitreControllerGetAttackRequest(server string, params *Mit
 	if params.WaitForComplete != nil {
 
 		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "wait_for_complete", runtime.ParamLocationQuery, *params.WaitForComplete); err != nil {
-			return nil, err
-		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-			return nil, err
-		} else {
-			for k, v := range parsed {
-				for _, v2 := range v {
-					queryValues.Add(k, v2)
-				}
-			}
-		}
-
-	}
-
-	if params.Id != nil {
-
-		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "id", runtime.ParamLocationQuery, *params.Id); err != nil {
-			return nil, err
-		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-			return nil, err
-		} else {
-			for k, v := range parsed {
-				for _, v2 := range v {
-					queryValues.Add(k, v2)
-				}
-			}
-		}
-
-	}
-
-	if params.PhaseName != nil {
-
-		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "phase_name", runtime.ParamLocationQuery, *params.PhaseName); err != nil {
-			return nil, err
-		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-			return nil, err
-		} else {
-			for k, v := range parsed {
-				for _, v2 := range v {
-					queryValues.Add(k, v2)
-				}
-			}
-		}
-
-	}
-
-	if params.PlatformName != nil {
-
-		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "platform_name", runtime.ParamLocationQuery, *params.PlatformName); err != nil {
 			return nil, err
 		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
 			return nil, err
@@ -14225,9 +15010,9 @@ func NewApiControllersMitreControllerGetAttackRequest(server string, params *Mit
 
 	}
 
-	if params.Q != nil {
+	if params.Sort != nil {
 
-		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "q", runtime.ParamLocationQuery, *params.Q); err != nil {
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "sort", runtime.ParamLocationQuery, *params.Sort); err != nil {
 			return nil, err
 		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
 			return nil, err
@@ -14273,9 +15058,947 @@ func NewApiControllersMitreControllerGetAttackRequest(server string, params *Mit
 
 	}
 
+	if params.Q != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "q", runtime.ParamLocationQuery, *params.Q); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	queryURL.RawQuery = queryValues.Encode()
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewApiControllersMitreControllerGetMetadataRequest generates requests for MitreControllerGetMetadata
+func NewApiControllersMitreControllerGetMetadataRequest(server string, params *MitreControllerGetMetadataParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/mitre/metadata")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	queryValues := queryURL.Query()
+
+	if params.Pretty != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pretty", runtime.ParamLocationQuery, *params.Pretty); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.WaitForComplete != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "wait_for_complete", runtime.ParamLocationQuery, *params.WaitForComplete); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	queryURL.RawQuery = queryValues.Encode()
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewApiControllersMitreControllerGetMitigationsRequest generates requests for MitreControllerGetMitigations
+func NewApiControllersMitreControllerGetMitigationsRequest(server string, params *MitreControllerGetMitigationsParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/mitre/mitigations")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	queryValues := queryURL.Query()
+
+	if params.MitigationIds != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "mitigation_ids", runtime.ParamLocationQuery, *params.MitigationIds); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.Pretty != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pretty", runtime.ParamLocationQuery, *params.Pretty); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.WaitForComplete != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "wait_for_complete", runtime.ParamLocationQuery, *params.WaitForComplete); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.Offset != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "offset", runtime.ParamLocationQuery, *params.Offset); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.Limit != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "limit", runtime.ParamLocationQuery, *params.Limit); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
 	if params.Sort != nil {
 
 		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "sort", runtime.ParamLocationQuery, *params.Sort); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.Search != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "search", runtime.ParamLocationQuery, *params.Search); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.Select != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "select", runtime.ParamLocationQuery, *params.Select); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.Q != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "q", runtime.ParamLocationQuery, *params.Q); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	queryURL.RawQuery = queryValues.Encode()
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewApiControllersMitreControllerGetReferencesRequest generates requests for MitreControllerGetReferences
+func NewApiControllersMitreControllerGetReferencesRequest(server string, params *MitreControllerGetReferencesParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/mitre/references")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	queryValues := queryURL.Query()
+
+	if params.ReferenceIds != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "reference_ids", runtime.ParamLocationQuery, *params.ReferenceIds); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.Pretty != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pretty", runtime.ParamLocationQuery, *params.Pretty); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.WaitForComplete != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "wait_for_complete", runtime.ParamLocationQuery, *params.WaitForComplete); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.Offset != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "offset", runtime.ParamLocationQuery, *params.Offset); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.Limit != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "limit", runtime.ParamLocationQuery, *params.Limit); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.Sort != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "sort", runtime.ParamLocationQuery, *params.Sort); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.Search != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "search", runtime.ParamLocationQuery, *params.Search); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.Select != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "select", runtime.ParamLocationQuery, *params.Select); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.Q != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "q", runtime.ParamLocationQuery, *params.Q); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	queryURL.RawQuery = queryValues.Encode()
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewApiControllersMitreControllerGetSoftwareRequest generates requests for MitreControllerGetSoftware
+func NewApiControllersMitreControllerGetSoftwareRequest(server string, params *MitreControllerGetSoftwareParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/mitre/software")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	queryValues := queryURL.Query()
+
+	if params.SoftwareIds != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "software_ids", runtime.ParamLocationQuery, *params.SoftwareIds); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.Pretty != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pretty", runtime.ParamLocationQuery, *params.Pretty); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.WaitForComplete != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "wait_for_complete", runtime.ParamLocationQuery, *params.WaitForComplete); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.Offset != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "offset", runtime.ParamLocationQuery, *params.Offset); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.Limit != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "limit", runtime.ParamLocationQuery, *params.Limit); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.Sort != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "sort", runtime.ParamLocationQuery, *params.Sort); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.Search != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "search", runtime.ParamLocationQuery, *params.Search); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.Select != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "select", runtime.ParamLocationQuery, *params.Select); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.Q != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "q", runtime.ParamLocationQuery, *params.Q); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	queryURL.RawQuery = queryValues.Encode()
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewApiControllersMitreControllerGetTacticsRequest generates requests for MitreControllerGetTactics
+func NewApiControllersMitreControllerGetTacticsRequest(server string, params *MitreControllerGetTacticsParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/mitre/tactics")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	queryValues := queryURL.Query()
+
+	if params.TacticIds != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "tactic_ids", runtime.ParamLocationQuery, *params.TacticIds); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.Pretty != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pretty", runtime.ParamLocationQuery, *params.Pretty); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.WaitForComplete != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "wait_for_complete", runtime.ParamLocationQuery, *params.WaitForComplete); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.Offset != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "offset", runtime.ParamLocationQuery, *params.Offset); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.Limit != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "limit", runtime.ParamLocationQuery, *params.Limit); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.Sort != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "sort", runtime.ParamLocationQuery, *params.Sort); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.Search != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "search", runtime.ParamLocationQuery, *params.Search); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.Select != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "select", runtime.ParamLocationQuery, *params.Select); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.Q != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "q", runtime.ParamLocationQuery, *params.Q); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	queryURL.RawQuery = queryValues.Encode()
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewApiControllersMitreControllerGetTechniquesRequest generates requests for MitreControllerGetTechniques
+func NewApiControllersMitreControllerGetTechniquesRequest(server string, params *MitreControllerGetTechniquesParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/mitre/techniques")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	queryValues := queryURL.Query()
+
+	if params.TechniqueIds != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "technique_ids", runtime.ParamLocationQuery, *params.TechniqueIds); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.Pretty != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pretty", runtime.ParamLocationQuery, *params.Pretty); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.WaitForComplete != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "wait_for_complete", runtime.ParamLocationQuery, *params.WaitForComplete); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.Offset != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "offset", runtime.ParamLocationQuery, *params.Offset); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.Limit != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "limit", runtime.ParamLocationQuery, *params.Limit); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.Sort != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "sort", runtime.ParamLocationQuery, *params.Sort); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.Search != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "search", runtime.ParamLocationQuery, *params.Search); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.Select != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "select", runtime.ParamLocationQuery, *params.Select); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.Q != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "q", runtime.ParamLocationQuery, *params.Q); err != nil {
 			return nil, err
 		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
 			return nil, err
@@ -14362,85 +16085,6 @@ func NewApiControllersOverviewControllerGetOverviewAgentsRequest(server string, 
 	return req, nil
 }
 
-// NewApiControllersRootcheckControllerDeleteRootcheckRequest generates requests for RootcheckControllerDeleteRootcheck
-func NewApiControllersRootcheckControllerDeleteRootcheckRequest(server string, params *RootcheckControllerDeleteRootcheckParams) (*http.Request, error) {
-	var err error
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/rootcheck")
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	queryValues := queryURL.Query()
-
-	if params.Pretty != nil {
-
-		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pretty", runtime.ParamLocationQuery, *params.Pretty); err != nil {
-			return nil, err
-		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-			return nil, err
-		} else {
-			for k, v := range parsed {
-				for _, v2 := range v {
-					queryValues.Add(k, v2)
-				}
-			}
-		}
-
-	}
-
-	if params.WaitForComplete != nil {
-
-		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "wait_for_complete", runtime.ParamLocationQuery, *params.WaitForComplete); err != nil {
-			return nil, err
-		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-			return nil, err
-		} else {
-			for k, v := range parsed {
-				for _, v2 := range v {
-					queryValues.Add(k, v2)
-				}
-			}
-		}
-
-	}
-
-	if params.AgentsList != nil {
-
-		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "agents_list", runtime.ParamLocationQuery, *params.AgentsList); err != nil {
-			return nil, err
-		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-			return nil, err
-		} else {
-			for k, v := range parsed {
-				for _, v2 := range v {
-					queryValues.Add(k, v2)
-				}
-			}
-		}
-
-	}
-
-	queryURL.RawQuery = queryValues.Encode()
-
-	req, err := http.NewRequest("DELETE", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
 // NewApiControllersRootcheckControllerPutRootcheckRequest generates requests for RootcheckControllerPutRootcheck
 func NewApiControllersRootcheckControllerPutRootcheckRequest(server string, params *RootcheckControllerPutRootcheckParams) (*http.Request, error) {
 	var err error
@@ -14513,6 +16157,76 @@ func NewApiControllersRootcheckControllerPutRootcheckRequest(server string, para
 	queryURL.RawQuery = queryValues.Encode()
 
 	req, err := http.NewRequest("PUT", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewApiControllersRootcheckControllerDeleteRootcheckRequest generates requests for RootcheckControllerDeleteRootcheck
+func NewApiControllersRootcheckControllerDeleteRootcheckRequest(server string, agentId AgentId, params *RootcheckControllerDeleteRootcheckParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "agent_id", runtime.ParamLocationPath, agentId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/rootcheck/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	queryValues := queryURL.Query()
+
+	if params.Pretty != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pretty", runtime.ParamLocationQuery, *params.Pretty); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.WaitForComplete != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "wait_for_complete", runtime.ParamLocationQuery, *params.WaitForComplete); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	queryURL.RawQuery = queryValues.Encode()
+
+	req, err := http.NewRequest("DELETE", queryURL.String(), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -16887,6 +18601,22 @@ func NewApiControllersSecurityControllerGetPoliciesRequest(server string, params
 
 	}
 
+	if params.Select != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "select", runtime.ParamLocationQuery, *params.Select); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
 	if params.Sort != nil {
 
 		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "sort", runtime.ParamLocationQuery, *params.Sort); err != nil {
@@ -17314,6 +19044,22 @@ func NewApiControllersSecurityControllerGetRolesRequest(server string, params *S
 	if params.Search != nil {
 
 		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "search", runtime.ParamLocationQuery, *params.Search); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.Select != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "select", runtime.ParamLocationQuery, *params.Select); err != nil {
 			return nil, err
 		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
 			return nil, err
@@ -18048,6 +19794,22 @@ func NewApiControllersSecurityControllerGetRulesRequest(server string, params *S
 
 	}
 
+	if params.Select != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "select", runtime.ParamLocationQuery, *params.Select); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
 	if params.Sort != nil {
 
 		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "sort", runtime.ParamLocationQuery, *params.Sort); err != nil {
@@ -18573,6 +20335,22 @@ func NewApiControllersSecurityControllerGetUsersRequest(server string, params *S
 	if params.Search != nil {
 
 		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "search", runtime.ParamLocationQuery, *params.Search); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.Select != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "select", runtime.ParamLocationQuery, *params.Select); err != nil {
 			return nil, err
 		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
 			return nil, err
@@ -22349,6 +24127,217 @@ func NewApiControllersVulnerabilityControllerGetVulnerabilityAgentRequest(server
 
 	}
 
+	if params.Type != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "type", runtime.ParamLocationQuery, *params.Type); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.Status != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "status", runtime.ParamLocationQuery, *params.Status); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.Severity != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "severity", runtime.ParamLocationQuery, *params.Severity); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	queryURL.RawQuery = queryValues.Encode()
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewApiControllersVulnerabilityControllerGetLastScanAgentRequest generates requests for VulnerabilityControllerGetLastScanAgent
+func NewApiControllersVulnerabilityControllerGetLastScanAgentRequest(server string, agentId AgentId, params *VulnerabilityControllerGetLastScanAgentParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "agent_id", runtime.ParamLocationPath, agentId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/vulnerability/%s/last_scan", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	queryValues := queryURL.Query()
+
+	if params.Pretty != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pretty", runtime.ParamLocationQuery, *params.Pretty); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.WaitForComplete != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "wait_for_complete", runtime.ParamLocationQuery, *params.WaitForComplete); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	queryURL.RawQuery = queryValues.Encode()
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewApiControllersVulnerabilityControllerGetVulnerabilitiesFieldSummaryRequest generates requests for VulnerabilityControllerGetVulnerabilitiesFieldSummary
+func NewApiControllersVulnerabilityControllerGetVulnerabilitiesFieldSummaryRequest(server string, agentId AgentId, field VulnerabilityControllerGetVulnerabilitiesFieldSummaryParamsField, params *VulnerabilityControllerGetVulnerabilitiesFieldSummaryParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "agent_id", runtime.ParamLocationPath, agentId)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "field", runtime.ParamLocationPath, field)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/vulnerability/%s/summary/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	queryValues := queryURL.Query()
+
+	if params.Pretty != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pretty", runtime.ParamLocationQuery, *params.Pretty); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.WaitForComplete != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "wait_for_complete", runtime.ParamLocationQuery, *params.WaitForComplete); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.Limit != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "limit", runtime.ParamLocationQuery, *params.Limit); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
 	queryURL.RawQuery = queryValues.Encode()
 
 	req, err := http.NewRequest("GET", queryURL.String(), nil)
@@ -22446,6 +24435,9 @@ type ClientWithResponsesInterface interface {
 
 	// AgentControllerGetAgentOutdated request
 	AgentControllerGetAgentOutdatedWithResponse(ctx context.Context, params *AgentControllerGetAgentOutdatedParams, reqEditors ...RequestEditorFn) (*AgentControllerGetAgentOutdatedResponse, error)
+
+	// AgentControllerReconnectAgents request
+	AgentControllerReconnectAgentsWithResponse(ctx context.Context, params *AgentControllerReconnectAgentsParams, reqEditors ...RequestEditorFn) (*AgentControllerReconnectAgentsResponse, error)
 
 	// AgentControllerRestartAgents request
 	AgentControllerRestartAgentsWithResponse(ctx context.Context, params *AgentControllerRestartAgentsParams, reqEditors ...RequestEditorFn) (*AgentControllerRestartAgentsResponse, error)
@@ -22576,6 +24568,9 @@ type ClientWithResponsesInterface interface {
 	// ExperimentalControllerGetCisCatResults request
 	ExperimentalControllerGetCisCatResultsWithResponse(ctx context.Context, params *ExperimentalControllerGetCisCatResultsParams, reqEditors ...RequestEditorFn) (*ExperimentalControllerGetCisCatResultsResponse, error)
 
+	// ExperimentalControllerClearRootcheckDatabase request
+	ExperimentalControllerClearRootcheckDatabaseWithResponse(ctx context.Context, params *ExperimentalControllerClearRootcheckDatabaseParams, reqEditors ...RequestEditorFn) (*ExperimentalControllerClearRootcheckDatabaseResponse, error)
+
 	// ExperimentalControllerClearSyscheckDatabase request
 	ExperimentalControllerClearSyscheckDatabaseWithResponse(ctx context.Context, params *ExperimentalControllerClearSyscheckDatabaseParams, reqEditors ...RequestEditorFn) (*ExperimentalControllerClearSyscheckDatabaseResponse, error)
 
@@ -22703,17 +24698,35 @@ type ClientWithResponsesInterface interface {
 	// ManagerControllerGetStatus request
 	ManagerControllerGetStatusWithResponse(ctx context.Context, params *ManagerControllerGetStatusParams, reqEditors ...RequestEditorFn) (*ManagerControllerGetStatusResponse, error)
 
-	// MitreControllerGetAttack request
-	MitreControllerGetAttackWithResponse(ctx context.Context, params *MitreControllerGetAttackParams, reqEditors ...RequestEditorFn) (*MitreControllerGetAttackResponse, error)
+	// MitreControllerGetGroups request
+	MitreControllerGetGroupsWithResponse(ctx context.Context, params *MitreControllerGetGroupsParams, reqEditors ...RequestEditorFn) (*MitreControllerGetGroupsResponse, error)
+
+	// MitreControllerGetMetadata request
+	MitreControllerGetMetadataWithResponse(ctx context.Context, params *MitreControllerGetMetadataParams, reqEditors ...RequestEditorFn) (*MitreControllerGetMetadataResponse, error)
+
+	// MitreControllerGetMitigations request
+	MitreControllerGetMitigationsWithResponse(ctx context.Context, params *MitreControllerGetMitigationsParams, reqEditors ...RequestEditorFn) (*MitreControllerGetMitigationsResponse, error)
+
+	// MitreControllerGetReferences request
+	MitreControllerGetReferencesWithResponse(ctx context.Context, params *MitreControllerGetReferencesParams, reqEditors ...RequestEditorFn) (*MitreControllerGetReferencesResponse, error)
+
+	// MitreControllerGetSoftware request
+	MitreControllerGetSoftwareWithResponse(ctx context.Context, params *MitreControllerGetSoftwareParams, reqEditors ...RequestEditorFn) (*MitreControllerGetSoftwareResponse, error)
+
+	// MitreControllerGetTactics request
+	MitreControllerGetTacticsWithResponse(ctx context.Context, params *MitreControllerGetTacticsParams, reqEditors ...RequestEditorFn) (*MitreControllerGetTacticsResponse, error)
+
+	// MitreControllerGetTechniques request
+	MitreControllerGetTechniquesWithResponse(ctx context.Context, params *MitreControllerGetTechniquesParams, reqEditors ...RequestEditorFn) (*MitreControllerGetTechniquesResponse, error)
 
 	// OverviewControllerGetOverviewAgents request
 	OverviewControllerGetOverviewAgentsWithResponse(ctx context.Context, params *OverviewControllerGetOverviewAgentsParams, reqEditors ...RequestEditorFn) (*OverviewControllerGetOverviewAgentsResponse, error)
 
-	// RootcheckControllerDeleteRootcheck request
-	RootcheckControllerDeleteRootcheckWithResponse(ctx context.Context, params *RootcheckControllerDeleteRootcheckParams, reqEditors ...RequestEditorFn) (*RootcheckControllerDeleteRootcheckResponse, error)
-
 	// RootcheckControllerPutRootcheck request
 	RootcheckControllerPutRootcheckWithResponse(ctx context.Context, params *RootcheckControllerPutRootcheckParams, reqEditors ...RequestEditorFn) (*RootcheckControllerPutRootcheckResponse, error)
+
+	// RootcheckControllerDeleteRootcheck request
+	RootcheckControllerDeleteRootcheckWithResponse(ctx context.Context, agentId AgentId, params *RootcheckControllerDeleteRootcheckParams, reqEditors ...RequestEditorFn) (*RootcheckControllerDeleteRootcheckResponse, error)
 
 	// RootcheckControllerGetRootcheckAgent request
 	RootcheckControllerGetRootcheckAgentWithResponse(ctx context.Context, agentId AgentId, params *RootcheckControllerGetRootcheckAgentParams, reqEditors ...RequestEditorFn) (*RootcheckControllerGetRootcheckAgentResponse, error)
@@ -22914,6 +24927,12 @@ type ClientWithResponsesInterface interface {
 
 	// VulnerabilityControllerGetVulnerabilityAgent request
 	VulnerabilityControllerGetVulnerabilityAgentWithResponse(ctx context.Context, agentId AgentId, params *VulnerabilityControllerGetVulnerabilityAgentParams, reqEditors ...RequestEditorFn) (*VulnerabilityControllerGetVulnerabilityAgentResponse, error)
+
+	// VulnerabilityControllerGetLastScanAgent request
+	VulnerabilityControllerGetLastScanAgentWithResponse(ctx context.Context, agentId AgentId, params *VulnerabilityControllerGetLastScanAgentParams, reqEditors ...RequestEditorFn) (*VulnerabilityControllerGetLastScanAgentResponse, error)
+
+	// VulnerabilityControllerGetVulnerabilitiesFieldSummary request
+	VulnerabilityControllerGetVulnerabilitiesFieldSummaryWithResponse(ctx context.Context, agentId AgentId, field VulnerabilityControllerGetVulnerabilitiesFieldSummaryParamsField, params *VulnerabilityControllerGetVulnerabilitiesFieldSummaryParams, reqEditors ...RequestEditorFn) (*VulnerabilityControllerGetVulnerabilitiesFieldSummaryResponse, error)
 }
 
 type DefaultControllerDefaultInfoResponse struct {
@@ -23331,6 +25350,38 @@ func (r AgentControllerGetAgentOutdatedResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r AgentControllerGetAgentOutdatedResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type AgentControllerReconnectAgentsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *struct {
+		// Embedded struct due to allOf(#/components/schemas/ApiResponse)
+		ApiResponse `yaml:",inline"`
+		// Embedded fields due to inline allOf schema
+		Data *AllItemsResponseAgentIDs `json:"data,omitempty"`
+	}
+	JSON400 *RequestError
+	JSON401 *RequestError
+	JSON403 *ApiError
+	JSON405 *RequestError
+	JSON429 *RequestError
+}
+
+// Status returns HTTPResponse.Status
+func (r AgentControllerReconnectAgentsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r AgentControllerReconnectAgentsResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -24164,6 +26215,7 @@ type ClusterControllerUpdateConfigurationResponse struct {
 	JSON403 *ApiError
 	JSON405 *RequestError
 	JSON406 *RequestError
+	JSON413 *RequestError
 	JSON429 *RequestError
 }
 
@@ -24644,6 +26696,7 @@ type DecoderControllerPutFileResponse struct {
 	JSON403 *ApiError
 	JSON405 *RequestError
 	JSON406 *RequestError
+	JSON413 *RequestError
 	JSON429 *RequestError
 }
 
@@ -24721,6 +26774,38 @@ func (r ExperimentalControllerGetCisCatResultsResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r ExperimentalControllerGetCisCatResultsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ExperimentalControllerClearRootcheckDatabaseResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *struct {
+		// Embedded struct due to allOf(#/components/schemas/ApiResponse)
+		ApiResponse `yaml:",inline"`
+		// Embedded fields due to inline allOf schema
+		Data *AllItemsResponse `json:"data,omitempty"`
+	}
+	JSON400 *RequestError
+	JSON401 *RequestError
+	JSON403 *ApiError
+	JSON405 *RequestError
+	JSON429 *RequestError
+}
+
+// Status returns HTTPResponse.Status
+func (r ExperimentalControllerClearRootcheckDatabaseResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ExperimentalControllerClearRootcheckDatabaseResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -25055,8 +27140,6 @@ type AgentControllerDeleteGroupsResponse struct {
 		ApiResponse `yaml:",inline"`
 		// Embedded fields due to inline allOf schema
 		Data *struct {
-			// Embedded struct due to allOf(#/components/schemas/AllItemsResponseGroupIDs)
-			AllItemsResponseGroupIDs `yaml:",inline"`
 			// Embedded struct due to allOf(#/components/schemas/AgentGroupDeleted)
 			AgentGroupDeleted `yaml:",inline"`
 		} `json:"data,omitempty"`
@@ -25471,6 +27554,7 @@ type CdbListControllerPutFileResponse struct {
 	JSON401 *RequestError
 	JSON403 *ApiError
 	JSON405 *RequestError
+	JSON413 *RequestError
 	JSON429 *RequestError
 }
 
@@ -25621,6 +27705,7 @@ type ManagerControllerUpdateConfigurationResponse struct {
 	JSON403 *ApiError
 	JSON405 *RequestError
 	JSON406 *RequestError
+	JSON413 *RequestError
 	JSON429 *RequestError
 }
 
@@ -26012,19 +28097,24 @@ func (r ManagerControllerGetStatusResponse) StatusCode() int {
 	return 0
 }
 
-type MitreControllerGetAttackResponse struct {
+type MitreControllerGetGroupsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *ApiResponse
-	JSON400      *RequestError
-	JSON401      *RequestError
-	JSON403      *ApiError
-	JSON405      *RequestError
-	JSON429      *RequestError
+	JSON200      *struct {
+		// Embedded struct due to allOf(#/components/schemas/ApiResponse)
+		ApiResponse `yaml:",inline"`
+		// Embedded fields due to inline allOf schema
+		Data *AllItemsResponse `json:"data,omitempty"`
+	}
+	JSON400 *RequestError
+	JSON401 *RequestError
+	JSON403 *ApiError
+	JSON405 *RequestError
+	JSON429 *RequestError
 }
 
 // Status returns HTTPResponse.Status
-func (r MitreControllerGetAttackResponse) Status() string {
+func (r MitreControllerGetGroupsResponse) Status() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Status
 	}
@@ -26032,7 +28122,199 @@ func (r MitreControllerGetAttackResponse) Status() string {
 }
 
 // StatusCode returns HTTPResponse.StatusCode
-func (r MitreControllerGetAttackResponse) StatusCode() int {
+func (r MitreControllerGetGroupsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type MitreControllerGetMetadataResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *struct {
+		// Embedded struct due to allOf(#/components/schemas/ApiResponse)
+		ApiResponse `yaml:",inline"`
+		// Embedded fields due to inline allOf schema
+		Data *AllItemsResponse `json:"data,omitempty"`
+	}
+	JSON400 *RequestError
+	JSON401 *RequestError
+	JSON403 *ApiError
+	JSON405 *RequestError
+	JSON429 *RequestError
+}
+
+// Status returns HTTPResponse.Status
+func (r MitreControllerGetMetadataResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r MitreControllerGetMetadataResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type MitreControllerGetMitigationsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *struct {
+		// Embedded struct due to allOf(#/components/schemas/ApiResponse)
+		ApiResponse `yaml:",inline"`
+		// Embedded fields due to inline allOf schema
+		Data *AllItemsResponse `json:"data,omitempty"`
+	}
+	JSON400 *RequestError
+	JSON401 *RequestError
+	JSON403 *ApiError
+	JSON405 *RequestError
+	JSON429 *RequestError
+}
+
+// Status returns HTTPResponse.Status
+func (r MitreControllerGetMitigationsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r MitreControllerGetMitigationsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type MitreControllerGetReferencesResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *struct {
+		// Embedded struct due to allOf(#/components/schemas/ApiResponse)
+		ApiResponse `yaml:",inline"`
+		// Embedded fields due to inline allOf schema
+		Data *AllItemsResponse `json:"data,omitempty"`
+	}
+	JSON400 *RequestError
+	JSON401 *RequestError
+	JSON403 *ApiError
+	JSON405 *RequestError
+	JSON429 *RequestError
+}
+
+// Status returns HTTPResponse.Status
+func (r MitreControllerGetReferencesResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r MitreControllerGetReferencesResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type MitreControllerGetSoftwareResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *struct {
+		// Embedded struct due to allOf(#/components/schemas/ApiResponse)
+		ApiResponse `yaml:",inline"`
+		// Embedded fields due to inline allOf schema
+		Data *AllItemsResponse `json:"data,omitempty"`
+	}
+	JSON400 *RequestError
+	JSON401 *RequestError
+	JSON403 *ApiError
+	JSON405 *RequestError
+	JSON429 *RequestError
+}
+
+// Status returns HTTPResponse.Status
+func (r MitreControllerGetSoftwareResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r MitreControllerGetSoftwareResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type MitreControllerGetTacticsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *struct {
+		// Embedded struct due to allOf(#/components/schemas/ApiResponse)
+		ApiResponse `yaml:",inline"`
+		// Embedded fields due to inline allOf schema
+		Data *AllItemsResponse `json:"data,omitempty"`
+	}
+	JSON400 *RequestError
+	JSON401 *RequestError
+	JSON403 *ApiError
+	JSON405 *RequestError
+	JSON429 *RequestError
+}
+
+// Status returns HTTPResponse.Status
+func (r MitreControllerGetTacticsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r MitreControllerGetTacticsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type MitreControllerGetTechniquesResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *struct {
+		// Embedded struct due to allOf(#/components/schemas/ApiResponse)
+		ApiResponse `yaml:",inline"`
+		// Embedded fields due to inline allOf schema
+		Data *AllItemsResponse `json:"data,omitempty"`
+	}
+	JSON400 *RequestError
+	JSON401 *RequestError
+	JSON403 *ApiError
+	JSON405 *RequestError
+	JSON429 *RequestError
+}
+
+// Status returns HTTPResponse.Status
+func (r MitreControllerGetTechniquesResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r MitreControllerGetTechniquesResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -26071,38 +28353,6 @@ func (r OverviewControllerGetOverviewAgentsResponse) StatusCode() int {
 	return 0
 }
 
-type RootcheckControllerDeleteRootcheckResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON200      *struct {
-		// Embedded struct due to allOf(#/components/schemas/ApiResponse)
-		ApiResponse `yaml:",inline"`
-		// Embedded fields due to inline allOf schema
-		Data *AllItemsResponse `json:"data,omitempty"`
-	}
-	JSON400 *RequestError
-	JSON401 *RequestError
-	JSON403 *ApiError
-	JSON405 *RequestError
-	JSON429 *RequestError
-}
-
-// Status returns HTTPResponse.Status
-func (r RootcheckControllerDeleteRootcheckResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r RootcheckControllerDeleteRootcheckResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
 type RootcheckControllerPutRootcheckResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -26129,6 +28379,38 @@ func (r RootcheckControllerPutRootcheckResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r RootcheckControllerPutRootcheckResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type RootcheckControllerDeleteRootcheckResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *struct {
+		// Embedded struct due to allOf(#/components/schemas/ApiResponse)
+		ApiResponse `yaml:",inline"`
+		// Embedded fields due to inline allOf schema
+		Data *AllItemsResponse `json:"data,omitempty"`
+	}
+	JSON400 *RequestError
+	JSON401 *RequestError
+	JSON403 *ApiError
+	JSON405 *RequestError
+	JSON429 *RequestError
+}
+
+// Status returns HTTPResponse.Status
+func (r RootcheckControllerDeleteRootcheckResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r RootcheckControllerDeleteRootcheckResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -26342,6 +28624,7 @@ type RuleControllerPutFileResponse struct {
 	JSON403 *ApiError
 	JSON405 *RequestError
 	JSON406 *RequestError
+	JSON413 *RequestError
 	JSON429 *RequestError
 }
 
@@ -26581,6 +28864,7 @@ type SecurityControllerPutSecurityConfigResponse struct {
 	JSON401      *RequestError
 	JSON405      *RequestError
 	JSON406      *RequestError
+	JSON413      *RequestError
 	JSON429      *RequestError
 }
 
@@ -27126,6 +29410,7 @@ type SecurityControllerUpdateRuleResponse struct {
 	JSON401 *RequestError
 	JSON405 *RequestError
 	JSON406 *RequestError
+	JSON413 *RequestError
 	JSON429 *RequestError
 }
 
@@ -27213,6 +29498,7 @@ type SecurityControllerRunAsLoginResponse struct {
 	JSON401 *RequestError
 	JSON403 *ApiError
 	JSON405 *RequestError
+	JSON413 *RequestError
 	JSON429 *RequestError
 }
 
@@ -27336,6 +29622,7 @@ type SecurityControllerCreateUserResponse struct {
 	JSON401 *RequestError
 	JSON405 *RequestError
 	JSON406 *RequestError
+	JSON413 *RequestError
 	JSON429 *RequestError
 }
 
@@ -27644,7 +29931,7 @@ type SyscheckControllerGetLastScanAgentResponse struct {
 		// Embedded struct due to allOf(#/components/schemas/ApiResponse)
 		ApiResponse `yaml:",inline"`
 		// Embedded fields due to inline allOf schema
-		Data *AllItemsResponseSyscheckLastScan `json:"data,omitempty"`
+		Data *AllItemsResponseLastScan `json:"data,omitempty"`
 	}
 	JSON400 *RequestError
 	JSON401 *RequestError
@@ -27982,7 +30269,8 @@ func (r TaskControllerGetTasksStatusResponse) StatusCode() int {
 type VulnerabilityControllerGetVulnerabilityAgentResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *ApiResponse
+	JSON200       *AllItemsResponseVulnerability
+	
 	JSON400      *RequestError
 	JSON401      *RequestError
 	JSON403      *ApiError
@@ -28000,6 +30288,65 @@ func (r VulnerabilityControllerGetVulnerabilityAgentResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r VulnerabilityControllerGetVulnerabilityAgentResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type VulnerabilityControllerGetLastScanAgentResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *struct {
+		// Embedded struct due to allOf(#/components/schemas/ApiResponse)
+		ApiResponse `yaml:",inline"`
+		// Embedded fields due to inline allOf schema
+		Data *AllItemsResponseLastScan `json:"data,omitempty"`
+	}
+	JSON400 *RequestError
+	JSON401 *RequestError
+	JSON403 *ApiError
+	JSON405 *RequestError
+	JSON429 *RequestError
+}
+
+// Status returns HTTPResponse.Status
+func (r VulnerabilityControllerGetLastScanAgentResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r VulnerabilityControllerGetLastScanAgentResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type VulnerabilityControllerGetVulnerabilitiesFieldSummaryResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *ApiResponse
+	JSON400      *RequestError
+	JSON401      *RequestError
+	JSON403      *ApiError
+	JSON405      *RequestError
+	JSON429      *RequestError
+}
+
+// Status returns HTTPResponse.Status
+func (r VulnerabilityControllerGetVulnerabilitiesFieldSummaryResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r VulnerabilityControllerGetVulnerabilitiesFieldSummaryResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -28145,6 +30492,15 @@ func (c *ClientWithResponses) AgentControllerGetAgentOutdatedWithResponse(ctx co
 		return nil, err
 	}
 	return ParseApiControllersAgentControllerGetAgentOutdatedResponse(rsp)
+}
+
+// AgentControllerReconnectAgentsWithResponse request returning *AgentControllerReconnectAgentsResponse
+func (c *ClientWithResponses) AgentControllerReconnectAgentsWithResponse(ctx context.Context, params *AgentControllerReconnectAgentsParams, reqEditors ...RequestEditorFn) (*AgentControllerReconnectAgentsResponse, error) {
+	rsp, err := c.AgentControllerReconnectAgents(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseApiControllersAgentControllerReconnectAgentsResponse(rsp)
 }
 
 // AgentControllerRestartAgentsWithResponse request returning *AgentControllerRestartAgentsResponse
@@ -28534,6 +30890,15 @@ func (c *ClientWithResponses) ExperimentalControllerGetCisCatResultsWithResponse
 	return ParseApiControllersExperimentalControllerGetCisCatResultsResponse(rsp)
 }
 
+// ExperimentalControllerClearRootcheckDatabaseWithResponse request returning *ExperimentalControllerClearRootcheckDatabaseResponse
+func (c *ClientWithResponses) ExperimentalControllerClearRootcheckDatabaseWithResponse(ctx context.Context, params *ExperimentalControllerClearRootcheckDatabaseParams, reqEditors ...RequestEditorFn) (*ExperimentalControllerClearRootcheckDatabaseResponse, error) {
+	rsp, err := c.ExperimentalControllerClearRootcheckDatabase(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseApiControllersExperimentalControllerClearRootcheckDatabaseResponse(rsp)
+}
+
 // ExperimentalControllerClearSyscheckDatabaseWithResponse request returning *ExperimentalControllerClearSyscheckDatabaseResponse
 func (c *ClientWithResponses) ExperimentalControllerClearSyscheckDatabaseWithResponse(ctx context.Context, params *ExperimentalControllerClearSyscheckDatabaseParams, reqEditors ...RequestEditorFn) (*ExperimentalControllerClearSyscheckDatabaseResponse, error) {
 	rsp, err := c.ExperimentalControllerClearSyscheckDatabase(ctx, params, reqEditors...)
@@ -28919,13 +31284,67 @@ func (c *ClientWithResponses) ManagerControllerGetStatusWithResponse(ctx context
 	return ParseApiControllersManagerControllerGetStatusResponse(rsp)
 }
 
-// MitreControllerGetAttackWithResponse request returning *MitreControllerGetAttackResponse
-func (c *ClientWithResponses) MitreControllerGetAttackWithResponse(ctx context.Context, params *MitreControllerGetAttackParams, reqEditors ...RequestEditorFn) (*MitreControllerGetAttackResponse, error) {
-	rsp, err := c.MitreControllerGetAttack(ctx, params, reqEditors...)
+// MitreControllerGetGroupsWithResponse request returning *MitreControllerGetGroupsResponse
+func (c *ClientWithResponses) MitreControllerGetGroupsWithResponse(ctx context.Context, params *MitreControllerGetGroupsParams, reqEditors ...RequestEditorFn) (*MitreControllerGetGroupsResponse, error) {
+	rsp, err := c.MitreControllerGetGroups(ctx, params, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParseApiControllersMitreControllerGetAttackResponse(rsp)
+	return ParseApiControllersMitreControllerGetGroupsResponse(rsp)
+}
+
+// MitreControllerGetMetadataWithResponse request returning *MitreControllerGetMetadataResponse
+func (c *ClientWithResponses) MitreControllerGetMetadataWithResponse(ctx context.Context, params *MitreControllerGetMetadataParams, reqEditors ...RequestEditorFn) (*MitreControllerGetMetadataResponse, error) {
+	rsp, err := c.MitreControllerGetMetadata(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseApiControllersMitreControllerGetMetadataResponse(rsp)
+}
+
+// MitreControllerGetMitigationsWithResponse request returning *MitreControllerGetMitigationsResponse
+func (c *ClientWithResponses) MitreControllerGetMitigationsWithResponse(ctx context.Context, params *MitreControllerGetMitigationsParams, reqEditors ...RequestEditorFn) (*MitreControllerGetMitigationsResponse, error) {
+	rsp, err := c.MitreControllerGetMitigations(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseApiControllersMitreControllerGetMitigationsResponse(rsp)
+}
+
+// MitreControllerGetReferencesWithResponse request returning *MitreControllerGetReferencesResponse
+func (c *ClientWithResponses) MitreControllerGetReferencesWithResponse(ctx context.Context, params *MitreControllerGetReferencesParams, reqEditors ...RequestEditorFn) (*MitreControllerGetReferencesResponse, error) {
+	rsp, err := c.MitreControllerGetReferences(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseApiControllersMitreControllerGetReferencesResponse(rsp)
+}
+
+// MitreControllerGetSoftwareWithResponse request returning *MitreControllerGetSoftwareResponse
+func (c *ClientWithResponses) MitreControllerGetSoftwareWithResponse(ctx context.Context, params *MitreControllerGetSoftwareParams, reqEditors ...RequestEditorFn) (*MitreControllerGetSoftwareResponse, error) {
+	rsp, err := c.MitreControllerGetSoftware(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseApiControllersMitreControllerGetSoftwareResponse(rsp)
+}
+
+// MitreControllerGetTacticsWithResponse request returning *MitreControllerGetTacticsResponse
+func (c *ClientWithResponses) MitreControllerGetTacticsWithResponse(ctx context.Context, params *MitreControllerGetTacticsParams, reqEditors ...RequestEditorFn) (*MitreControllerGetTacticsResponse, error) {
+	rsp, err := c.MitreControllerGetTactics(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseApiControllersMitreControllerGetTacticsResponse(rsp)
+}
+
+// MitreControllerGetTechniquesWithResponse request returning *MitreControllerGetTechniquesResponse
+func (c *ClientWithResponses) MitreControllerGetTechniquesWithResponse(ctx context.Context, params *MitreControllerGetTechniquesParams, reqEditors ...RequestEditorFn) (*MitreControllerGetTechniquesResponse, error) {
+	rsp, err := c.MitreControllerGetTechniques(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseApiControllersMitreControllerGetTechniquesResponse(rsp)
 }
 
 // OverviewControllerGetOverviewAgentsWithResponse request returning *OverviewControllerGetOverviewAgentsResponse
@@ -28937,15 +31356,6 @@ func (c *ClientWithResponses) OverviewControllerGetOverviewAgentsWithResponse(ct
 	return ParseApiControllersOverviewControllerGetOverviewAgentsResponse(rsp)
 }
 
-// RootcheckControllerDeleteRootcheckWithResponse request returning *RootcheckControllerDeleteRootcheckResponse
-func (c *ClientWithResponses) RootcheckControllerDeleteRootcheckWithResponse(ctx context.Context, params *RootcheckControllerDeleteRootcheckParams, reqEditors ...RequestEditorFn) (*RootcheckControllerDeleteRootcheckResponse, error) {
-	rsp, err := c.RootcheckControllerDeleteRootcheck(ctx, params, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseApiControllersRootcheckControllerDeleteRootcheckResponse(rsp)
-}
-
 // RootcheckControllerPutRootcheckWithResponse request returning *RootcheckControllerPutRootcheckResponse
 func (c *ClientWithResponses) RootcheckControllerPutRootcheckWithResponse(ctx context.Context, params *RootcheckControllerPutRootcheckParams, reqEditors ...RequestEditorFn) (*RootcheckControllerPutRootcheckResponse, error) {
 	rsp, err := c.RootcheckControllerPutRootcheck(ctx, params, reqEditors...)
@@ -28953,6 +31363,15 @@ func (c *ClientWithResponses) RootcheckControllerPutRootcheckWithResponse(ctx co
 		return nil, err
 	}
 	return ParseApiControllersRootcheckControllerPutRootcheckResponse(rsp)
+}
+
+// RootcheckControllerDeleteRootcheckWithResponse request returning *RootcheckControllerDeleteRootcheckResponse
+func (c *ClientWithResponses) RootcheckControllerDeleteRootcheckWithResponse(ctx context.Context, agentId AgentId, params *RootcheckControllerDeleteRootcheckParams, reqEditors ...RequestEditorFn) (*RootcheckControllerDeleteRootcheckResponse, error) {
+	rsp, err := c.RootcheckControllerDeleteRootcheck(ctx, agentId, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseApiControllersRootcheckControllerDeleteRootcheckResponse(rsp)
 }
 
 // RootcheckControllerGetRootcheckAgentWithResponse request returning *RootcheckControllerGetRootcheckAgentResponse
@@ -29575,6 +31994,24 @@ func (c *ClientWithResponses) VulnerabilityControllerGetVulnerabilityAgentWithRe
 	return ParseApiControllersVulnerabilityControllerGetVulnerabilityAgentResponse(rsp)
 }
 
+// VulnerabilityControllerGetLastScanAgentWithResponse request returning *VulnerabilityControllerGetLastScanAgentResponse
+func (c *ClientWithResponses) VulnerabilityControllerGetLastScanAgentWithResponse(ctx context.Context, agentId AgentId, params *VulnerabilityControllerGetLastScanAgentParams, reqEditors ...RequestEditorFn) (*VulnerabilityControllerGetLastScanAgentResponse, error) {
+	rsp, err := c.VulnerabilityControllerGetLastScanAgent(ctx, agentId, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseApiControllersVulnerabilityControllerGetLastScanAgentResponse(rsp)
+}
+
+// VulnerabilityControllerGetVulnerabilitiesFieldSummaryWithResponse request returning *VulnerabilityControllerGetVulnerabilitiesFieldSummaryResponse
+func (c *ClientWithResponses) VulnerabilityControllerGetVulnerabilitiesFieldSummaryWithResponse(ctx context.Context, agentId AgentId, field VulnerabilityControllerGetVulnerabilitiesFieldSummaryParamsField, params *VulnerabilityControllerGetVulnerabilitiesFieldSummaryParams, reqEditors ...RequestEditorFn) (*VulnerabilityControllerGetVulnerabilitiesFieldSummaryResponse, error) {
+	rsp, err := c.VulnerabilityControllerGetVulnerabilitiesFieldSummary(ctx, agentId, field, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseApiControllersVulnerabilityControllerGetVulnerabilitiesFieldSummaryResponse(rsp)
+}
+
 // ParseApiControllersDefaultControllerDefaultInfoResponse parses an HTTP response from a DefaultControllerDefaultInfoWithResponse call
 func ParseApiControllersDefaultControllerDefaultInfoResponse(rsp *http.Response) (*DefaultControllerDefaultInfoResponse, error) {
 	bodyBytes, err := ioutil.ReadAll(rsp.Body)
@@ -29768,7 +32205,6 @@ func ParseApiControllersAgentControllerGetAgentsResponse(rsp *http.Response) (*A
 			// Embedded fields due to inline allOf schema
 			Data *AllItemsResponseAgents `json:"data,omitempty"`
 		}
-		fmt.Print(string(bodyBytes))
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -30417,6 +32853,72 @@ func ParseApiControllersAgentControllerGetAgentOutdatedResponse(rsp *http.Respon
 			ApiResponse `yaml:",inline"`
 			// Embedded fields due to inline allOf schema
 			Data *AllItemsResponseAgentsSimple `json:"data,omitempty"`
+		}
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest RequestError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest RequestError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest ApiError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 405:
+		var dest RequestError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON405 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest RequestError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON429 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseApiControllersAgentControllerReconnectAgentsResponse parses an HTTP response from a AgentControllerReconnectAgentsWithResponse call
+func ParseApiControllersAgentControllerReconnectAgentsResponse(rsp *http.Response) (*AgentControllerReconnectAgentsResponse, error) {
+	bodyBytes, err := ioutil.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &AgentControllerReconnectAgentsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest struct {
+			// Embedded struct due to allOf(#/components/schemas/ApiResponse)
+			ApiResponse `yaml:",inline"`
+			// Embedded fields due to inline allOf schema
+			Data *AllItemsResponseAgentIDs `json:"data,omitempty"`
 		}
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
@@ -32199,6 +34701,13 @@ func ParseApiControllersClusterControllerUpdateConfigurationResponse(rsp *http.R
 		}
 		response.JSON406 = &dest
 
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 413:
+		var dest RequestError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON413 = &dest
+
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
 		var dest RequestError
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
@@ -33201,6 +35710,13 @@ func ParseApiControllersDecoderControllerPutFileResponse(rsp *http.Response) (*D
 		}
 		response.JSON406 = &dest
 
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 413:
+		var dest RequestError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON413 = &dest
+
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
 		var dest RequestError
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
@@ -33299,6 +35815,72 @@ func ParseApiControllersExperimentalControllerGetCisCatResultsResponse(rsp *http
 			ApiResponse `yaml:",inline"`
 			// Embedded fields due to inline allOf schema
 			Data *AllItemsResponseCiscatResult `json:"data,omitempty"`
+		}
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest RequestError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest RequestError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest ApiError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 405:
+		var dest RequestError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON405 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest RequestError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON429 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseApiControllersExperimentalControllerClearRootcheckDatabaseResponse parses an HTTP response from a ExperimentalControllerClearRootcheckDatabaseWithResponse call
+func ParseApiControllersExperimentalControllerClearRootcheckDatabaseResponse(rsp *http.Response) (*ExperimentalControllerClearRootcheckDatabaseResponse, error) {
+	bodyBytes, err := ioutil.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ExperimentalControllerClearRootcheckDatabaseResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest struct {
+			// Embedded struct due to allOf(#/components/schemas/ApiResponse)
+			ApiResponse `yaml:",inline"`
+			// Embedded fields due to inline allOf schema
+			Data *AllItemsResponse `json:"data,omitempty"`
 		}
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
@@ -34025,8 +36607,6 @@ func ParseApiControllersAgentControllerDeleteGroupsResponse(rsp *http.Response) 
 			ApiResponse `yaml:",inline"`
 			// Embedded fields due to inline allOf schema
 			Data *struct {
-				// Embedded struct due to allOf(#/components/schemas/AllItemsResponseGroupIDs)
-				AllItemsResponseGroupIDs `yaml:",inline"`
 				// Embedded struct due to allOf(#/components/schemas/AgentGroupDeleted)
 				AgentGroupDeleted `yaml:",inline"`
 			} `json:"data,omitempty"`
@@ -34963,6 +37543,13 @@ func ParseApiControllersCdbListControllerPutFileResponse(rsp *http.Response) (*C
 		}
 		response.JSON405 = &dest
 
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 413:
+		var dest RequestError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON413 = &dest
+
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
 		var dest RequestError
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
@@ -35312,6 +37899,13 @@ func ParseApiControllersManagerControllerUpdateConfigurationResponse(rsp *http.R
 			return nil, err
 		}
 		response.JSON406 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 413:
+		var dest RequestError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON413 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
 		var dest RequestError
@@ -36105,22 +38699,423 @@ func ParseApiControllersManagerControllerGetStatusResponse(rsp *http.Response) (
 	return response, nil
 }
 
-// ParseApiControllersMitreControllerGetAttackResponse parses an HTTP response from a MitreControllerGetAttackWithResponse call
-func ParseApiControllersMitreControllerGetAttackResponse(rsp *http.Response) (*MitreControllerGetAttackResponse, error) {
+// ParseApiControllersMitreControllerGetGroupsResponse parses an HTTP response from a MitreControllerGetGroupsWithResponse call
+func ParseApiControllersMitreControllerGetGroupsResponse(rsp *http.Response) (*MitreControllerGetGroupsResponse, error) {
 	bodyBytes, err := ioutil.ReadAll(rsp.Body)
 	defer func() { _ = rsp.Body.Close() }()
 	if err != nil {
 		return nil, err
 	}
 
-	response := &MitreControllerGetAttackResponse{
+	response := &MitreControllerGetGroupsResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest ApiResponse
+		var dest struct {
+			// Embedded struct due to allOf(#/components/schemas/ApiResponse)
+			ApiResponse `yaml:",inline"`
+			// Embedded fields due to inline allOf schema
+			Data *AllItemsResponse `json:"data,omitempty"`
+		}
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest RequestError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest RequestError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest ApiError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 405:
+		var dest RequestError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON405 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest RequestError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON429 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseApiControllersMitreControllerGetMetadataResponse parses an HTTP response from a MitreControllerGetMetadataWithResponse call
+func ParseApiControllersMitreControllerGetMetadataResponse(rsp *http.Response) (*MitreControllerGetMetadataResponse, error) {
+	bodyBytes, err := ioutil.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &MitreControllerGetMetadataResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest struct {
+			// Embedded struct due to allOf(#/components/schemas/ApiResponse)
+			ApiResponse `yaml:",inline"`
+			// Embedded fields due to inline allOf schema
+			Data *AllItemsResponse `json:"data,omitempty"`
+		}
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest RequestError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest RequestError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest ApiError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 405:
+		var dest RequestError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON405 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest RequestError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON429 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseApiControllersMitreControllerGetMitigationsResponse parses an HTTP response from a MitreControllerGetMitigationsWithResponse call
+func ParseApiControllersMitreControllerGetMitigationsResponse(rsp *http.Response) (*MitreControllerGetMitigationsResponse, error) {
+	bodyBytes, err := ioutil.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &MitreControllerGetMitigationsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest struct {
+			// Embedded struct due to allOf(#/components/schemas/ApiResponse)
+			ApiResponse `yaml:",inline"`
+			// Embedded fields due to inline allOf schema
+			Data *AllItemsResponse `json:"data,omitempty"`
+		}
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest RequestError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest RequestError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest ApiError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 405:
+		var dest RequestError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON405 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest RequestError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON429 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseApiControllersMitreControllerGetReferencesResponse parses an HTTP response from a MitreControllerGetReferencesWithResponse call
+func ParseApiControllersMitreControllerGetReferencesResponse(rsp *http.Response) (*MitreControllerGetReferencesResponse, error) {
+	bodyBytes, err := ioutil.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &MitreControllerGetReferencesResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest struct {
+			// Embedded struct due to allOf(#/components/schemas/ApiResponse)
+			ApiResponse `yaml:",inline"`
+			// Embedded fields due to inline allOf schema
+			Data *AllItemsResponse `json:"data,omitempty"`
+		}
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest RequestError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest RequestError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest ApiError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 405:
+		var dest RequestError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON405 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest RequestError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON429 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseApiControllersMitreControllerGetSoftwareResponse parses an HTTP response from a MitreControllerGetSoftwareWithResponse call
+func ParseApiControllersMitreControllerGetSoftwareResponse(rsp *http.Response) (*MitreControllerGetSoftwareResponse, error) {
+	bodyBytes, err := ioutil.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &MitreControllerGetSoftwareResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest struct {
+			// Embedded struct due to allOf(#/components/schemas/ApiResponse)
+			ApiResponse `yaml:",inline"`
+			// Embedded fields due to inline allOf schema
+			Data *AllItemsResponse `json:"data,omitempty"`
+		}
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest RequestError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest RequestError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest ApiError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 405:
+		var dest RequestError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON405 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest RequestError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON429 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseApiControllersMitreControllerGetTacticsResponse parses an HTTP response from a MitreControllerGetTacticsWithResponse call
+func ParseApiControllersMitreControllerGetTacticsResponse(rsp *http.Response) (*MitreControllerGetTacticsResponse, error) {
+	bodyBytes, err := ioutil.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &MitreControllerGetTacticsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest struct {
+			// Embedded struct due to allOf(#/components/schemas/ApiResponse)
+			ApiResponse `yaml:",inline"`
+			// Embedded fields due to inline allOf schema
+			Data *AllItemsResponse `json:"data,omitempty"`
+		}
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest RequestError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest RequestError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest ApiError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 405:
+		var dest RequestError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON405 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest RequestError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON429 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseApiControllersMitreControllerGetTechniquesResponse parses an HTTP response from a MitreControllerGetTechniquesWithResponse call
+func ParseApiControllersMitreControllerGetTechniquesResponse(rsp *http.Response) (*MitreControllerGetTechniquesResponse, error) {
+	bodyBytes, err := ioutil.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &MitreControllerGetTechniquesResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest struct {
+			// Embedded struct due to allOf(#/components/schemas/ApiResponse)
+			ApiResponse `yaml:",inline"`
+			// Embedded fields due to inline allOf schema
+			Data *AllItemsResponse `json:"data,omitempty"`
+		}
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -36232,15 +39227,15 @@ func ParseApiControllersOverviewControllerGetOverviewAgentsResponse(rsp *http.Re
 	return response, nil
 }
 
-// ParseApiControllersRootcheckControllerDeleteRootcheckResponse parses an HTTP response from a RootcheckControllerDeleteRootcheckWithResponse call
-func ParseApiControllersRootcheckControllerDeleteRootcheckResponse(rsp *http.Response) (*RootcheckControllerDeleteRootcheckResponse, error) {
+// ParseApiControllersRootcheckControllerPutRootcheckResponse parses an HTTP response from a RootcheckControllerPutRootcheckWithResponse call
+func ParseApiControllersRootcheckControllerPutRootcheckResponse(rsp *http.Response) (*RootcheckControllerPutRootcheckResponse, error) {
 	bodyBytes, err := ioutil.ReadAll(rsp.Body)
 	defer func() { _ = rsp.Body.Close() }()
 	if err != nil {
 		return nil, err
 	}
 
-	response := &RootcheckControllerDeleteRootcheckResponse{
+	response := &RootcheckControllerPutRootcheckResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}
@@ -36298,15 +39293,15 @@ func ParseApiControllersRootcheckControllerDeleteRootcheckResponse(rsp *http.Res
 	return response, nil
 }
 
-// ParseApiControllersRootcheckControllerPutRootcheckResponse parses an HTTP response from a RootcheckControllerPutRootcheckWithResponse call
-func ParseApiControllersRootcheckControllerPutRootcheckResponse(rsp *http.Response) (*RootcheckControllerPutRootcheckResponse, error) {
+// ParseApiControllersRootcheckControllerDeleteRootcheckResponse parses an HTTP response from a RootcheckControllerDeleteRootcheckWithResponse call
+func ParseApiControllersRootcheckControllerDeleteRootcheckResponse(rsp *http.Response) (*RootcheckControllerDeleteRootcheckResponse, error) {
 	bodyBytes, err := ioutil.ReadAll(rsp.Body)
 	defer func() { _ = rsp.Body.Close() }()
 	if err != nil {
 		return nil, err
 	}
 
-	response := &RootcheckControllerPutRootcheckResponse{
+	response := &RootcheckControllerDeleteRootcheckResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}
@@ -36828,6 +39823,13 @@ func ParseApiControllersRuleControllerPutFileResponse(rsp *http.Response) (*Rule
 		}
 		response.JSON406 = &dest
 
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 413:
+		var dest RequestError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON413 = &dest
+
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
 		var dest RequestError
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
@@ -37332,6 +40334,13 @@ func ParseApiControllersSecurityControllerPutSecurityConfigResponse(rsp *http.Re
 			return nil, err
 		}
 		response.JSON406 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 413:
+		var dest RequestError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON413 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
 		var dest RequestError
@@ -38516,6 +41525,13 @@ func ParseApiControllersSecurityControllerUpdateRuleResponse(rsp *http.Response)
 		}
 		response.JSON406 = &dest
 
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 413:
+		var dest RequestError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON413 = &dest
+
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
 		var dest RequestError
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
@@ -38701,6 +41717,13 @@ func ParseApiControllersSecurityControllerRunAsLoginResponse(rsp *http.Response)
 			return nil, err
 		}
 		response.JSON405 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 413:
+		var dest RequestError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON413 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
 		var dest RequestError
@@ -38960,6 +41983,13 @@ func ParseApiControllersSecurityControllerCreateUserResponse(rsp *http.Response)
 			return nil, err
 		}
 		response.JSON406 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 413:
+		var dest RequestError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON413 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
 		var dest RequestError
@@ -39574,7 +42604,7 @@ func ParseApiControllersSyscheckControllerGetLastScanAgentResponse(rsp *http.Res
 			// Embedded struct due to allOf(#/components/schemas/ApiResponse)
 			ApiResponse `yaml:",inline"`
 			// Embedded fields due to inline allOf schema
-			Data *AllItemsResponseSyscheckLastScan `json:"data,omitempty"`
+			Data *AllItemsResponseLastScan `json:"data,omitempty"`
 		}
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
@@ -40256,6 +43286,133 @@ func ParseApiControllersVulnerabilityControllerGetVulnerabilityAgentResponse(rsp
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest  AllItemsResponseVulnerability
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest RequestError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest RequestError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest ApiError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 405:
+		var dest RequestError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON405 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest RequestError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON429 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseApiControllersVulnerabilityControllerGetLastScanAgentResponse parses an HTTP response from a VulnerabilityControllerGetLastScanAgentWithResponse call
+func ParseApiControllersVulnerabilityControllerGetLastScanAgentResponse(rsp *http.Response) (*VulnerabilityControllerGetLastScanAgentResponse, error) {
+	bodyBytes, err := ioutil.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &VulnerabilityControllerGetLastScanAgentResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest struct {
+			// Embedded struct due to allOf(#/components/schemas/ApiResponse)
+			ApiResponse `yaml:",inline"`
+			// Embedded fields due to inline allOf schema
+			Data *AllItemsResponseLastScan `json:"data,omitempty"`
+		}
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest RequestError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest RequestError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest ApiError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 405:
+		var dest RequestError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON405 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest RequestError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON429 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseApiControllersVulnerabilityControllerGetVulnerabilitiesFieldSummaryResponse parses an HTTP response from a VulnerabilityControllerGetVulnerabilitiesFieldSummaryWithResponse call
+func ParseApiControllersVulnerabilityControllerGetVulnerabilitiesFieldSummaryResponse(rsp *http.Response) (*VulnerabilityControllerGetVulnerabilitiesFieldSummaryResponse, error) {
+	bodyBytes, err := ioutil.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &VulnerabilityControllerGetVulnerabilitiesFieldSummaryResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest ApiResponse
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
@@ -40301,3 +43458,4 @@ func ParseApiControllersVulnerabilityControllerGetVulnerabilityAgentResponse(rsp
 
 	return response, nil
 }
+

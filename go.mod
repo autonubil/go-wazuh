@@ -1,14 +1,11 @@
 module github.com/autonubil/go-wazuh
 
 require (
-	github.com/StackExchange/wmi v1.2.1 // indirect
 	github.com/coreos/go-semver v0.3.0
 	github.com/deepmap/oapi-codegen v1.10.1
 	github.com/google/martian v2.1.0+incompatible
 	github.com/joncrlsn/dque v0.0.0-20211108142734-c2ef48c5192a
-	github.com/kr/text v0.2.0 // indirect
 	github.com/matishsiao/goInfo v0.0.0-20210923090445-da2e3fa8d45f
-	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
 	github.com/shirou/gopsutil v3.21.11+incompatible
 	github.com/tklauser/go-sysconf v0.3.10 // indirect
 	go.uber.org/ratelimit v0.2.0
@@ -34,8 +31,6 @@ require (
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.8.0 // indirect
 	golang.org/x/sys v0.0.0-20220503163025-988cb79eb6c6 // indirect
-	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
-	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
 
 go 1.17

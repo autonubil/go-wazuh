@@ -338,6 +338,22 @@ const (
 	Wmodules Configuration = "wmodules"
 )
 
+// Defines values for CveStatus.
+const (
+	Obsolete CveStatus = "obsolete"
+
+	Pending CveStatus = "pending"
+
+	Valid CveStatus = "valid"
+)
+
+// Defines values for CveType.
+const (
+	Os CveType = "os"
+
+	Package CveType = "package"
+)
+
 // Defines values for Filetype.
 const (
 	File Filetype = "file"
@@ -591,6 +607,39 @@ const (
 	WazuhSyscheckd Tag = "wazuh-syscheckd"
 )
 
+// Defines values for VulnerabilityField.
+const (
+	Architecture VulnerabilityField = "architecture"
+
+	Condition VulnerabilityField = "condition"
+
+	Cve VulnerabilityField = "cve"
+
+	Cvss2Score VulnerabilityField = "cvss2_score"
+
+	Cvss3Score VulnerabilityField = "cvss3_score"
+
+	DetectionTime VulnerabilityField = "detection_time"
+
+	ExternalReferences VulnerabilityField = "external_references"
+
+	Name VulnerabilityField = "name"
+
+	Published VulnerabilityField = "published"
+
+	Severity VulnerabilityField = "severity"
+
+	Status VulnerabilityField = "status"
+
+	Title VulnerabilityField = "title"
+
+	Type VulnerabilityField = "type"
+
+	Updated VulnerabilityField = "updated"
+
+	Version VulnerabilityField = "version"
+)
+
 // ActiveResponseBody defines model for ActiveResponseBody.
 type ActiveResponseBody struct {
 	Alert *struct {
@@ -645,21 +694,37 @@ type AgentGroup struct {
 
 // AgentGroupDeleted defines model for AgentGroupDeleted.
 type AgentGroupDeleted struct {
-	// List of agents which belonged to the group and might have been reassigned to group default
-	AffectedAgents []AgentID `json:"affected_agents"`
+	// List of removed groups with the agents which belonged to it and might have been reassigned to group default
+	AffectedItems []GroupDelete `json:"affected_items"`
 }
 
 // Agent ID
 type AgentID string
 
 // Agent ID|all
-type AgentIDDELETE string
+type AgentIDListAll string
 
 // AgentIdKey defines model for AgentIdKey.
 type AgentIdKey struct {
 	// Agent ID
 	Id  AgentID `json:"id"`
 	Key string  `json:"key"`
+}
+
+// Remove the old agent with the same name, ID or IP if the configuration is matched
+type AgentInsertForce struct {
+	// Time the agent must has been registered to force the insertion. Time in seconds, ‘[n_days]d’, ‘[n_hours]h’, ‘[n_minutes]m’ or ‘[n_seconds]s’. For example, `7d`, `10s` and `10` are valid values. If no time unit is specified, seconds are used
+	AfterRegistrationTime *string `json:"after_registration_time,omitempty"`
+	DisconnectedTime      *struct {
+		// Enable force disconnected_time option
+		Enabled *bool `json:"enabled,omitempty"`
+
+		// Time the agent must has been disconnected to force the insertion. Time in seconds, ‘[n_days]d’, ‘[n_hours]h’, ‘[n_minutes]m’ or ‘[n_seconds]s’. For example, `7d`, `10s` and `10` are valid values. If no time unit is specified, seconds are used
+		Value *string `json:"value,omitempty"`
+	} `json:"disconnected_time,omitempty"`
+
+	// Enable force option
+	Enabled *bool `json:"enabled,omitempty"`
 }
 
 // AgentSimple defines model for AgentSimple.
@@ -815,6 +880,15 @@ type AllItemsResponseGroups struct {
 	AllItemsResponse `yaml:",inline"`
 }
 
+// AllItemsResponseLastScan defines model for AllItemsResponseLastScan.
+type AllItemsResponseLastScan struct {
+	// Embedded struct due to allOf(#/components/schemas/AllItemsResponse)
+	AllItemsResponse `yaml:",inline"`
+	// Embedded fields due to inline allOf schema
+	// Items that successfully applied the API call action
+	AffectedItems []LastScan `json:"affected_items"`
+}
+
 // AllItemsResponseLists defines model for AllItemsResponseLists.
 type AllItemsResponseLists struct {
 	// Embedded struct due to allOf(#/components/schemas/AllItemsResponse)
@@ -903,15 +977,6 @@ type AllItemsResponseSCADatabase struct {
 	// Embedded fields due to inline allOf schema
 	// Items that successfully applied the API call action
 	AffectedItems []SCADatabase `json:"affected_items"`
-}
-
-// AllItemsResponseSyscheckLastScan defines model for AllItemsResponseSyscheckLastScan.
-type AllItemsResponseSyscheckLastScan struct {
-	// Embedded struct due to allOf(#/components/schemas/AllItemsResponse)
-	AllItemsResponse `yaml:",inline"`
-	// Embedded fields due to inline allOf schema
-	// Items that successfully applied the API call action
-	AffectedItems []LastScan `json:"affected_items"`
 }
 
 // AllItemsResponseSyscheckResult defines model for AllItemsResponseSyscheckResult.
@@ -1257,11 +1322,16 @@ type GroupConfiguration struct {
 	} `json:"filters"`
 }
 
+// Deleted group with a list of agents that were assigned to it
+type GroupDelete struct {
+	AdditionalProperties map[string][]interface{} `json:"-"`
+}
+
 // Group name
 type GroupID string
 
 // Group name|all
-type GroupIDDELETE string
+type GroupIDListAll string
 
 // ItemAffected defines model for ItemAffected.
 type ItemAffected struct {
@@ -1311,6 +1381,24 @@ type LogtestRequest struct {
 	// Token for the logtest session
 	Token *string `json:"token,omitempty"`
 }
+
+// MITRE group ID
+type MitreGroupId string
+
+// MITRE mitigation ID
+type MitreMitigationId string
+
+// MITRE Reference ID
+type MitreReferenceId string
+
+// MITRE software ID
+type MitreSoftwareId string
+
+// MITRE tactic ID
+type MitreTacticId string
+
+// MITRE technique ID
+type MitreTechniqueId string
 
 // Information related to received packets in the network interface
 type NetworkInterfaceReceivedPackets struct {
@@ -1376,12 +1464,11 @@ type NodeHealthcheck struct {
 					Extra      *int32 `json:"extra,omitempty"`
 					ExtraValid *int32 `json:"extra_valid,omitempty"`
 					Missing    *int32 `json:"missing,omitempty"`
-					Shared     *bool32 `json:"shared,omitempty"`
+					Shared     *int32 `json:"shared,omitempty"`
 				} `json:"total_files,omitempty"`
 			} `json:"last_sync_integrity,omitempty"`
-			SyncAgentinfoFree  *bool `json:"sync_agentinfo_free,omitempty"`
-			SyncExtravalidFree *bool `json:"sync_extravalid_free,omitempty"`
-			SyncIntegrityFree  *bool `json:"sync_integrity_free,omitempty"`
+			SyncAgentInfoFree *bool `json:"sync_agent_info_free,omitempty"`
+			SyncIntegrityFree *bool `json:"sync_integrity_free,omitempty"`
 		} `json:"status,omitempty"`
 	} `json:"name,omitempty"`
 }
@@ -1719,7 +1806,7 @@ type SecurityRuleIdDELETE string
 // SimpleApiError defines model for SimpleApiError.
 type SimpleApiError struct {
 	Error SimpleApiError_Error `json:"error"`
-	Id    *[]interface{}       `json:"id,omitempty"`
+	Ids    []string       `json:"id,omitempty"`
 }
 
 // SimpleApiError_Error defines model for SimpleApiError.Error.
@@ -2188,7 +2275,7 @@ type WazuhAnalysisdStats struct {
 	// Same as `alerts_written` but focusing in firewall alerts
 	FirewallWritten *float32 `json:"firewall_written,omitempty"`
 
-	// Same as `alerts_written` but focusing in [FTS alerts] (https://documentation.wazuh.com/4.2/user-manual/ruleset/ruleset-xml-syntax/decoders.html?highlight=fts #fts)
+	// Same as `alerts_written` but focusing in [FTS alerts] (https://documentation.wazuh.com/4.3/user-manual/ruleset/ruleset-xml-syntax/decoders.html?highlight=fts #fts)
 	FtsWritten *float32 `json:"fts_written,omitempty"`
 
 	// Hostinfo events decoded per second
@@ -2433,14 +2520,17 @@ type WazuhRemotedStats struct {
 	// Number of events sent to analysisd during the last five seconds
 	EvtCount *float32 `json:"evt_count,omitempty"`
 
-	// Number of messages sent to the agents during the last five seconds
-	MsgSent *float32 `json:"msg_sent,omitempty"`
-
 	// Usage of the queue to storage events from agents
 	QueueSize *float32 `json:"queue_size,omitempty"`
 
+	// Number of messages queued to be sent to agents during the last five seconds
+	QueuedMsgs *float32 `json:"queued_msgs,omitempty"`
+
 	// Number of received bytes from all agents during the last five seconds
 	RecvBytes *float32 `json:"recv_bytes,omitempty"`
+
+	// Number of sent bytes to the agents during the last five seconds
+	SentBytes *float32 `json:"sent_bytes,omitempty"`
 
 	// Number of TCP active sessions during the last five seconds
 	TcpSessions *float32 `json:"tcp_sessions,omitempty"`
@@ -2478,20 +2568,14 @@ type AgentName string
 // AgentsList defines model for agents_list.
 type AgentsList []AgentID
 
-// AgentsListDelete defines model for agents_list_delete.
-type AgentsListDelete []AgentIDDELETE
-
-// AgentsListUpgrade defines model for agents_list_upgrade.
-type AgentsListUpgrade []AgentID
+// AgentsListAll defines model for agents_list_all.
+type AgentsListAll []AgentIDListAll
 
 // AllowRunAs defines model for allow_run_as.
 type AllowRunAs bool
 
 // Architecture defines model for architecture.
 type Architecture string
-
-// AttackId defines model for attack_id.
-type AttackId string
 
 // Benchmark defines model for benchmark.
 type Benchmark string
@@ -2528,6 +2612,15 @@ type CpuName string
 
 // Cve defines model for cve.
 type Cve string
+
+// CveSeverity defines model for cve_severity.
+type CveSeverity string
+
+// CveStatus defines model for cve_status.
+type CveStatus string
+
+// CveType defines model for cve_type.
+type CveType string
 
 // CveVersion defines model for cve_version.
 type CveVersion string
@@ -2622,8 +2715,8 @@ type GroupIdQuery GroupID
 // GroupsList defines model for groups_list.
 type GroupsList []GroupID
 
-// GroupsListDelete defines model for groups_list_delete.
-type GroupsListDelete []GroupIDDELETE
+// GroupsListAll defines model for groups_list_all.
+type GroupsListAll []GroupIDListAll
 
 // Hash defines model for hash.
 type Hash string
@@ -2678,6 +2771,24 @@ type Md5 string
 
 // Mitre defines model for mitre.
 type Mitre string
+
+// MitreGroupIds defines model for mitre_group_ids.
+type MitreGroupIds []MitreGroupId
+
+// MitreMitigationIds defines model for mitre_mitigation_ids.
+type MitreMitigationIds []MitreMitigationId
+
+// MitreReferenceIds defines model for mitre_reference_ids.
+type MitreReferenceIds []MitreReferenceId
+
+// MitreSoftwareIds defines model for mitre_software_ids.
+type MitreSoftwareIds []MitreSoftwareId
+
+// MitreTacticIds defines model for mitre_tactic_ids.
+type MitreTacticIds []MitreTacticId
+
+// MitreTechniqueIds defines model for mitre_technique_ids.
+type MitreTechniqueIds []MitreTechniqueId
 
 // Module defines model for module.
 type Module string
@@ -2748,14 +2859,8 @@ type PciDss string
 // Pgrp defines model for pgrp.
 type Pgrp string
 
-// PhaseName defines model for phase_name.
-type PhaseName string
-
 // Pid defines model for pid.
 type Pid string
-
-// PlatformName defines model for platform_name.
-type PlatformName string
 
 // Policy ID
 type PolicyIdRbac PolicyId
@@ -2816,9 +2921,6 @@ type Rationale string
 
 // Raw defines model for raw.
 type Raw bool
-
-// RawConf defines model for raw_conf.
-type RawConf bool
 
 // Reason defines model for reason.
 type Reason string
@@ -3012,6 +3114,9 @@ type Vendor string
 // Version defines model for version.
 type Version string
 
+// VulnerabilityField defines model for vulnerability_field.
+type VulnerabilityField string
+
 // WaitForComplete defines model for wait_for_complete.
 type WaitForComplete bool
 
@@ -3051,17 +3156,17 @@ type UnauthorizedResponse RequestError
 // WrongContentTypeResponse defines model for WrongContentTypeResponse.
 type WrongContentTypeResponse RequestError
 
-// ApiControllersDefaultControllerDefaultInfoParams defines parameters for ApiControllersDefaultControllerDefaultInfo.
-type ApiControllersDefaultControllerDefaultInfoParams struct {
+// DefaultControllerDefaultInfoParams defines parameters for DefaultControllerDefaultInfo.
+type DefaultControllerDefaultInfoParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 }
 
-// ApiControllersActiveResponseControllerRunCommandJSONBody defines parameters for ApiControllersActiveResponseControllerRunCommand.
-type ApiControllersActiveResponseControllerRunCommandJSONBody ActiveResponseBody
+// ActiveResponseControllerRunCommandJSONBody defines parameters for ActiveResponseControllerRunCommand.
+type ActiveResponseControllerRunCommandJSONBody ActiveResponseBody
 
-// ApiControllersActiveResponseControllerRunCommandParams defines parameters for ApiControllersActiveResponseControllerRunCommand.
-type ApiControllersActiveResponseControllerRunCommandParams struct {
+// ActiveResponseControllerRunCommandParams defines parameters for ActiveResponseControllerRunCommand.
+type ActiveResponseControllerRunCommandParams struct {
 	// List of agent IDs (separated by comma), all agents selected by default if not specified
 	AgentsList *AgentsList `json:"agents_list,omitempty"`
 
@@ -3072,8 +3177,8 @@ type ApiControllersActiveResponseControllerRunCommandParams struct {
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 }
 
-// ApiControllersAgentControllerDeleteAgentsParams defines parameters for ApiControllersAgentControllerDeleteAgents.
-type ApiControllersAgentControllerDeleteAgentsParams struct {
+// AgentControllerDeleteAgentsParams defines parameters for AgentControllerDeleteAgents.
+type AgentControllerDeleteAgentsParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -3081,7 +3186,7 @@ type ApiControllersAgentControllerDeleteAgentsParams struct {
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 
 	// List of agent IDs (separated by comma), use the keyword `all` to select all agents
-	AgentsList AgentsListDelete `json:"agents_list"`
+	AgentsList AgentsListAll `json:"agents_list"`
 
 	// Permanently delete an agent from the key store
 	Purge *Purge `json:"purge,omitempty"`
@@ -3126,11 +3231,11 @@ type ApiControllersAgentControllerDeleteAgentsParams struct {
 	RegisterIP *RegisterIP `json:"registerIP,omitempty"`
 }
 
-// ApiControllersAgentControllerDeleteAgentsParamsStatus defines parameters for ApiControllersAgentControllerDeleteAgents.
-type ApiControllersAgentControllerDeleteAgentsParamsStatus string
+// AgentControllerDeleteAgentsParamsStatus defines parameters for AgentControllerDeleteAgents.
+type AgentControllerDeleteAgentsParamsStatus string
 
-// ApiControllersAgentControllerGetAgentsParams defines parameters for ApiControllersAgentControllerGetAgents.
-type ApiControllersAgentControllerGetAgentsParams struct {
+// AgentControllerGetAgentsParams defines parameters for AgentControllerGetAgents.
+type AgentControllerGetAgentsParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -3152,7 +3257,7 @@ type ApiControllersAgentControllerGetAgentsParams struct {
 	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
 	Sort *Sort `json:"sort,omitempty"`
 
-	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beggining
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
 
 	// Filter by agent status (use commas to enter multiple statuses)
@@ -3195,14 +3300,11 @@ type ApiControllersAgentControllerGetAgentsParams struct {
 	RegisterIP *RegisterIP `json:"registerIP,omitempty"`
 }
 
-// ApiControllersAgentControllerGetAgentsParamsStatus defines parameters for ApiControllersAgentControllerGetAgents.
-type ApiControllersAgentControllerGetAgentsParamsStatus string
+// AgentControllerGetAgentsParamsStatus defines parameters for AgentControllerGetAgents.
+type AgentControllerGetAgentsParamsStatus string
 
-// ApiControllersAgentControllerAddAgentJSONBody defines parameters for ApiControllersAgentControllerAddAgent.
-type ApiControllersAgentControllerAddAgentJSONBody struct {
-	// Remove the old agent with the same IP if disconnected since <force_time> seconds
-	ForceTime *int32 `json:"force_time,omitempty"`
-
+// AgentControllerAddAgentJSONBody defines parameters for AgentControllerAddAgent.
+type AgentControllerAddAgentJSONBody struct {
 	// If this is not included, the API will get the IP automatically. Allowed values: IP, IP/NET, ANY
 	Ip *string `json:"ip,omitempty"`
 
@@ -3210,8 +3312,8 @@ type ApiControllersAgentControllerAddAgentJSONBody struct {
 	Name string `json:"name"`
 }
 
-// ApiControllersAgentControllerAddAgentParams defines parameters for ApiControllersAgentControllerAddAgent.
-type ApiControllersAgentControllerAddAgentParams struct {
+// AgentControllerAddAgentParams defines parameters for AgentControllerAddAgent.
+type AgentControllerAddAgentParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -3219,8 +3321,8 @@ type ApiControllersAgentControllerAddAgentParams struct {
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 }
 
-// ApiControllersAgentControllerDeleteMultipleAgentSingleGroupParams defines parameters for ApiControllersAgentControllerDeleteMultipleAgentSingleGroup.
-type ApiControllersAgentControllerDeleteMultipleAgentSingleGroupParams struct {
+// AgentControllerDeleteMultipleAgentSingleGroupParams defines parameters for AgentControllerDeleteMultipleAgentSingleGroup.
+type AgentControllerDeleteMultipleAgentSingleGroupParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -3228,14 +3330,14 @@ type ApiControllersAgentControllerDeleteMultipleAgentSingleGroupParams struct {
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 
 	// List of agent IDs (separated by comma), use the keyword `all` to select all agents
-	AgentsList AgentsListDelete `json:"agents_list"`
+	AgentsList AgentsListAll `json:"agents_list"`
 
 	// Group ID. (Name of the group)
 	GroupId GroupIdQuery `json:"group_id"`
 }
 
-// ApiControllersAgentControllerPutMultipleAgentSingleGroupParams defines parameters for ApiControllersAgentControllerPutMultipleAgentSingleGroup.
-type ApiControllersAgentControllerPutMultipleAgentSingleGroupParams struct {
+// AgentControllerPutMultipleAgentSingleGroupParams defines parameters for AgentControllerPutMultipleAgentSingleGroup.
+type AgentControllerPutMultipleAgentSingleGroupParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -3248,12 +3350,12 @@ type ApiControllersAgentControllerPutMultipleAgentSingleGroupParams struct {
 	// Group ID. (Name of the group)
 	GroupId GroupIdQuery `json:"group_id"`
 
-	// Whether to append the new group to current agent's multigroup or replace it
+	// Removes the agent from all groups to which it belongs and assigns it to the specified group
 	ForceSingleGroup *ForceSingleGroup `json:"force_single_group,omitempty"`
 }
 
-// ApiControllersAgentControllerRestartAgentsByGroupParams defines parameters for ApiControllersAgentControllerRestartAgentsByGroup.
-type ApiControllersAgentControllerRestartAgentsByGroupParams struct {
+// AgentControllerRestartAgentsByGroupParams defines parameters for AgentControllerRestartAgentsByGroup.
+type AgentControllerRestartAgentsByGroupParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -3261,10 +3363,10 @@ type ApiControllersAgentControllerRestartAgentsByGroupParams struct {
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 }
 
-// ApiControllersAgentControllerInsertAgentJSONBody defines parameters for ApiControllersAgentControllerInsertAgent.
-type ApiControllersAgentControllerInsertAgentJSONBody struct {
-	// Remove the old agent with the same IP if disconnected for <force_time> seconds
-	ForceTime *int32 `json:"force_time,omitempty"`
+// AgentControllerInsertAgentJSONBody defines parameters for AgentControllerInsertAgent.
+type AgentControllerInsertAgentJSONBody struct {
+	// Remove the old agent with the same name, ID or IP if the configuration is matched
+	Force *AgentInsertForce `json:"force,omitempty"`
 
 	// Agent ID
 	Id *AgentID `json:"id,omitempty"`
@@ -3279,8 +3381,8 @@ type ApiControllersAgentControllerInsertAgentJSONBody struct {
 	Name string `json:"name"`
 }
 
-// ApiControllersAgentControllerInsertAgentParams defines parameters for ApiControllersAgentControllerInsertAgent.
-type ApiControllersAgentControllerInsertAgentParams struct {
+// AgentControllerInsertAgentParams defines parameters for AgentControllerInsertAgent.
+type AgentControllerInsertAgentParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -3288,20 +3390,20 @@ type ApiControllersAgentControllerInsertAgentParams struct {
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 }
 
-// ApiControllersAgentControllerPostNewAgentParams defines parameters for ApiControllersAgentControllerPostNewAgent.
-type ApiControllersAgentControllerPostNewAgentParams struct {
+// AgentControllerPostNewAgentParams defines parameters for AgentControllerPostNewAgent.
+type AgentControllerPostNewAgentParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
 	// Disable timeout response
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 
-	// Agent name
+	// Agent name. The special characters allowed are: '-','_','.'
 	AgentName AgentName `json:"agent_name"`
 }
 
-// ApiControllersAgentControllerGetAgentNoGroupParams defines parameters for ApiControllersAgentControllerGetAgentNoGroup.
-type ApiControllersAgentControllerGetAgentNoGroupParams struct {
+// AgentControllerGetAgentNoGroupParams defines parameters for AgentControllerGetAgentNoGroup.
+type AgentControllerGetAgentNoGroupParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -3320,15 +3422,15 @@ type ApiControllersAgentControllerGetAgentNoGroupParams struct {
 	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
 	Sort *Sort `json:"sort,omitempty"`
 
-	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beggining
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
 
 	// Query to filter results by. For example q=&quot;status=active&quot;
 	Q *Query `json:"q,omitempty"`
 }
 
-// ApiControllersAgentControllerRestartAgentsByNodeParams defines parameters for ApiControllersAgentControllerRestartAgentsByNode.
-type ApiControllersAgentControllerRestartAgentsByNodeParams struct {
+// AgentControllerRestartAgentsByNodeParams defines parameters for AgentControllerRestartAgentsByNode.
+type AgentControllerRestartAgentsByNodeParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -3336,8 +3438,8 @@ type ApiControllersAgentControllerRestartAgentsByNodeParams struct {
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 }
 
-// ApiControllersAgentControllerGetAgentOutdatedParams defines parameters for ApiControllersAgentControllerGetAgentOutdated.
-type ApiControllersAgentControllerGetAgentOutdatedParams struct {
+// AgentControllerGetAgentOutdatedParams defines parameters for AgentControllerGetAgentOutdated.
+type AgentControllerGetAgentOutdatedParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -3353,15 +3455,15 @@ type ApiControllersAgentControllerGetAgentOutdatedParams struct {
 	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
 	Sort *Sort `json:"sort,omitempty"`
 
-	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beggining
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
 
 	// Query to filter results by. For example q=&quot;status=active&quot;
 	Q *Query `json:"q,omitempty"`
 }
 
-// ApiControllersAgentControllerRestartAgentsParams defines parameters for ApiControllersAgentControllerRestartAgents.
-type ApiControllersAgentControllerRestartAgentsParams struct {
+// AgentControllerReconnectAgentsParams defines parameters for AgentControllerReconnectAgents.
+type AgentControllerReconnectAgentsParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -3372,8 +3474,20 @@ type ApiControllersAgentControllerRestartAgentsParams struct {
 	AgentsList *AgentsList `json:"agents_list,omitempty"`
 }
 
-// ApiControllersAgentControllerGetAgentFieldsParams defines parameters for ApiControllersAgentControllerGetAgentFields.
-type ApiControllersAgentControllerGetAgentFieldsParams struct {
+// AgentControllerRestartAgentsParams defines parameters for AgentControllerRestartAgents.
+type AgentControllerRestartAgentsParams struct {
+	// Show results in human-readable format
+	Pretty *Pretty `json:"pretty,omitempty"`
+
+	// Disable timeout response
+	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
+
+	// List of agent IDs (separated by comma), all agents selected by default if not specified
+	AgentsList *AgentsList `json:"agents_list,omitempty"`
+}
+
+// AgentControllerGetAgentFieldsParams defines parameters for AgentControllerGetAgentFields.
+type AgentControllerGetAgentFieldsParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -3392,18 +3506,15 @@ type ApiControllersAgentControllerGetAgentFieldsParams struct {
 	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
 	Sort *Sort `json:"sort,omitempty"`
 
-	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beggining
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
-
-	// Select which fields to return (separated by comma). Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
-	Select *Select `json:"select,omitempty"`
 
 	// Query to filter results by. For example q=&quot;status=active&quot;
 	Q *Query `json:"q,omitempty"`
 }
 
-// ApiControllersAgentControllerGetAgentSummaryOsParams defines parameters for ApiControllersAgentControllerGetAgentSummaryOs.
-type ApiControllersAgentControllerGetAgentSummaryOsParams struct {
+// AgentControllerGetAgentSummaryOsParams defines parameters for AgentControllerGetAgentSummaryOs.
+type AgentControllerGetAgentSummaryOsParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -3411,8 +3522,8 @@ type ApiControllersAgentControllerGetAgentSummaryOsParams struct {
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 }
 
-// ApiControllersAgentControllerGetAgentSummaryStatusParams defines parameters for ApiControllersAgentControllerGetAgentSummaryStatus.
-type ApiControllersAgentControllerGetAgentSummaryStatusParams struct {
+// AgentControllerGetAgentSummaryStatusParams defines parameters for AgentControllerGetAgentSummaryStatus.
+type AgentControllerGetAgentSummaryStatusParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -3420,50 +3531,116 @@ type ApiControllersAgentControllerGetAgentSummaryStatusParams struct {
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 }
 
-// ApiControllersAgentControllerPutUpgradeAgentsParams defines parameters for ApiControllersAgentControllerPutUpgradeAgents.
-type ApiControllersAgentControllerPutUpgradeAgentsParams struct {
+// AgentControllerPutUpgradeAgentsParams defines parameters for AgentControllerPutUpgradeAgents.
+type AgentControllerPutUpgradeAgentsParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
 	// Disable timeout response
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 
-	// List of agent IDs (separated by comma), select a list of agents with size less or equal than 100
-	AgentsList AgentsListUpgrade `json:"agents_list"`
+	// List of agent IDs (separated by comma), use the keyword `all` to select all agents
+	AgentsList AgentsListAll `json:"agents_list"`
 
 	// WPK repository
 	WpkRepo *WpkRepo `json:"wpk_repo,omitempty"`
 
 	// Wazuh version to upgrade to
-	Version *UpgradeVersion `json:"version,omitempty"`
+	UpgradeVersion *UpgradeVersion `json:"upgrade_version,omitempty"`
 
 	// Use http protocol. If it's false use https. By default the value is set to false
 	UseHttp *UseHttp `json:"use_http,omitempty"`
 
 	// Force upgrade
 	Force *Force `json:"force,omitempty"`
+
+	// Query to filter results by. For example q=&quot;status=active&quot;
+	Q *Query `json:"q,omitempty"`
+
+	// Filter by OS platform
+	OsPlatform *OsPlatform `json:"os.platform,omitempty"`
+
+	// Filter by OS version
+	OsVersion *OsVersion `json:"os.version,omitempty"`
+
+	// Filter by OS name
+	OsName *OsName `json:"os.name,omitempty"`
+
+	// Filter by manager hostname where agents are connected to
+	Manager *ManagerHost `json:"manager,omitempty"`
+
+	// Filter by agents version
+	Version *Version `json:"version,omitempty"`
+
+	// Filter by group of agents
+	Group *AgentGroup `json:"group,omitempty"`
+
+	// Filter by node name
+	NodeName *NodeName `json:"node_name,omitempty"`
+
+	// Filter by name
+	Name *Name `json:"name,omitempty"`
+
+	// Filter by the IP used by the agent to communicate with the manager. If it's not available, it will have the same value as registerIP
+	Ip *Ip `json:"ip,omitempty"`
+
+	// Filter by the IP used when registering the agent
+	RegisterIP *RegisterIP `json:"registerIP,omitempty"`
 }
 
-// ApiControllersAgentControllerPutUpgradeCustomAgentsParams defines parameters for ApiControllersAgentControllerPutUpgradeCustomAgents.
-type ApiControllersAgentControllerPutUpgradeCustomAgentsParams struct {
+// AgentControllerPutUpgradeCustomAgentsParams defines parameters for AgentControllerPutUpgradeCustomAgents.
+type AgentControllerPutUpgradeCustomAgentsParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
 	// Disable timeout response
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 
-	// List of agent IDs (separated by comma), select a list of agents with size less or equal than 100
-	AgentsList AgentsListUpgrade `json:"agents_list"`
+	// List of agent IDs (separated by comma), use the keyword `all` to select all agents
+	AgentsList AgentsListAll `json:"agents_list"`
 
 	// Full path to the WPK file. The file must be on a folder on the Wazuh's installation directory (by default, <code>/var/ossec</code>)
 	FilePath FilePath `json:"file_path"`
 
 	// Installation script. Default is <code>upgrade.sh</code> or <code>upgrade.bat</code> for windows agents
 	Installer *Installer `json:"installer,omitempty"`
+
+	// Query to filter results by. For example q=&quot;status=active&quot;
+	Q *Query `json:"q,omitempty"`
+
+	// Filter by OS platform
+	OsPlatform *OsPlatform `json:"os.platform,omitempty"`
+
+	// Filter by OS version
+	OsVersion *OsVersion `json:"os.version,omitempty"`
+
+	// Filter by OS name
+	OsName *OsName `json:"os.name,omitempty"`
+
+	// Filter by manager hostname where agents are connected to
+	Manager *ManagerHost `json:"manager,omitempty"`
+
+	// Filter by agents version
+	Version *Version `json:"version,omitempty"`
+
+	// Filter by group of agents
+	Group *AgentGroup `json:"group,omitempty"`
+
+	// Filter by node name
+	NodeName *NodeName `json:"node_name,omitempty"`
+
+	// Filter by name
+	Name *Name `json:"name,omitempty"`
+
+	// Filter by the IP used by the agent to communicate with the manager. If it's not available, it will have the same value as registerIP
+	Ip *Ip `json:"ip,omitempty"`
+
+	// Filter by the IP used when registering the agent
+	RegisterIP *RegisterIP `json:"registerIP,omitempty"`
 }
 
-// ApiControllersAgentControllerGetAgentUpgradeParams defines parameters for ApiControllersAgentControllerGetAgentUpgrade.
-type ApiControllersAgentControllerGetAgentUpgradeParams struct {
+// AgentControllerGetAgentUpgradeParams defines parameters for AgentControllerGetAgentUpgrade.
+type AgentControllerGetAgentUpgradeParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -3472,10 +3649,43 @@ type ApiControllersAgentControllerGetAgentUpgradeParams struct {
 
 	// List of agent IDs (separated by comma), all agents selected by default if not specified
 	AgentsList *AgentsList `json:"agents_list,omitempty"`
+
+	// Query to filter results by. For example q=&quot;status=active&quot;
+	Q *Query `json:"q,omitempty"`
+
+	// Filter by OS platform
+	OsPlatform *OsPlatform `json:"os.platform,omitempty"`
+
+	// Filter by OS version
+	OsVersion *OsVersion `json:"os.version,omitempty"`
+
+	// Filter by OS name
+	OsName *OsName `json:"os.name,omitempty"`
+
+	// Filter by manager hostname where agents are connected to
+	Manager *ManagerHost `json:"manager,omitempty"`
+
+	// Filter by agents version
+	Version *Version `json:"version,omitempty"`
+
+	// Filter by group of agents
+	Group *AgentGroup `json:"group,omitempty"`
+
+	// Filter by node name
+	NodeName *NodeName `json:"node_name,omitempty"`
+
+	// Filter by name
+	Name *Name `json:"name,omitempty"`
+
+	// Filter by the IP used by the agent to communicate with the manager. If it's not available, it will have the same value as registerIP
+	Ip *Ip `json:"ip,omitempty"`
+
+	// Filter by the IP used when registering the agent
+	RegisterIP *RegisterIP `json:"registerIP,omitempty"`
 }
 
-// ApiControllersAgentControllerGetAgentConfigParams defines parameters for ApiControllersAgentControllerGetAgentConfig.
-type ApiControllersAgentControllerGetAgentConfigParams struct {
+// AgentControllerGetAgentConfigParams defines parameters for AgentControllerGetAgentConfig.
+type AgentControllerGetAgentConfigParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -3483,14 +3693,14 @@ type ApiControllersAgentControllerGetAgentConfigParams struct {
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 }
 
-// ApiControllersAgentControllerGetAgentConfigParamsComponent defines parameters for ApiControllersAgentControllerGetAgentConfig.
-type ApiControllersAgentControllerGetAgentConfigParamsComponent string
+// AgentControllerGetAgentConfigParamsComponent defines parameters for AgentControllerGetAgentConfig.
+type AgentControllerGetAgentConfigParamsComponent string
 
-// ApiControllersAgentControllerGetAgentConfigParamsConfiguration defines parameters for ApiControllersAgentControllerGetAgentConfig.
-type ApiControllersAgentControllerGetAgentConfigParamsConfiguration string
+// AgentControllerGetAgentConfigParamsConfiguration defines parameters for AgentControllerGetAgentConfig.
+type AgentControllerGetAgentConfigParamsConfiguration string
 
-// ApiControllersAgentControllerDeleteSingleAgentMultipleGroupsParams defines parameters for ApiControllersAgentControllerDeleteSingleAgentMultipleGroups.
-type ApiControllersAgentControllerDeleteSingleAgentMultipleGroupsParams struct {
+// AgentControllerDeleteSingleAgentMultipleGroupsParams defines parameters for AgentControllerDeleteSingleAgentMultipleGroups.
+type AgentControllerDeleteSingleAgentMultipleGroupsParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -3501,8 +3711,8 @@ type ApiControllersAgentControllerDeleteSingleAgentMultipleGroupsParams struct {
 	GroupsList *GroupsList `json:"groups_list,omitempty"`
 }
 
-// ApiControllersAgentControllerGetSyncAgentParams defines parameters for ApiControllersAgentControllerGetSyncAgent.
-type ApiControllersAgentControllerGetSyncAgentParams struct {
+// AgentControllerGetSyncAgentParams defines parameters for AgentControllerGetSyncAgent.
+type AgentControllerGetSyncAgentParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -3510,8 +3720,8 @@ type ApiControllersAgentControllerGetSyncAgentParams struct {
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 }
 
-// ApiControllersAgentControllerDeleteSingleAgentSingleGroupParams defines parameters for ApiControllersAgentControllerDeleteSingleAgentSingleGroup.
-type ApiControllersAgentControllerDeleteSingleAgentSingleGroupParams struct {
+// AgentControllerDeleteSingleAgentSingleGroupParams defines parameters for AgentControllerDeleteSingleAgentSingleGroup.
+type AgentControllerDeleteSingleAgentSingleGroupParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -3519,20 +3729,20 @@ type ApiControllersAgentControllerDeleteSingleAgentSingleGroupParams struct {
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 }
 
-// ApiControllersAgentControllerPutAgentSingleGroupParams defines parameters for ApiControllersAgentControllerPutAgentSingleGroup.
-type ApiControllersAgentControllerPutAgentSingleGroupParams struct {
+// AgentControllerPutAgentSingleGroupParams defines parameters for AgentControllerPutAgentSingleGroup.
+type AgentControllerPutAgentSingleGroupParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
 	// Disable timeout response
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 
-	// Whether to append the new group to current agent's multigroup or replace it
+	// Removes the agent from all groups to which it belongs and assigns it to the specified group
 	ForceSingleGroup *ForceSingleGroup `json:"force_single_group,omitempty"`
 }
 
-// ApiControllersAgentControllerGetAgentKeyParams defines parameters for ApiControllersAgentControllerGetAgentKey.
-type ApiControllersAgentControllerGetAgentKeyParams struct {
+// AgentControllerGetAgentKeyParams defines parameters for AgentControllerGetAgentKey.
+type AgentControllerGetAgentKeyParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -3540,8 +3750,8 @@ type ApiControllersAgentControllerGetAgentKeyParams struct {
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 }
 
-// ApiControllersAgentControllerRestartAgentParams defines parameters for ApiControllersAgentControllerRestartAgent.
-type ApiControllersAgentControllerRestartAgentParams struct {
+// AgentControllerRestartAgentParams defines parameters for AgentControllerRestartAgent.
+type AgentControllerRestartAgentParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -3549,8 +3759,8 @@ type ApiControllersAgentControllerRestartAgentParams struct {
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 }
 
-// ApiControllersAgentControllerGetComponentStatsParams defines parameters for ApiControllersAgentControllerGetComponentStats.
-type ApiControllersAgentControllerGetComponentStatsParams struct {
+// AgentControllerGetComponentStatsParams defines parameters for AgentControllerGetComponentStats.
+type AgentControllerGetComponentStatsParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -3558,11 +3768,11 @@ type ApiControllersAgentControllerGetComponentStatsParams struct {
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 }
 
-// ApiControllersAgentControllerGetComponentStatsParamsComponent defines parameters for ApiControllersAgentControllerGetComponentStats.
-type ApiControllersAgentControllerGetComponentStatsParamsComponent string
+// AgentControllerGetComponentStatsParamsComponent defines parameters for AgentControllerGetComponentStats.
+type AgentControllerGetComponentStatsParamsComponent string
 
-// ApiControllersCiscatControllerGetAgentsCiscatResultsParams defines parameters for ApiControllersCiscatControllerGetAgentsCiscatResults.
-type ApiControllersCiscatControllerGetAgentsCiscatResultsParams struct {
+// CiscatControllerGetAgentsCiscatResultsParams defines parameters for CiscatControllerGetAgentsCiscatResults.
+type CiscatControllerGetAgentsCiscatResultsParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -3578,7 +3788,7 @@ type ApiControllersCiscatControllerGetAgentsCiscatResultsParams struct {
 	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
 	Sort *Sort `json:"sort,omitempty"`
 
-	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beggining
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
 
 	// Select which fields to return (separated by comma). Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
@@ -3612,8 +3822,8 @@ type ApiControllersCiscatControllerGetAgentsCiscatResultsParams struct {
 	Q *Query `json:"q,omitempty"`
 }
 
-// ApiControllersClusterControllerGetApiConfigParams defines parameters for ApiControllersClusterControllerGetApiConfig.
-type ApiControllersClusterControllerGetApiConfigParams struct {
+// ClusterControllerGetApiConfigParams defines parameters for ClusterControllerGetApiConfig.
+type ClusterControllerGetApiConfigParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -3624,8 +3834,8 @@ type ApiControllersClusterControllerGetApiConfigParams struct {
 	NodesList *NodesList `json:"nodes_list,omitempty"`
 }
 
-// ApiControllersClusterControllerGetConfValidationParams defines parameters for ApiControllersClusterControllerGetConfValidation.
-type ApiControllersClusterControllerGetConfValidationParams struct {
+// ClusterControllerGetConfValidationParams defines parameters for ClusterControllerGetConfValidation.
+type ClusterControllerGetConfValidationParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -3636,8 +3846,8 @@ type ApiControllersClusterControllerGetConfValidationParams struct {
 	NodesList *NodesList `json:"nodes_list,omitempty"`
 }
 
-// ApiControllersClusterControllerGetHealthcheckParams defines parameters for ApiControllersClusterControllerGetHealthcheck.
-type ApiControllersClusterControllerGetHealthcheckParams struct {
+// ClusterControllerGetHealthcheckParams defines parameters for ClusterControllerGetHealthcheck.
+type ClusterControllerGetHealthcheckParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -3648,8 +3858,8 @@ type ApiControllersClusterControllerGetHealthcheckParams struct {
 	NodesList *NodesList `json:"nodes_list,omitempty"`
 }
 
-// ApiControllersClusterControllerGetConfigParams defines parameters for ApiControllersClusterControllerGetConfig.
-type ApiControllersClusterControllerGetConfigParams struct {
+// ClusterControllerGetConfigParams defines parameters for ClusterControllerGetConfig.
+type ClusterControllerGetConfigParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -3657,8 +3867,8 @@ type ApiControllersClusterControllerGetConfigParams struct {
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 }
 
-// ApiControllersClusterControllerGetClusterNodeParams defines parameters for ApiControllersClusterControllerGetClusterNode.
-type ApiControllersClusterControllerGetClusterNodeParams struct {
+// ClusterControllerGetClusterNodeParams defines parameters for ClusterControllerGetClusterNode.
+type ClusterControllerGetClusterNodeParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -3666,8 +3876,8 @@ type ApiControllersClusterControllerGetClusterNodeParams struct {
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 }
 
-// ApiControllersClusterControllerGetClusterNodesParams defines parameters for ApiControllersClusterControllerGetClusterNodes.
-type ApiControllersClusterControllerGetClusterNodesParams struct {
+// ClusterControllerGetClusterNodesParams defines parameters for ClusterControllerGetClusterNodes.
+type ClusterControllerGetClusterNodesParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -3683,14 +3893,14 @@ type ApiControllersClusterControllerGetClusterNodesParams struct {
 	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
 	Sort *Sort `json:"sort,omitempty"`
 
-	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beggining
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
 
 	// Select which fields to return (separated by comma). Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
 	Select *Select `json:"select,omitempty"`
 
 	// Filter by node type
-	Type *ApiControllersClusterControllerGetClusterNodesParamsType `json:"type,omitempty"`
+	Type *ClusterControllerGetClusterNodesParamsType `json:"type,omitempty"`
 
 	// List of node IDs (separated by comma), all nodes selected by default if not specified
 	NodesList *NodesList `json:"nodes_list,omitempty"`
@@ -3699,11 +3909,11 @@ type ApiControllersClusterControllerGetClusterNodesParams struct {
 	Q *Query `json:"q,omitempty"`
 }
 
-// ApiControllersClusterControllerGetClusterNodesParamsType defines parameters for ApiControllersClusterControllerGetClusterNodes.
-type ApiControllersClusterControllerGetClusterNodesParamsType string
+// ClusterControllerGetClusterNodesParamsType defines parameters for ClusterControllerGetClusterNodes.
+type ClusterControllerGetClusterNodesParamsType string
 
-// ApiControllersClusterControllerPutRestartParams defines parameters for ApiControllersClusterControllerPutRestart.
-type ApiControllersClusterControllerPutRestartParams struct {
+// ClusterControllerPutRestartParams defines parameters for ClusterControllerPutRestart.
+type ClusterControllerPutRestartParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -3714,8 +3924,8 @@ type ApiControllersClusterControllerPutRestartParams struct {
 	NodesList *NodesList `json:"nodes_list,omitempty"`
 }
 
-// ApiControllersClusterControllerGetStatusParams defines parameters for ApiControllersClusterControllerGetStatus.
-type ApiControllersClusterControllerGetStatusParams struct {
+// ClusterControllerGetStatusParams defines parameters for ClusterControllerGetStatus.
+type ClusterControllerGetStatusParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -3723,8 +3933,8 @@ type ApiControllersClusterControllerGetStatusParams struct {
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 }
 
-// ApiControllersClusterControllerGetConfigurationNodeParams defines parameters for ApiControllersClusterControllerGetConfigurationNode.
-type ApiControllersClusterControllerGetConfigurationNodeParams struct {
+// ClusterControllerGetConfigurationNodeParams defines parameters for ClusterControllerGetConfigurationNode.
+type ClusterControllerGetConfigurationNodeParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -3732,20 +3942,20 @@ type ApiControllersClusterControllerGetConfigurationNodeParams struct {
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 
 	// Format response in plain text
-	Raw *RawConf `json:"raw,omitempty"`
+	Raw *Raw `json:"raw,omitempty"`
 
 	// Indicates the wazuh configuration section
-	Section *ApiControllersClusterControllerGetConfigurationNodeParamsSection `json:"section,omitempty"`
+	Section *ClusterControllerGetConfigurationNodeParamsSection `json:"section,omitempty"`
 
 	// Indicate a section child. E.g, fields for *ruleset* section are: decoder_dir, rule_dir, etc
 	Field *Field `json:"field,omitempty"`
 }
 
-// ApiControllersClusterControllerGetConfigurationNodeParamsSection defines parameters for ApiControllersClusterControllerGetConfigurationNode.
-type ApiControllersClusterControllerGetConfigurationNodeParamsSection string
+// ClusterControllerGetConfigurationNodeParamsSection defines parameters for ClusterControllerGetConfigurationNode.
+type ClusterControllerGetConfigurationNodeParamsSection string
 
-// ApiControllersClusterControllerUpdateConfigurationParams defines parameters for ApiControllersClusterControllerUpdateConfiguration.
-type ApiControllersClusterControllerUpdateConfigurationParams struct {
+// ClusterControllerUpdateConfigurationParams defines parameters for ClusterControllerUpdateConfiguration.
+type ClusterControllerUpdateConfigurationParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -3753,8 +3963,8 @@ type ApiControllersClusterControllerUpdateConfigurationParams struct {
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 }
 
-// ApiControllersClusterControllerGetNodeConfigParams defines parameters for ApiControllersClusterControllerGetNodeConfig.
-type ApiControllersClusterControllerGetNodeConfigParams struct {
+// ClusterControllerGetNodeConfigParams defines parameters for ClusterControllerGetNodeConfig.
+type ClusterControllerGetNodeConfigParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -3762,14 +3972,14 @@ type ApiControllersClusterControllerGetNodeConfigParams struct {
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 }
 
-// ApiControllersClusterControllerGetNodeConfigParamsComponent defines parameters for ApiControllersClusterControllerGetNodeConfig.
-type ApiControllersClusterControllerGetNodeConfigParamsComponent string
+// ClusterControllerGetNodeConfigParamsComponent defines parameters for ClusterControllerGetNodeConfig.
+type ClusterControllerGetNodeConfigParamsComponent string
 
-// ApiControllersClusterControllerGetNodeConfigParamsConfiguration defines parameters for ApiControllersClusterControllerGetNodeConfig.
-type ApiControllersClusterControllerGetNodeConfigParamsConfiguration string
+// ClusterControllerGetNodeConfigParamsConfiguration defines parameters for ClusterControllerGetNodeConfig.
+type ClusterControllerGetNodeConfigParamsConfiguration string
 
-// ApiControllersClusterControllerGetInfoNodeParams defines parameters for ApiControllersClusterControllerGetInfoNode.
-type ApiControllersClusterControllerGetInfoNodeParams struct {
+// ClusterControllerGetInfoNodeParams defines parameters for ClusterControllerGetInfoNode.
+type ClusterControllerGetInfoNodeParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -3777,8 +3987,8 @@ type ApiControllersClusterControllerGetInfoNodeParams struct {
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 }
 
-// ApiControllersClusterControllerGetLogNodeParams defines parameters for ApiControllersClusterControllerGetLogNode.
-type ApiControllersClusterControllerGetLogNodeParams struct {
+// ClusterControllerGetLogNodeParams defines parameters for ClusterControllerGetLogNode.
+type ClusterControllerGetLogNodeParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -3794,27 +4004,27 @@ type ApiControllersClusterControllerGetLogNodeParams struct {
 	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
 	Sort *Sort `json:"sort,omitempty"`
 
-	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beggining
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
 
 	// Wazuh component that logged the event
-	Tag *ApiControllersClusterControllerGetLogNodeParamsTag `json:"tag,omitempty"`
+	Tag *ClusterControllerGetLogNodeParamsTag `json:"tag,omitempty"`
 
 	// Filter by log level
-	Level *ApiControllersClusterControllerGetLogNodeParamsLevel `json:"level,omitempty"`
+	Level *ClusterControllerGetLogNodeParamsLevel `json:"level,omitempty"`
 
 	// Query to filter results by. For example q=&quot;status=active&quot;
 	Q *Query `json:"q,omitempty"`
 }
 
-// ApiControllersClusterControllerGetLogNodeParamsTag defines parameters for ApiControllersClusterControllerGetLogNode.
-type ApiControllersClusterControllerGetLogNodeParamsTag string
+// ClusterControllerGetLogNodeParamsTag defines parameters for ClusterControllerGetLogNode.
+type ClusterControllerGetLogNodeParamsTag string
 
-// ApiControllersClusterControllerGetLogNodeParamsLevel defines parameters for ApiControllersClusterControllerGetLogNode.
-type ApiControllersClusterControllerGetLogNodeParamsLevel string
+// ClusterControllerGetLogNodeParamsLevel defines parameters for ClusterControllerGetLogNode.
+type ClusterControllerGetLogNodeParamsLevel string
 
-// ApiControllersClusterControllerGetLogSummaryNodeParams defines parameters for ApiControllersClusterControllerGetLogSummaryNode.
-type ApiControllersClusterControllerGetLogSummaryNodeParams struct {
+// ClusterControllerGetLogSummaryNodeParams defines parameters for ClusterControllerGetLogSummaryNode.
+type ClusterControllerGetLogSummaryNodeParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -3822,8 +4032,8 @@ type ApiControllersClusterControllerGetLogSummaryNodeParams struct {
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 }
 
-// ApiControllersClusterControllerGetStatsNodeParams defines parameters for ApiControllersClusterControllerGetStatsNode.
-type ApiControllersClusterControllerGetStatsNodeParams struct {
+// ClusterControllerGetStatsNodeParams defines parameters for ClusterControllerGetStatsNode.
+type ClusterControllerGetStatsNodeParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -3834,8 +4044,8 @@ type ApiControllersClusterControllerGetStatsNodeParams struct {
 	Date *Date `json:"date,omitempty"`
 }
 
-// ApiControllersClusterControllerGetStatsAnalysisdNodeParams defines parameters for ApiControllersClusterControllerGetStatsAnalysisdNode.
-type ApiControllersClusterControllerGetStatsAnalysisdNodeParams struct {
+// ClusterControllerGetStatsAnalysisdNodeParams defines parameters for ClusterControllerGetStatsAnalysisdNode.
+type ClusterControllerGetStatsAnalysisdNodeParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -3843,8 +4053,8 @@ type ApiControllersClusterControllerGetStatsAnalysisdNodeParams struct {
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 }
 
-// ApiControllersClusterControllerGetStatsHourlyNodeParams defines parameters for ApiControllersClusterControllerGetStatsHourlyNode.
-type ApiControllersClusterControllerGetStatsHourlyNodeParams struct {
+// ClusterControllerGetStatsHourlyNodeParams defines parameters for ClusterControllerGetStatsHourlyNode.
+type ClusterControllerGetStatsHourlyNodeParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -3852,8 +4062,8 @@ type ApiControllersClusterControllerGetStatsHourlyNodeParams struct {
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 }
 
-// ApiControllersClusterControllerGetStatsRemotedNodeParams defines parameters for ApiControllersClusterControllerGetStatsRemotedNode.
-type ApiControllersClusterControllerGetStatsRemotedNodeParams struct {
+// ClusterControllerGetStatsRemotedNodeParams defines parameters for ClusterControllerGetStatsRemotedNode.
+type ClusterControllerGetStatsRemotedNodeParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -3861,8 +4071,8 @@ type ApiControllersClusterControllerGetStatsRemotedNodeParams struct {
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 }
 
-// ApiControllersClusterControllerGetStatsWeeklyNodeParams defines parameters for ApiControllersClusterControllerGetStatsWeeklyNode.
-type ApiControllersClusterControllerGetStatsWeeklyNodeParams struct {
+// ClusterControllerGetStatsWeeklyNodeParams defines parameters for ClusterControllerGetStatsWeeklyNode.
+type ClusterControllerGetStatsWeeklyNodeParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -3870,8 +4080,8 @@ type ApiControllersClusterControllerGetStatsWeeklyNodeParams struct {
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 }
 
-// ApiControllersClusterControllerGetStatusNodeParams defines parameters for ApiControllersClusterControllerGetStatusNode.
-type ApiControllersClusterControllerGetStatusNodeParams struct {
+// ClusterControllerGetStatusNodeParams defines parameters for ClusterControllerGetStatusNode.
+type ClusterControllerGetStatusNodeParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -3879,8 +4089,8 @@ type ApiControllersClusterControllerGetStatusNodeParams struct {
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 }
 
-// ApiControllersDecoderControllerGetDecodersParams defines parameters for ApiControllersDecoderControllerGetDecoders.
-type ApiControllersDecoderControllerGetDecodersParams struct {
+// DecoderControllerGetDecodersParams defines parameters for DecoderControllerGetDecoders.
+type DecoderControllerGetDecodersParams struct {
 	// Decoder name
 	DecoderNames *DecoderName `json:"decoder_names,omitempty"`
 
@@ -3902,7 +4112,7 @@ type ApiControllersDecoderControllerGetDecodersParams struct {
 	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
 	Sort *Sort `json:"sort,omitempty"`
 
-	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beggining
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
 
 	// Query to filter results by. For example q=&quot;status=active&quot;
@@ -3915,14 +4125,14 @@ type ApiControllersDecoderControllerGetDecodersParams struct {
 	RelativeDirname *GetDirnamesPath `json:"relative_dirname,omitempty"`
 
 	// Filter by list status. Use commas to enter multiple statuses
-	Status *ApiControllersDecoderControllerGetDecodersParamsStatus `json:"status,omitempty"`
+	Status *DecoderControllerGetDecodersParamsStatus `json:"status,omitempty"`
 }
 
-// ApiControllersDecoderControllerGetDecodersParamsStatus defines parameters for ApiControllersDecoderControllerGetDecoders.
-type ApiControllersDecoderControllerGetDecodersParamsStatus string
+// DecoderControllerGetDecodersParamsStatus defines parameters for DecoderControllerGetDecoders.
+type DecoderControllerGetDecodersParamsStatus string
 
-// ApiControllersDecoderControllerGetDecodersFilesParams defines parameters for ApiControllersDecoderControllerGetDecodersFiles.
-type ApiControllersDecoderControllerGetDecodersFilesParams struct {
+// DecoderControllerGetDecodersFilesParams defines parameters for DecoderControllerGetDecodersFiles.
+type DecoderControllerGetDecodersFilesParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -3938,7 +4148,7 @@ type ApiControllersDecoderControllerGetDecodersFilesParams struct {
 	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
 	Sort *Sort `json:"sort,omitempty"`
 
-	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beggining
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
 
 	// Filter by filename of one or more rule or decoder files.
@@ -3948,14 +4158,14 @@ type ApiControllersDecoderControllerGetDecodersFilesParams struct {
 	RelativeDirname *GetDirnamesPath `json:"relative_dirname,omitempty"`
 
 	// Filter by list status. Use commas to enter multiple statuses
-	Status *ApiControllersDecoderControllerGetDecodersFilesParamsStatus `json:"status,omitempty"`
+	Status *DecoderControllerGetDecodersFilesParamsStatus `json:"status,omitempty"`
 }
 
-// ApiControllersDecoderControllerGetDecodersFilesParamsStatus defines parameters for ApiControllersDecoderControllerGetDecodersFiles.
-type ApiControllersDecoderControllerGetDecodersFilesParamsStatus string
+// DecoderControllerGetDecodersFilesParamsStatus defines parameters for DecoderControllerGetDecodersFiles.
+type DecoderControllerGetDecodersFilesParamsStatus string
 
-// ApiControllersDecoderControllerDeleteFileParams defines parameters for ApiControllersDecoderControllerDeleteFile.
-type ApiControllersDecoderControllerDeleteFileParams struct {
+// DecoderControllerDeleteFileParams defines parameters for DecoderControllerDeleteFile.
+type DecoderControllerDeleteFileParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -3963,8 +4173,8 @@ type ApiControllersDecoderControllerDeleteFileParams struct {
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 }
 
-// ApiControllersDecoderControllerGetFileParams defines parameters for ApiControllersDecoderControllerGetFile.
-type ApiControllersDecoderControllerGetFileParams struct {
+// DecoderControllerGetFileParams defines parameters for DecoderControllerGetFile.
+type DecoderControllerGetFileParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -3975,8 +4185,8 @@ type ApiControllersDecoderControllerGetFileParams struct {
 	Raw *Raw `json:"raw,omitempty"`
 }
 
-// ApiControllersDecoderControllerPutFileParams defines parameters for ApiControllersDecoderControllerPutFile.
-type ApiControllersDecoderControllerPutFileParams struct {
+// DecoderControllerPutFileParams defines parameters for DecoderControllerPutFile.
+type DecoderControllerPutFileParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -3987,8 +4197,8 @@ type ApiControllersDecoderControllerPutFileParams struct {
 	Overwrite *Overwrite `json:"overwrite,omitempty"`
 }
 
-// ApiControllersDecoderControllerGetDecodersParentsParams defines parameters for ApiControllersDecoderControllerGetDecodersParents.
-type ApiControllersDecoderControllerGetDecodersParentsParams struct {
+// DecoderControllerGetDecodersParentsParams defines parameters for DecoderControllerGetDecodersParents.
+type DecoderControllerGetDecodersParentsParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -4007,12 +4217,12 @@ type ApiControllersDecoderControllerGetDecodersParentsParams struct {
 	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
 	Sort *Sort `json:"sort,omitempty"`
 
-	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beggining
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
 }
 
-// ApiControllersExperimentalControllerGetCisCatResultsParams defines parameters for ApiControllersExperimentalControllerGetCisCatResults.
-type ApiControllersExperimentalControllerGetCisCatResultsParams struct {
+// ExperimentalControllerGetCisCatResultsParams defines parameters for ExperimentalControllerGetCisCatResults.
+type ExperimentalControllerGetCisCatResultsParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -4031,7 +4241,7 @@ type ApiControllersExperimentalControllerGetCisCatResultsParams struct {
 	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
 	Sort *Sort `json:"sort,omitempty"`
 
-	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beggining
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
 
 	// Select which fields to return (separated by comma). Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
@@ -4062,8 +4272,8 @@ type ApiControllersExperimentalControllerGetCisCatResultsParams struct {
 	Score *Score `json:"score,omitempty"`
 }
 
-// ApiControllersExperimentalControllerClearSyscheckDatabaseParams defines parameters for ApiControllersExperimentalControllerClearSyscheckDatabase.
-type ApiControllersExperimentalControllerClearSyscheckDatabaseParams struct {
+// ExperimentalControllerClearRootcheckDatabaseParams defines parameters for ExperimentalControllerClearRootcheckDatabase.
+type ExperimentalControllerClearRootcheckDatabaseParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -4071,11 +4281,23 @@ type ApiControllersExperimentalControllerClearSyscheckDatabaseParams struct {
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 
 	// List of agent IDs (separated by comma), use the keyword `all` to select all agents
-	AgentsList AgentsListDelete `json:"agents_list"`
+	AgentsList AgentsListAll `json:"agents_list"`
 }
 
-// ApiControllersExperimentalControllerGetHardwareInfoParams defines parameters for ApiControllersExperimentalControllerGetHardwareInfo.
-type ApiControllersExperimentalControllerGetHardwareInfoParams struct {
+// ExperimentalControllerClearSyscheckDatabaseParams defines parameters for ExperimentalControllerClearSyscheckDatabase.
+type ExperimentalControllerClearSyscheckDatabaseParams struct {
+	// Show results in human-readable format
+	Pretty *Pretty `json:"pretty,omitempty"`
+
+	// Disable timeout response
+	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
+
+	// List of agent IDs (separated by comma), use the keyword `all` to select all agents
+	AgentsList AgentsListAll `json:"agents_list"`
+}
+
+// ExperimentalControllerGetHardwareInfoParams defines parameters for ExperimentalControllerGetHardwareInfo.
+type ExperimentalControllerGetHardwareInfoParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -4094,7 +4316,7 @@ type ApiControllersExperimentalControllerGetHardwareInfoParams struct {
 	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
 	Sort *Sort `json:"sort,omitempty"`
 
-	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beggining
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
 
 	// Select which fields to return (separated by comma). Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
@@ -4119,8 +4341,8 @@ type ApiControllersExperimentalControllerGetHardwareInfoParams struct {
 	BoardSerial *BoardSerial `json:"board_serial,omitempty"`
 }
 
-// ApiControllersExperimentalControllerGetHotfixesInfoParams defines parameters for ApiControllersExperimentalControllerGetHotfixesInfo.
-type ApiControllersExperimentalControllerGetHotfixesInfoParams struct {
+// ExperimentalControllerGetHotfixesInfoParams defines parameters for ExperimentalControllerGetHotfixesInfo.
+type ExperimentalControllerGetHotfixesInfoParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -4139,7 +4361,7 @@ type ApiControllersExperimentalControllerGetHotfixesInfoParams struct {
 	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
 	Sort *Sort `json:"sort,omitempty"`
 
-	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beggining
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
 
 	// Select which fields to return (separated by comma). Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
@@ -4149,8 +4371,8 @@ type ApiControllersExperimentalControllerGetHotfixesInfoParams struct {
 	Hotfix *Hotfix `json:"hotfix,omitempty"`
 }
 
-// ApiControllersExperimentalControllerGetNetworkAddressInfoParams defines parameters for ApiControllersExperimentalControllerGetNetworkAddressInfo.
-type ApiControllersExperimentalControllerGetNetworkAddressInfoParams struct {
+// ExperimentalControllerGetNetworkAddressInfoParams defines parameters for ExperimentalControllerGetNetworkAddressInfo.
+type ExperimentalControllerGetNetworkAddressInfoParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -4169,7 +4391,7 @@ type ApiControllersExperimentalControllerGetNetworkAddressInfoParams struct {
 	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
 	Sort *Sort `json:"sort,omitempty"`
 
-	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beggining
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
 
 	// Select which fields to return (separated by comma). Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
@@ -4188,8 +4410,8 @@ type ApiControllersExperimentalControllerGetNetworkAddressInfoParams struct {
 	Netmask *Netmask `json:"netmask,omitempty"`
 }
 
-// ApiControllersExperimentalControllerGetNetworkInterfaceInfoParams defines parameters for ApiControllersExperimentalControllerGetNetworkInterfaceInfo.
-type ApiControllersExperimentalControllerGetNetworkInterfaceInfoParams struct {
+// ExperimentalControllerGetNetworkInterfaceInfoParams defines parameters for ExperimentalControllerGetNetworkInterfaceInfo.
+type ExperimentalControllerGetNetworkInterfaceInfoParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -4208,7 +4430,7 @@ type ApiControllersExperimentalControllerGetNetworkInterfaceInfoParams struct {
 	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
 	Sort *Sort `json:"sort,omitempty"`
 
-	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beggining
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
 
 	// Select which fields to return (separated by comma). Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
@@ -4254,8 +4476,8 @@ type ApiControllersExperimentalControllerGetNetworkInterfaceInfoParams struct {
 	RxDropped *RxDropped `json:"rx.dropped,omitempty"`
 }
 
-// ApiControllersExperimentalControllerGetNetworkProtocolInfoParams defines parameters for ApiControllersExperimentalControllerGetNetworkProtocolInfo.
-type ApiControllersExperimentalControllerGetNetworkProtocolInfoParams struct {
+// ExperimentalControllerGetNetworkProtocolInfoParams defines parameters for ExperimentalControllerGetNetworkProtocolInfo.
+type ExperimentalControllerGetNetworkProtocolInfoParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -4274,7 +4496,7 @@ type ApiControllersExperimentalControllerGetNetworkProtocolInfoParams struct {
 	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
 	Sort *Sort `json:"sort,omitempty"`
 
-	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beggining
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
 
 	// Select which fields to return (separated by comma). Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
@@ -4293,8 +4515,8 @@ type ApiControllersExperimentalControllerGetNetworkProtocolInfoParams struct {
 	Dhcp *Dhcp `json:"dhcp,omitempty"`
 }
 
-// ApiControllersExperimentalControllerGetOsInfoParams defines parameters for ApiControllersExperimentalControllerGetOsInfo.
-type ApiControllersExperimentalControllerGetOsInfoParams struct {
+// ExperimentalControllerGetOsInfoParams defines parameters for ExperimentalControllerGetOsInfo.
+type ExperimentalControllerGetOsInfoParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -4313,7 +4535,7 @@ type ApiControllersExperimentalControllerGetOsInfoParams struct {
 	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
 	Sort *Sort `json:"sort,omitempty"`
 
-	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beggining
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
 
 	// Select which fields to return (separated by comma). Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
@@ -4335,8 +4557,8 @@ type ApiControllersExperimentalControllerGetOsInfoParams struct {
 	Release *Release `json:"release,omitempty"`
 }
 
-// ApiControllersExperimentalControllerGetPackagesInfoParams defines parameters for ApiControllersExperimentalControllerGetPackagesInfo.
-type ApiControllersExperimentalControllerGetPackagesInfoParams struct {
+// ExperimentalControllerGetPackagesInfoParams defines parameters for ExperimentalControllerGetPackagesInfo.
+type ExperimentalControllerGetPackagesInfoParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -4355,7 +4577,7 @@ type ApiControllersExperimentalControllerGetPackagesInfoParams struct {
 	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
 	Sort *Sort `json:"sort,omitempty"`
 
-	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beggining
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
 
 	// Select which fields to return (separated by comma). Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
@@ -4373,12 +4595,12 @@ type ApiControllersExperimentalControllerGetPackagesInfoParams struct {
 	// Filter by file format. For example 'deb' will output deb files
 	Format *FileFormat `json:"format,omitempty"`
 
-	// Filter by version name
+	// Filter by package version
 	Version *PackageVersion `json:"version,omitempty"`
 }
 
-// ApiControllersExperimentalControllerGetPortsInfoParams defines parameters for ApiControllersExperimentalControllerGetPortsInfo.
-type ApiControllersExperimentalControllerGetPortsInfoParams struct {
+// ExperimentalControllerGetPortsInfoParams defines parameters for ExperimentalControllerGetPortsInfo.
+type ExperimentalControllerGetPortsInfoParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -4397,7 +4619,7 @@ type ApiControllersExperimentalControllerGetPortsInfoParams struct {
 	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
 	Sort *Sort `json:"sort,omitempty"`
 
-	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beggining
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
 
 	// Select which fields to return (separated by comma). Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
@@ -4428,8 +4650,8 @@ type ApiControllersExperimentalControllerGetPortsInfoParams struct {
 	Process *Process `json:"process,omitempty"`
 }
 
-// ApiControllersExperimentalControllerGetProcessesInfoParams defines parameters for ApiControllersExperimentalControllerGetProcessesInfo.
-type ApiControllersExperimentalControllerGetProcessesInfoParams struct {
+// ExperimentalControllerGetProcessesInfoParams defines parameters for ExperimentalControllerGetProcessesInfo.
+type ExperimentalControllerGetProcessesInfoParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -4448,7 +4670,7 @@ type ApiControllersExperimentalControllerGetProcessesInfoParams struct {
 	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
 	Sort *Sort `json:"sort,omitempty"`
 
-	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beggining
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
 
 	// Select which fields to return (separated by comma). Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
@@ -4497,8 +4719,8 @@ type ApiControllersExperimentalControllerGetProcessesInfoParams struct {
 	Suser *Suser `json:"suser,omitempty"`
 }
 
-// ApiControllersAgentControllerDeleteGroupsParams defines parameters for ApiControllersAgentControllerDeleteGroups.
-type ApiControllersAgentControllerDeleteGroupsParams struct {
+// AgentControllerDeleteGroupsParams defines parameters for AgentControllerDeleteGroups.
+type AgentControllerDeleteGroupsParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -4506,11 +4728,11 @@ type ApiControllersAgentControllerDeleteGroupsParams struct {
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 
 	// List of group IDs (separated by comma), use the keyword 'all' to select all groups
-	GroupsList GroupsListDelete `json:"groups_list"`
+	GroupsList GroupsListAll `json:"groups_list"`
 }
 
-// ApiControllersAgentControllerGetListGroupParams defines parameters for ApiControllersAgentControllerGetListGroup.
-type ApiControllersAgentControllerGetListGroupParams struct {
+// AgentControllerGetListGroupParams defines parameters for AgentControllerGetListGroup.
+type AgentControllerGetListGroupParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -4529,24 +4751,24 @@ type ApiControllersAgentControllerGetListGroupParams struct {
 	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
 	Sort *Sort `json:"sort,omitempty"`
 
-	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beggining
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
 
 	// Select algorithm to generate the returned checksums
-	Hash *ApiControllersAgentControllerGetListGroupParamsHash `json:"hash,omitempty"`
+	Hash *AgentControllerGetListGroupParamsHash `json:"hash,omitempty"`
 }
 
-// ApiControllersAgentControllerGetListGroupParamsHash defines parameters for ApiControllersAgentControllerGetListGroup.
-type ApiControllersAgentControllerGetListGroupParamsHash string
+// AgentControllerGetListGroupParamsHash defines parameters for AgentControllerGetListGroup.
+type AgentControllerGetListGroupParamsHash string
 
-// ApiControllersAgentControllerPostGroupJSONBody defines parameters for ApiControllersAgentControllerPostGroup.
-type ApiControllersAgentControllerPostGroupJSONBody struct {
+// AgentControllerPostGroupJSONBody defines parameters for AgentControllerPostGroup.
+type AgentControllerPostGroupJSONBody struct {
 	// Group name
 	GroupId string `json:"group_id"`
 }
 
-// ApiControllersAgentControllerPostGroupParams defines parameters for ApiControllersAgentControllerPostGroup.
-type ApiControllersAgentControllerPostGroupParams struct {
+// AgentControllerPostGroupParams defines parameters for AgentControllerPostGroup.
+type AgentControllerPostGroupParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -4554,8 +4776,8 @@ type ApiControllersAgentControllerPostGroupParams struct {
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 }
 
-// ApiControllersAgentControllerGetAgentsInGroupParams defines parameters for ApiControllersAgentControllerGetAgentsInGroup.
-type ApiControllersAgentControllerGetAgentsInGroupParams struct {
+// AgentControllerGetAgentsInGroupParams defines parameters for AgentControllerGetAgentsInGroup.
+type AgentControllerGetAgentsInGroupParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -4574,7 +4796,7 @@ type ApiControllersAgentControllerGetAgentsInGroupParams struct {
 	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
 	Sort *Sort `json:"sort,omitempty"`
 
-	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beggining
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
 
 	// Filter by agent status (use commas to enter multiple statuses)
@@ -4584,11 +4806,11 @@ type ApiControllersAgentControllerGetAgentsInGroupParams struct {
 	Q *Query `json:"q,omitempty"`
 }
 
-// ApiControllersAgentControllerGetAgentsInGroupParamsStatus defines parameters for ApiControllersAgentControllerGetAgentsInGroup.
-type ApiControllersAgentControllerGetAgentsInGroupParamsStatus string
+// AgentControllerGetAgentsInGroupParamsStatus defines parameters for AgentControllerGetAgentsInGroup.
+type AgentControllerGetAgentsInGroupParamsStatus string
 
-// ApiControllersAgentControllerGetGroupConfigParams defines parameters for ApiControllersAgentControllerGetGroupConfig.
-type ApiControllersAgentControllerGetGroupConfigParams struct {
+// AgentControllerGetGroupConfigParams defines parameters for AgentControllerGetGroupConfig.
+type AgentControllerGetGroupConfigParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -4602,8 +4824,8 @@ type ApiControllersAgentControllerGetGroupConfigParams struct {
 	Limit *Limit `json:"limit,omitempty"`
 }
 
-// ApiControllersAgentControllerPutGroupConfigParams defines parameters for ApiControllersAgentControllerPutGroupConfig.
-type ApiControllersAgentControllerPutGroupConfigParams struct {
+// AgentControllerPutGroupConfigParams defines parameters for AgentControllerPutGroupConfig.
+type AgentControllerPutGroupConfigParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -4611,8 +4833,8 @@ type ApiControllersAgentControllerPutGroupConfigParams struct {
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 }
 
-// ApiControllersAgentControllerGetGroupFilesParams defines parameters for ApiControllersAgentControllerGetGroupFiles.
-type ApiControllersAgentControllerGetGroupFilesParams struct {
+// AgentControllerGetGroupFilesParams defines parameters for AgentControllerGetGroupFiles.
+type AgentControllerGetGroupFilesParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -4628,18 +4850,18 @@ type ApiControllersAgentControllerGetGroupFilesParams struct {
 	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
 	Sort *Sort `json:"sort,omitempty"`
 
-	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beggining
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
 
 	// Select algorithm to generate the returned checksums
-	Hash *ApiControllersAgentControllerGetGroupFilesParamsHash `json:"hash,omitempty"`
+	Hash *AgentControllerGetGroupFilesParamsHash `json:"hash,omitempty"`
 }
 
-// ApiControllersAgentControllerGetGroupFilesParamsHash defines parameters for ApiControllersAgentControllerGetGroupFiles.
-type ApiControllersAgentControllerGetGroupFilesParamsHash string
+// AgentControllerGetGroupFilesParamsHash defines parameters for AgentControllerGetGroupFiles.
+type AgentControllerGetGroupFilesParamsHash string
 
-// ApiControllersAgentControllerGetGroupFileJsonParams defines parameters for ApiControllersAgentControllerGetGroupFileJson.
-type ApiControllersAgentControllerGetGroupFileJsonParams struct {
+// AgentControllerGetGroupFileJsonParams defines parameters for AgentControllerGetGroupFileJson.
+type AgentControllerGetGroupFileJsonParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -4650,11 +4872,11 @@ type ApiControllersAgentControllerGetGroupFileJsonParams struct {
 	Type *TypeAgents `json:"type,omitempty"`
 }
 
-// ApiControllersAgentControllerGetGroupFileJsonParamsType defines parameters for ApiControllersAgentControllerGetGroupFileJson.
-type ApiControllersAgentControllerGetGroupFileJsonParamsType string
+// AgentControllerGetGroupFileJsonParamsType defines parameters for AgentControllerGetGroupFileJson.
+type AgentControllerGetGroupFileJsonParamsType string
 
-// ApiControllersAgentControllerGetGroupFileXmlParams defines parameters for ApiControllersAgentControllerGetGroupFileXml.
-type ApiControllersAgentControllerGetGroupFileXmlParams struct {
+// AgentControllerGetGroupFileXmlParams defines parameters for AgentControllerGetGroupFileXml.
+type AgentControllerGetGroupFileXmlParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -4665,11 +4887,11 @@ type ApiControllersAgentControllerGetGroupFileXmlParams struct {
 	Type *TypeAgents `json:"type,omitempty"`
 }
 
-// ApiControllersAgentControllerGetGroupFileXmlParamsType defines parameters for ApiControllersAgentControllerGetGroupFileXml.
-type ApiControllersAgentControllerGetGroupFileXmlParamsType string
+// AgentControllerGetGroupFileXmlParamsType defines parameters for AgentControllerGetGroupFileXml.
+type AgentControllerGetGroupFileXmlParamsType string
 
-// ApiControllersCdbListControllerGetListsParams defines parameters for ApiControllersCdbListControllerGetLists.
-type ApiControllersCdbListControllerGetListsParams struct {
+// CdbListControllerGetListsParams defines parameters for CdbListControllerGetLists.
+type CdbListControllerGetListsParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -4688,7 +4910,7 @@ type ApiControllersCdbListControllerGetListsParams struct {
 	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
 	Sort *Sort `json:"sort,omitempty"`
 
-	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beggining
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
 
 	// Filter by relative directory name
@@ -4698,8 +4920,8 @@ type ApiControllersCdbListControllerGetListsParams struct {
 	Filename *Filename `json:"filename,omitempty"`
 }
 
-// ApiControllersCdbListControllerGetListsFilesParams defines parameters for ApiControllersCdbListControllerGetListsFiles.
-type ApiControllersCdbListControllerGetListsFilesParams struct {
+// CdbListControllerGetListsFilesParams defines parameters for CdbListControllerGetListsFiles.
+type CdbListControllerGetListsFilesParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -4715,7 +4937,7 @@ type ApiControllersCdbListControllerGetListsFilesParams struct {
 	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
 	Sort *Sort `json:"sort,omitempty"`
 
-	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beggining
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
 
 	// Filter by relative directory name
@@ -4725,8 +4947,8 @@ type ApiControllersCdbListControllerGetListsFilesParams struct {
 	Filename *Filename `json:"filename,omitempty"`
 }
 
-// ApiControllersCdbListControllerDeleteFileParams defines parameters for ApiControllersCdbListControllerDeleteFile.
-type ApiControllersCdbListControllerDeleteFileParams struct {
+// CdbListControllerDeleteFileParams defines parameters for CdbListControllerDeleteFile.
+type CdbListControllerDeleteFileParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -4734,8 +4956,8 @@ type ApiControllersCdbListControllerDeleteFileParams struct {
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 }
 
-// ApiControllersCdbListControllerGetFileParams defines parameters for ApiControllersCdbListControllerGetFile.
-type ApiControllersCdbListControllerGetFileParams struct {
+// CdbListControllerGetFileParams defines parameters for CdbListControllerGetFile.
+type CdbListControllerGetFileParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -4746,8 +4968,8 @@ type ApiControllersCdbListControllerGetFileParams struct {
 	Raw *Raw `json:"raw,omitempty"`
 }
 
-// ApiControllersCdbListControllerPutFileParams defines parameters for ApiControllersCdbListControllerPutFile.
-type ApiControllersCdbListControllerPutFileParams struct {
+// CdbListControllerPutFileParams defines parameters for CdbListControllerPutFile.
+type CdbListControllerPutFileParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -4758,11 +4980,11 @@ type ApiControllersCdbListControllerPutFileParams struct {
 	Overwrite *Overwrite `json:"overwrite,omitempty"`
 }
 
-// ApiControllersLogtestControllerRunLogtestToolJSONBody defines parameters for ApiControllersLogtestControllerRunLogtestTool.
-type ApiControllersLogtestControllerRunLogtestToolJSONBody LogtestRequest
+// LogtestControllerRunLogtestToolJSONBody defines parameters for LogtestControllerRunLogtestTool.
+type LogtestControllerRunLogtestToolJSONBody LogtestRequest
 
-// ApiControllersLogtestControllerRunLogtestToolParams defines parameters for ApiControllersLogtestControllerRunLogtestTool.
-type ApiControllersLogtestControllerRunLogtestToolParams struct {
+// LogtestControllerRunLogtestToolParams defines parameters for LogtestControllerRunLogtestTool.
+type LogtestControllerRunLogtestToolParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -4770,8 +4992,8 @@ type ApiControllersLogtestControllerRunLogtestToolParams struct {
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 }
 
-// ApiControllersLogtestControllerEndLogtestSessionParams defines parameters for ApiControllersLogtestControllerEndLogtestSession.
-type ApiControllersLogtestControllerEndLogtestSessionParams struct {
+// LogtestControllerEndLogtestSessionParams defines parameters for LogtestControllerEndLogtestSession.
+type LogtestControllerEndLogtestSessionParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -4779,8 +5001,8 @@ type ApiControllersLogtestControllerEndLogtestSessionParams struct {
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 }
 
-// ApiControllersManagerControllerGetApiConfigParams defines parameters for ApiControllersManagerControllerGetApiConfig.
-type ApiControllersManagerControllerGetApiConfigParams struct {
+// ManagerControllerGetApiConfigParams defines parameters for ManagerControllerGetApiConfig.
+type ManagerControllerGetApiConfigParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -4788,8 +5010,8 @@ type ApiControllersManagerControllerGetApiConfigParams struct {
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 }
 
-// ApiControllersManagerControllerGetConfigurationParams defines parameters for ApiControllersManagerControllerGetConfiguration.
-type ApiControllersManagerControllerGetConfigurationParams struct {
+// ManagerControllerGetConfigurationParams defines parameters for ManagerControllerGetConfiguration.
+type ManagerControllerGetConfigurationParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -4797,20 +5019,20 @@ type ApiControllersManagerControllerGetConfigurationParams struct {
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 
 	// Format response in plain text
-	Raw *RawConf `json:"raw,omitempty"`
+	Raw *Raw `json:"raw,omitempty"`
 
 	// Indicates the wazuh configuration section
-	Section *ApiControllersManagerControllerGetConfigurationParamsSection `json:"section,omitempty"`
+	Section *ManagerControllerGetConfigurationParamsSection `json:"section,omitempty"`
 
 	// Indicate a section child. E.g, fields for *ruleset* section are: decoder_dir, rule_dir, etc
 	Field *Field `json:"field,omitempty"`
 }
 
-// ApiControllersManagerControllerGetConfigurationParamsSection defines parameters for ApiControllersManagerControllerGetConfiguration.
-type ApiControllersManagerControllerGetConfigurationParamsSection string
+// ManagerControllerGetConfigurationParamsSection defines parameters for ManagerControllerGetConfiguration.
+type ManagerControllerGetConfigurationParamsSection string
 
-// ApiControllersManagerControllerUpdateConfigurationParams defines parameters for ApiControllersManagerControllerUpdateConfiguration.
-type ApiControllersManagerControllerUpdateConfigurationParams struct {
+// ManagerControllerUpdateConfigurationParams defines parameters for ManagerControllerUpdateConfiguration.
+type ManagerControllerUpdateConfigurationParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -4818,8 +5040,8 @@ type ApiControllersManagerControllerUpdateConfigurationParams struct {
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 }
 
-// ApiControllersManagerControllerGetConfValidationParams defines parameters for ApiControllersManagerControllerGetConfValidation.
-type ApiControllersManagerControllerGetConfValidationParams struct {
+// ManagerControllerGetConfValidationParams defines parameters for ManagerControllerGetConfValidation.
+type ManagerControllerGetConfValidationParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -4827,8 +5049,8 @@ type ApiControllersManagerControllerGetConfValidationParams struct {
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 }
 
-// ApiControllersManagerControllerGetManagerConfigOndemandParams defines parameters for ApiControllersManagerControllerGetManagerConfigOndemand.
-type ApiControllersManagerControllerGetManagerConfigOndemandParams struct {
+// ManagerControllerGetManagerConfigOndemandParams defines parameters for ManagerControllerGetManagerConfigOndemand.
+type ManagerControllerGetManagerConfigOndemandParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -4836,14 +5058,14 @@ type ApiControllersManagerControllerGetManagerConfigOndemandParams struct {
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 }
 
-// ApiControllersManagerControllerGetManagerConfigOndemandParamsComponent defines parameters for ApiControllersManagerControllerGetManagerConfigOndemand.
-type ApiControllersManagerControllerGetManagerConfigOndemandParamsComponent string
+// ManagerControllerGetManagerConfigOndemandParamsComponent defines parameters for ManagerControllerGetManagerConfigOndemand.
+type ManagerControllerGetManagerConfigOndemandParamsComponent string
 
-// ApiControllersManagerControllerGetManagerConfigOndemandParamsConfiguration defines parameters for ApiControllersManagerControllerGetManagerConfigOndemand.
-type ApiControllersManagerControllerGetManagerConfigOndemandParamsConfiguration string
+// ManagerControllerGetManagerConfigOndemandParamsConfiguration defines parameters for ManagerControllerGetManagerConfigOndemand.
+type ManagerControllerGetManagerConfigOndemandParamsConfiguration string
 
-// ApiControllersManagerControllerGetInfoParams defines parameters for ApiControllersManagerControllerGetInfo.
-type ApiControllersManagerControllerGetInfoParams struct {
+// ManagerControllerGetInfoParams defines parameters for ManagerControllerGetInfo.
+type ManagerControllerGetInfoParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -4851,8 +5073,8 @@ type ApiControllersManagerControllerGetInfoParams struct {
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 }
 
-// ApiControllersManagerControllerGetLogParams defines parameters for ApiControllersManagerControllerGetLog.
-type ApiControllersManagerControllerGetLogParams struct {
+// ManagerControllerGetLogParams defines parameters for ManagerControllerGetLog.
+type ManagerControllerGetLogParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -4868,27 +5090,27 @@ type ApiControllersManagerControllerGetLogParams struct {
 	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
 	Sort *Sort `json:"sort,omitempty"`
 
-	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beggining
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
 
 	// Wazuh component that logged the event
-	Tag *ApiControllersManagerControllerGetLogParamsTag `json:"tag,omitempty"`
+	Tag *ManagerControllerGetLogParamsTag `json:"tag,omitempty"`
 
 	// Filter by log level
-	Level *ApiControllersManagerControllerGetLogParamsLevel `json:"level,omitempty"`
+	Level *ManagerControllerGetLogParamsLevel `json:"level,omitempty"`
 
 	// Query to filter results by. For example q=&quot;status=active&quot;
 	Q *Query `json:"q,omitempty"`
 }
 
-// ApiControllersManagerControllerGetLogParamsTag defines parameters for ApiControllersManagerControllerGetLog.
-type ApiControllersManagerControllerGetLogParamsTag string
+// ManagerControllerGetLogParamsTag defines parameters for ManagerControllerGetLog.
+type ManagerControllerGetLogParamsTag string
 
-// ApiControllersManagerControllerGetLogParamsLevel defines parameters for ApiControllersManagerControllerGetLog.
-type ApiControllersManagerControllerGetLogParamsLevel string
+// ManagerControllerGetLogParamsLevel defines parameters for ManagerControllerGetLog.
+type ManagerControllerGetLogParamsLevel string
 
-// ApiControllersManagerControllerGetLogSummaryParams defines parameters for ApiControllersManagerControllerGetLogSummary.
-type ApiControllersManagerControllerGetLogSummaryParams struct {
+// ManagerControllerGetLogSummaryParams defines parameters for ManagerControllerGetLogSummary.
+type ManagerControllerGetLogSummaryParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -4896,8 +5118,8 @@ type ApiControllersManagerControllerGetLogSummaryParams struct {
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 }
 
-// ApiControllersManagerControllerPutRestartParams defines parameters for ApiControllersManagerControllerPutRestart.
-type ApiControllersManagerControllerPutRestartParams struct {
+// ManagerControllerPutRestartParams defines parameters for ManagerControllerPutRestart.
+type ManagerControllerPutRestartParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -4905,8 +5127,8 @@ type ApiControllersManagerControllerPutRestartParams struct {
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 }
 
-// ApiControllersManagerControllerGetStatsParams defines parameters for ApiControllersManagerControllerGetStats.
-type ApiControllersManagerControllerGetStatsParams struct {
+// ManagerControllerGetStatsParams defines parameters for ManagerControllerGetStats.
+type ManagerControllerGetStatsParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -4917,8 +5139,8 @@ type ApiControllersManagerControllerGetStatsParams struct {
 	Date *Date `json:"date,omitempty"`
 }
 
-// ApiControllersManagerControllerGetStatsAnalysisdParams defines parameters for ApiControllersManagerControllerGetStatsAnalysisd.
-type ApiControllersManagerControllerGetStatsAnalysisdParams struct {
+// ManagerControllerGetStatsAnalysisdParams defines parameters for ManagerControllerGetStatsAnalysisd.
+type ManagerControllerGetStatsAnalysisdParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -4926,8 +5148,8 @@ type ApiControllersManagerControllerGetStatsAnalysisdParams struct {
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 }
 
-// ApiControllersManagerControllerGetStatsHourlyParams defines parameters for ApiControllersManagerControllerGetStatsHourly.
-type ApiControllersManagerControllerGetStatsHourlyParams struct {
+// ManagerControllerGetStatsHourlyParams defines parameters for ManagerControllerGetStatsHourly.
+type ManagerControllerGetStatsHourlyParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -4935,8 +5157,8 @@ type ApiControllersManagerControllerGetStatsHourlyParams struct {
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 }
 
-// ApiControllersManagerControllerGetStatsRemotedParams defines parameters for ApiControllersManagerControllerGetStatsRemoted.
-type ApiControllersManagerControllerGetStatsRemotedParams struct {
+// ManagerControllerGetStatsRemotedParams defines parameters for ManagerControllerGetStatsRemoted.
+type ManagerControllerGetStatsRemotedParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -4944,8 +5166,8 @@ type ApiControllersManagerControllerGetStatsRemotedParams struct {
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 }
 
-// ApiControllersManagerControllerGetStatsWeeklyParams defines parameters for ApiControllersManagerControllerGetStatsWeekly.
-type ApiControllersManagerControllerGetStatsWeeklyParams struct {
+// ManagerControllerGetStatsWeeklyParams defines parameters for ManagerControllerGetStatsWeekly.
+type ManagerControllerGetStatsWeeklyParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -4953,8 +5175,8 @@ type ApiControllersManagerControllerGetStatsWeeklyParams struct {
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 }
 
-// ApiControllersManagerControllerGetStatusParams defines parameters for ApiControllersManagerControllerGetStatus.
-type ApiControllersManagerControllerGetStatusParams struct {
+// ManagerControllerGetStatusParams defines parameters for ManagerControllerGetStatus.
+type ManagerControllerGetStatusParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -4962,22 +5184,16 @@ type ApiControllersManagerControllerGetStatusParams struct {
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 }
 
-// ApiControllersMitreControllerGetAttackParams defines parameters for ApiControllersMitreControllerGetAttack.
-type ApiControllersMitreControllerGetAttackParams struct {
+// MitreControllerGetGroupsParams defines parameters for MitreControllerGetGroups.
+type MitreControllerGetGroupsParams struct {
+	// List of MITRE's group IDs (separated by comma)
+	GroupIds *MitreGroupIds `json:"group_ids,omitempty"`
+
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
 	// Disable timeout response
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
-
-	// MITRE attack ID
-	Id *AttackId `json:"id,omitempty"`
-
-	// Show results filtered by phase
-	PhaseName *PhaseName `json:"phase_name,omitempty"`
-
-	// Show results filtered by platform
-	PlatformName *PlatformName `json:"platform_name,omitempty"`
 
 	// First element to return in the collection
 	Offset *Offset `json:"offset,omitempty"`
@@ -4985,21 +5201,21 @@ type ApiControllersMitreControllerGetAttackParams struct {
 	// Maximum number of elements to return. Although up to 100.000 can be specified, it is recommended not to exceed 500 elements. Responses may be slower the more this number is exceeded.
 	Limit *Limit `json:"limit,omitempty"`
 
-	// Query to filter results by. For example q=&quot;status=active&quot;
-	Q *Query `json:"q,omitempty"`
+	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
+	Sort *Sort `json:"sort,omitempty"`
 
-	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beggining
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
 
 	// Select which fields to return (separated by comma). Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
 	Select *Select `json:"select,omitempty"`
 
-	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
-	Sort *Sort `json:"sort,omitempty"`
+	// Query to filter results by. For example q=&quot;status=active&quot;
+	Q *Query `json:"q,omitempty"`
 }
 
-// ApiControllersOverviewControllerGetOverviewAgentsParams defines parameters for ApiControllersOverviewControllerGetOverviewAgents.
-type ApiControllersOverviewControllerGetOverviewAgentsParams struct {
+// MitreControllerGetMetadataParams defines parameters for MitreControllerGetMetadata.
+type MitreControllerGetMetadataParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -5007,32 +5223,11 @@ type ApiControllersOverviewControllerGetOverviewAgentsParams struct {
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 }
 
-// ApiControllersRootcheckControllerDeleteRootcheckParams defines parameters for ApiControllersRootcheckControllerDeleteRootcheck.
-type ApiControllersRootcheckControllerDeleteRootcheckParams struct {
-	// Show results in human-readable format
-	Pretty *Pretty `json:"pretty,omitempty"`
+// MitreControllerGetMitigationsParams defines parameters for MitreControllerGetMitigations.
+type MitreControllerGetMitigationsParams struct {
+	// List of MITRE's mitigations IDs (separated by comma)
+	MitigationIds *MitreMitigationIds `json:"mitigation_ids,omitempty"`
 
-	// Disable timeout response
-	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
-
-	// List of agent IDs (separated by comma), all agents selected by default if not specified
-	AgentsList *AgentsList `json:"agents_list,omitempty"`
-}
-
-// ApiControllersRootcheckControllerPutRootcheckParams defines parameters for ApiControllersRootcheckControllerPutRootcheck.
-type ApiControllersRootcheckControllerPutRootcheckParams struct {
-	// Show results in human-readable format
-	Pretty *Pretty `json:"pretty,omitempty"`
-
-	// Disable timeout response
-	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
-
-	// List of agent IDs (separated by comma), all agents selected by default if not specified
-	AgentsList *AgentsList `json:"agents_list,omitempty"`
-}
-
-// ApiControllersRootcheckControllerGetRootcheckAgentParams defines parameters for ApiControllersRootcheckControllerGetRootcheckAgent.
-type ApiControllersRootcheckControllerGetRootcheckAgentParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -5048,7 +5243,184 @@ type ApiControllersRootcheckControllerGetRootcheckAgentParams struct {
 	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
 	Sort *Sort `json:"sort,omitempty"`
 
-	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beggining
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
+	Search *Search `json:"search,omitempty"`
+
+	// Select which fields to return (separated by comma). Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
+	Select *Select `json:"select,omitempty"`
+
+	// Query to filter results by. For example q=&quot;status=active&quot;
+	Q *Query `json:"q,omitempty"`
+}
+
+// MitreControllerGetReferencesParams defines parameters for MitreControllerGetReferences.
+type MitreControllerGetReferencesParams struct {
+	// List of MITRE's references IDs (separated by comma)
+	ReferenceIds *MitreReferenceIds `json:"reference_ids,omitempty"`
+
+	// Show results in human-readable format
+	Pretty *Pretty `json:"pretty,omitempty"`
+
+	// Disable timeout response
+	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
+
+	// First element to return in the collection
+	Offset *Offset `json:"offset,omitempty"`
+
+	// Maximum number of elements to return. Although up to 100.000 can be specified, it is recommended not to exceed 500 elements. Responses may be slower the more this number is exceeded.
+	Limit *Limit `json:"limit,omitempty"`
+
+	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
+	Sort *Sort `json:"sort,omitempty"`
+
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
+	Search *Search `json:"search,omitempty"`
+
+	// Select which fields to return (separated by comma). Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
+	Select *Select `json:"select,omitempty"`
+
+	// Query to filter results by. For example q=&quot;status=active&quot;
+	Q *Query `json:"q,omitempty"`
+}
+
+// MitreControllerGetSoftwareParams defines parameters for MitreControllerGetSoftware.
+type MitreControllerGetSoftwareParams struct {
+	// List of MITRE's software IDs (separated by comma)
+	SoftwareIds *MitreSoftwareIds `json:"software_ids,omitempty"`
+
+	// Show results in human-readable format
+	Pretty *Pretty `json:"pretty,omitempty"`
+
+	// Disable timeout response
+	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
+
+	// First element to return in the collection
+	Offset *Offset `json:"offset,omitempty"`
+
+	// Maximum number of elements to return. Although up to 100.000 can be specified, it is recommended not to exceed 500 elements. Responses may be slower the more this number is exceeded.
+	Limit *Limit `json:"limit,omitempty"`
+
+	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
+	Sort *Sort `json:"sort,omitempty"`
+
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
+	Search *Search `json:"search,omitempty"`
+
+	// Select which fields to return (separated by comma). Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
+	Select *Select `json:"select,omitempty"`
+
+	// Query to filter results by. For example q=&quot;status=active&quot;
+	Q *Query `json:"q,omitempty"`
+}
+
+// MitreControllerGetTacticsParams defines parameters for MitreControllerGetTactics.
+type MitreControllerGetTacticsParams struct {
+	// List of MITRE's tactics IDs (separated by comma)
+	TacticIds *MitreTacticIds `json:"tactic_ids,omitempty"`
+
+	// Show results in human-readable format
+	Pretty *Pretty `json:"pretty,omitempty"`
+
+	// Disable timeout response
+	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
+
+	// First element to return in the collection
+	Offset *Offset `json:"offset,omitempty"`
+
+	// Maximum number of elements to return. Although up to 100.000 can be specified, it is recommended not to exceed 500 elements. Responses may be slower the more this number is exceeded.
+	Limit *Limit `json:"limit,omitempty"`
+
+	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
+	Sort *Sort `json:"sort,omitempty"`
+
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
+	Search *Search `json:"search,omitempty"`
+
+	// Select which fields to return (separated by comma). Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
+	Select *Select `json:"select,omitempty"`
+
+	// Query to filter results by. For example q=&quot;status=active&quot;
+	Q *Query `json:"q,omitempty"`
+}
+
+// MitreControllerGetTechniquesParams defines parameters for MitreControllerGetTechniques.
+type MitreControllerGetTechniquesParams struct {
+	// List of MITRE's techniques IDs (separated by comma)
+	TechniqueIds *MitreTechniqueIds `json:"technique_ids,omitempty"`
+
+	// Show results in human-readable format
+	Pretty *Pretty `json:"pretty,omitempty"`
+
+	// Disable timeout response
+	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
+
+	// First element to return in the collection
+	Offset *Offset `json:"offset,omitempty"`
+
+	// Maximum number of elements to return. Although up to 100.000 can be specified, it is recommended not to exceed 500 elements. Responses may be slower the more this number is exceeded.
+	Limit *Limit `json:"limit,omitempty"`
+
+	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
+	Sort *Sort `json:"sort,omitempty"`
+
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
+	Search *Search `json:"search,omitempty"`
+
+	// Select which fields to return (separated by comma). Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
+	Select *Select `json:"select,omitempty"`
+
+	// Query to filter results by. For example q=&quot;status=active&quot;
+	Q *Query `json:"q,omitempty"`
+}
+
+// OverviewControllerGetOverviewAgentsParams defines parameters for OverviewControllerGetOverviewAgents.
+type OverviewControllerGetOverviewAgentsParams struct {
+	// Show results in human-readable format
+	Pretty *Pretty `json:"pretty,omitempty"`
+
+	// Disable timeout response
+	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
+}
+
+// RootcheckControllerPutRootcheckParams defines parameters for RootcheckControllerPutRootcheck.
+type RootcheckControllerPutRootcheckParams struct {
+	// Show results in human-readable format
+	Pretty *Pretty `json:"pretty,omitempty"`
+
+	// Disable timeout response
+	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
+
+	// List of agent IDs (separated by comma), all agents selected by default if not specified
+	AgentsList *AgentsList `json:"agents_list,omitempty"`
+}
+
+// RootcheckControllerDeleteRootcheckParams defines parameters for RootcheckControllerDeleteRootcheck.
+type RootcheckControllerDeleteRootcheckParams struct {
+	// Show results in human-readable format
+	Pretty *Pretty `json:"pretty,omitempty"`
+
+	// Disable timeout response
+	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
+}
+
+// RootcheckControllerGetRootcheckAgentParams defines parameters for RootcheckControllerGetRootcheckAgent.
+type RootcheckControllerGetRootcheckAgentParams struct {
+	// Show results in human-readable format
+	Pretty *Pretty `json:"pretty,omitempty"`
+
+	// Disable timeout response
+	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
+
+	// First element to return in the collection
+	Offset *Offset `json:"offset,omitempty"`
+
+	// Maximum number of elements to return. Although up to 100.000 can be specified, it is recommended not to exceed 500 elements. Responses may be slower the more this number is exceeded.
+	Limit *Limit `json:"limit,omitempty"`
+
+	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
+	Sort *Sort `json:"sort,omitempty"`
+
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
 
 	// Select which fields to return (separated by comma). Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
@@ -5070,8 +5442,8 @@ type ApiControllersRootcheckControllerGetRootcheckAgentParams struct {
 	Cis *Cis `json:"cis,omitempty"`
 }
 
-// ApiControllersRootcheckControllerGetLastScanAgentParams defines parameters for ApiControllersRootcheckControllerGetLastScanAgent.
-type ApiControllersRootcheckControllerGetLastScanAgentParams struct {
+// RootcheckControllerGetLastScanAgentParams defines parameters for RootcheckControllerGetLastScanAgent.
+type RootcheckControllerGetLastScanAgentParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -5079,8 +5451,8 @@ type ApiControllersRootcheckControllerGetLastScanAgentParams struct {
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 }
 
-// ApiControllersRuleControllerGetRulesParams defines parameters for ApiControllersRuleControllerGetRules.
-type ApiControllersRuleControllerGetRulesParams struct {
+// RuleControllerGetRulesParams defines parameters for RuleControllerGetRules.
+type RuleControllerGetRulesParams struct {
 	// List of rule IDs
 	RuleIds *RuleIds `json:"rule_ids,omitempty"`
 
@@ -5102,14 +5474,14 @@ type ApiControllersRuleControllerGetRulesParams struct {
 	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
 	Sort *Sort `json:"sort,omitempty"`
 
-	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beggining
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
 
 	// Query to filter results by. For example q=&quot;status=active&quot;
 	Q *Query `json:"q,omitempty"`
 
 	// Filter by list status. Use commas to enter multiple statuses
-	Status *ApiControllersRuleControllerGetRulesParamsStatus `json:"status,omitempty"`
+	Status *RuleControllerGetRulesParamsStatus `json:"status,omitempty"`
 
 	// Filter by rule group
 	Group *Group `json:"group,omitempty"`
@@ -5141,15 +5513,15 @@ type ApiControllersRuleControllerGetRulesParams struct {
 	// Filters by TSC requirement
 	Tsc *Tsc `json:"tsc,omitempty"`
 
-	// Filters by MITRE attack ID
+	// Filters by MITRE technique ID
 	Mitre *Mitre `json:"mitre,omitempty"`
 }
 
-// ApiControllersRuleControllerGetRulesParamsStatus defines parameters for ApiControllersRuleControllerGetRules.
-type ApiControllersRuleControllerGetRulesParamsStatus string
+// RuleControllerGetRulesParamsStatus defines parameters for RuleControllerGetRules.
+type RuleControllerGetRulesParamsStatus string
 
-// ApiControllersRuleControllerGetRulesFilesParams defines parameters for ApiControllersRuleControllerGetRulesFiles.
-type ApiControllersRuleControllerGetRulesFilesParams struct {
+// RuleControllerGetRulesFilesParams defines parameters for RuleControllerGetRulesFiles.
+type RuleControllerGetRulesFilesParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -5165,7 +5537,7 @@ type ApiControllersRuleControllerGetRulesFilesParams struct {
 	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
 	Sort *Sort `json:"sort,omitempty"`
 
-	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beggining
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
 
 	// Filter by relative directory name
@@ -5175,14 +5547,14 @@ type ApiControllersRuleControllerGetRulesFilesParams struct {
 	Filename *XmlFilename `json:"filename,omitempty"`
 
 	// Filter by list status. Use commas to enter multiple statuses
-	Status *ApiControllersRuleControllerGetRulesFilesParamsStatus `json:"status,omitempty"`
+	Status *RuleControllerGetRulesFilesParamsStatus `json:"status,omitempty"`
 }
 
-// ApiControllersRuleControllerGetRulesFilesParamsStatus defines parameters for ApiControllersRuleControllerGetRulesFiles.
-type ApiControllersRuleControllerGetRulesFilesParamsStatus string
+// RuleControllerGetRulesFilesParamsStatus defines parameters for RuleControllerGetRulesFiles.
+type RuleControllerGetRulesFilesParamsStatus string
 
-// ApiControllersRuleControllerDeleteFileParams defines parameters for ApiControllersRuleControllerDeleteFile.
-type ApiControllersRuleControllerDeleteFileParams struct {
+// RuleControllerDeleteFileParams defines parameters for RuleControllerDeleteFile.
+type RuleControllerDeleteFileParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -5190,8 +5562,8 @@ type ApiControllersRuleControllerDeleteFileParams struct {
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 }
 
-// ApiControllersRuleControllerGetFileParams defines parameters for ApiControllersRuleControllerGetFile.
-type ApiControllersRuleControllerGetFileParams struct {
+// RuleControllerGetFileParams defines parameters for RuleControllerGetFile.
+type RuleControllerGetFileParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -5202,8 +5574,8 @@ type ApiControllersRuleControllerGetFileParams struct {
 	Raw *Raw `json:"raw,omitempty"`
 }
 
-// ApiControllersRuleControllerPutFileParams defines parameters for ApiControllersRuleControllerPutFile.
-type ApiControllersRuleControllerPutFileParams struct {
+// RuleControllerPutFileParams defines parameters for RuleControllerPutFile.
+type RuleControllerPutFileParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -5214,8 +5586,8 @@ type ApiControllersRuleControllerPutFileParams struct {
 	Overwrite *Overwrite `json:"overwrite,omitempty"`
 }
 
-// ApiControllersRuleControllerGetRulesGroupsParams defines parameters for ApiControllersRuleControllerGetRulesGroups.
-type ApiControllersRuleControllerGetRulesGroupsParams struct {
+// RuleControllerGetRulesGroupsParams defines parameters for RuleControllerGetRulesGroups.
+type RuleControllerGetRulesGroupsParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -5231,12 +5603,12 @@ type ApiControllersRuleControllerGetRulesGroupsParams struct {
 	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
 	Sort *Sort `json:"sort,omitempty"`
 
-	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beggining
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
 }
 
-// ApiControllersRuleControllerGetRulesRequirementParams defines parameters for ApiControllersRuleControllerGetRulesRequirement.
-type ApiControllersRuleControllerGetRulesRequirementParams struct {
+// RuleControllerGetRulesRequirementParams defines parameters for RuleControllerGetRulesRequirement.
+type RuleControllerGetRulesRequirementParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -5252,15 +5624,15 @@ type ApiControllersRuleControllerGetRulesRequirementParams struct {
 	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
 	Sort *Sort `json:"sort,omitempty"`
 
-	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beggining
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
 }
 
-// ApiControllersRuleControllerGetRulesRequirementParamsRequirement defines parameters for ApiControllersRuleControllerGetRulesRequirement.
-type ApiControllersRuleControllerGetRulesRequirementParamsRequirement string
+// RuleControllerGetRulesRequirementParamsRequirement defines parameters for RuleControllerGetRulesRequirement.
+type RuleControllerGetRulesRequirementParamsRequirement string
 
-// ApiControllersScaControllerGetScaAgentParams defines parameters for ApiControllersScaControllerGetScaAgent.
-type ApiControllersScaControllerGetScaAgentParams struct {
+// ScaControllerGetScaAgentParams defines parameters for ScaControllerGetScaAgent.
+type ScaControllerGetScaAgentParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -5285,15 +5657,15 @@ type ApiControllersScaControllerGetScaAgentParams struct {
 	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
 	Sort *Sort `json:"sort,omitempty"`
 
-	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beggining
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
 
 	// Query to filter results by. For example q=&quot;status=active&quot;
 	Q *Query `json:"q,omitempty"`
 }
 
-// ApiControllersScaControllerGetScaChecksParams defines parameters for ApiControllersScaControllerGetScaChecks.
-type ApiControllersScaControllerGetScaChecksParams struct {
+// ScaControllerGetScaChecksParams defines parameters for ScaControllerGetScaChecks.
+type ScaControllerGetScaChecksParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -5351,15 +5723,15 @@ type ApiControllersScaControllerGetScaChecksParams struct {
 	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
 	Sort *Sort `json:"sort,omitempty"`
 
-	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beggining
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
 
 	// Query to filter results by. For example q=&quot;status=active&quot;
 	Q *Query `json:"q,omitempty"`
 }
 
-// ApiControllersSecurityControllerGetRbacActionsParams defines parameters for ApiControllersSecurityControllerGetRbacActions.
-type ApiControllersSecurityControllerGetRbacActionsParams struct {
+// SecurityControllerGetRbacActionsParams defines parameters for SecurityControllerGetRbacActions.
+type SecurityControllerGetRbacActionsParams struct {
 	// Look for the RBAC actions which are related to the specified endpoint
 	Endpoint *Endpoint `json:"endpoint,omitempty"`
 
@@ -5367,8 +5739,8 @@ type ApiControllersSecurityControllerGetRbacActionsParams struct {
 	Pretty *Pretty `json:"pretty,omitempty"`
 }
 
-// ApiControllersSecurityControllerDeleteSecurityConfigParams defines parameters for ApiControllersSecurityControllerDeleteSecurityConfig.
-type ApiControllersSecurityControllerDeleteSecurityConfigParams struct {
+// SecurityControllerDeleteSecurityConfigParams defines parameters for SecurityControllerDeleteSecurityConfig.
+type SecurityControllerDeleteSecurityConfigParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -5376,8 +5748,8 @@ type ApiControllersSecurityControllerDeleteSecurityConfigParams struct {
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 }
 
-// ApiControllersSecurityControllerGetSecurityConfigParams defines parameters for ApiControllersSecurityControllerGetSecurityConfig.
-type ApiControllersSecurityControllerGetSecurityConfigParams struct {
+// SecurityControllerGetSecurityConfigParams defines parameters for SecurityControllerGetSecurityConfig.
+type SecurityControllerGetSecurityConfigParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -5385,11 +5757,11 @@ type ApiControllersSecurityControllerGetSecurityConfigParams struct {
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 }
 
-// ApiControllersSecurityControllerPutSecurityConfigJSONBody defines parameters for ApiControllersSecurityControllerPutSecurityConfig.
-type ApiControllersSecurityControllerPutSecurityConfigJSONBody SecurityConfiguration
+// SecurityControllerPutSecurityConfigJSONBody defines parameters for SecurityControllerPutSecurityConfig.
+type SecurityControllerPutSecurityConfigJSONBody SecurityConfiguration
 
-// ApiControllersSecurityControllerPutSecurityConfigParams defines parameters for ApiControllersSecurityControllerPutSecurityConfig.
-type ApiControllersSecurityControllerPutSecurityConfigParams struct {
+// SecurityControllerPutSecurityConfigParams defines parameters for SecurityControllerPutSecurityConfig.
+type SecurityControllerPutSecurityConfigParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -5397,8 +5769,8 @@ type ApiControllersSecurityControllerPutSecurityConfigParams struct {
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 }
 
-// ApiControllersSecurityControllerRemovePoliciesParams defines parameters for ApiControllersSecurityControllerRemovePolicies.
-type ApiControllersSecurityControllerRemovePoliciesParams struct {
+// SecurityControllerRemovePoliciesParams defines parameters for SecurityControllerRemovePolicies.
+type SecurityControllerRemovePoliciesParams struct {
 	// List of policy IDs (separated by comma), use the keyword 'all' to select all policies
 	PolicyIds PolicyIdsRbacDelete `json:"policy_ids"`
 
@@ -5409,8 +5781,8 @@ type ApiControllersSecurityControllerRemovePoliciesParams struct {
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 }
 
-// ApiControllersSecurityControllerGetPoliciesParams defines parameters for ApiControllersSecurityControllerGetPolicies.
-type ApiControllersSecurityControllerGetPoliciesParams struct {
+// SecurityControllerGetPoliciesParams defines parameters for SecurityControllerGetPolicies.
+type SecurityControllerGetPoliciesParams struct {
 	// List of policy IDs
 	PolicyIds *PolicyIdsRbac `json:"policy_ids,omitempty"`
 
@@ -5423,8 +5795,11 @@ type ApiControllersSecurityControllerGetPoliciesParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
-	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beggining
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
+
+	// Select which fields to return (separated by comma). Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
+	Select *Select `json:"select,omitempty"`
 
 	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
 	Sort *Sort `json:"sort,omitempty"`
@@ -5433,11 +5808,11 @@ type ApiControllersSecurityControllerGetPoliciesParams struct {
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 }
 
-// ApiControllersSecurityControllerAddPolicyJSONBody defines parameters for ApiControllersSecurityControllerAddPolicy.
-type ApiControllersSecurityControllerAddPolicyJSONBody PoliciesRequest
+// SecurityControllerAddPolicyJSONBody defines parameters for SecurityControllerAddPolicy.
+type SecurityControllerAddPolicyJSONBody PoliciesRequest
 
-// ApiControllersSecurityControllerAddPolicyParams defines parameters for ApiControllersSecurityControllerAddPolicy.
-type ApiControllersSecurityControllerAddPolicyParams struct {
+// SecurityControllerAddPolicyParams defines parameters for SecurityControllerAddPolicy.
+type SecurityControllerAddPolicyParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -5445,11 +5820,11 @@ type ApiControllersSecurityControllerAddPolicyParams struct {
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 }
 
-// ApiControllersSecurityControllerUpdatePolicyJSONBody defines parameters for ApiControllersSecurityControllerUpdatePolicy.
-type ApiControllersSecurityControllerUpdatePolicyJSONBody PoliciesRequestNoRequired
+// SecurityControllerUpdatePolicyJSONBody defines parameters for SecurityControllerUpdatePolicy.
+type SecurityControllerUpdatePolicyJSONBody PoliciesRequestNoRequired
 
-// ApiControllersSecurityControllerUpdatePolicyParams defines parameters for ApiControllersSecurityControllerUpdatePolicy.
-type ApiControllersSecurityControllerUpdatePolicyParams struct {
+// SecurityControllerUpdatePolicyParams defines parameters for SecurityControllerUpdatePolicy.
+type SecurityControllerUpdatePolicyParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -5457,20 +5832,20 @@ type ApiControllersSecurityControllerUpdatePolicyParams struct {
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 }
 
-// ApiControllersSecurityControllerGetRbacResourcesParams defines parameters for ApiControllersSecurityControllerGetRbacResources.
-type ApiControllersSecurityControllerGetRbacResourcesParams struct {
+// SecurityControllerGetRbacResourcesParams defines parameters for SecurityControllerGetRbacResources.
+type SecurityControllerGetRbacResourcesParams struct {
 	// List of current RBAC's resources.
-	Resource *ApiControllersSecurityControllerGetRbacResourcesParamsResource `json:"resource,omitempty"`
+	Resource *SecurityControllerGetRbacResourcesParamsResource `json:"resource,omitempty"`
 
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 }
 
-// ApiControllersSecurityControllerGetRbacResourcesParamsResource defines parameters for ApiControllersSecurityControllerGetRbacResources.
-type ApiControllersSecurityControllerGetRbacResourcesParamsResource string
+// SecurityControllerGetRbacResourcesParamsResource defines parameters for SecurityControllerGetRbacResources.
+type SecurityControllerGetRbacResourcesParamsResource string
 
-// ApiControllersSecurityControllerRemoveRolesParams defines parameters for ApiControllersSecurityControllerRemoveRoles.
-type ApiControllersSecurityControllerRemoveRolesParams struct {
+// SecurityControllerRemoveRolesParams defines parameters for SecurityControllerRemoveRoles.
+type SecurityControllerRemoveRolesParams struct {
 	// List of role IDs (separated by comma), use the keyword 'all' to select all roles
 	RoleIds RoleIdsDelete `json:"role_ids"`
 
@@ -5481,8 +5856,8 @@ type ApiControllersSecurityControllerRemoveRolesParams struct {
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 }
 
-// ApiControllersSecurityControllerGetRolesParams defines parameters for ApiControllersSecurityControllerGetRoles.
-type ApiControllersSecurityControllerGetRolesParams struct {
+// SecurityControllerGetRolesParams defines parameters for SecurityControllerGetRoles.
+type SecurityControllerGetRolesParams struct {
 	// List of role IDs (separated by comma)
 	RoleIds *RoleIds `json:"role_ids,omitempty"`
 
@@ -5495,8 +5870,11 @@ type ApiControllersSecurityControllerGetRolesParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
-	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beggining
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
+
+	// Select which fields to return (separated by comma). Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
+	Select *Select `json:"select,omitempty"`
 
 	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
 	Sort *Sort `json:"sort,omitempty"`
@@ -5505,11 +5883,11 @@ type ApiControllersSecurityControllerGetRolesParams struct {
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 }
 
-// ApiControllersSecurityControllerAddRoleJSONBody defines parameters for ApiControllersSecurityControllerAddRole.
-type ApiControllersSecurityControllerAddRoleJSONBody RolesRequest
+// SecurityControllerAddRoleJSONBody defines parameters for SecurityControllerAddRole.
+type SecurityControllerAddRoleJSONBody RolesRequest
 
-// ApiControllersSecurityControllerAddRoleParams defines parameters for ApiControllersSecurityControllerAddRole.
-type ApiControllersSecurityControllerAddRoleParams struct {
+// SecurityControllerAddRoleParams defines parameters for SecurityControllerAddRole.
+type SecurityControllerAddRoleParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -5517,11 +5895,11 @@ type ApiControllersSecurityControllerAddRoleParams struct {
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 }
 
-// ApiControllersSecurityControllerUpdateRoleJSONBody defines parameters for ApiControllersSecurityControllerUpdateRole.
-type ApiControllersSecurityControllerUpdateRoleJSONBody RolesRequestNoRequired
+// SecurityControllerUpdateRoleJSONBody defines parameters for SecurityControllerUpdateRole.
+type SecurityControllerUpdateRoleJSONBody RolesRequestNoRequired
 
-// ApiControllersSecurityControllerUpdateRoleParams defines parameters for ApiControllersSecurityControllerUpdateRole.
-type ApiControllersSecurityControllerUpdateRoleParams struct {
+// SecurityControllerUpdateRoleParams defines parameters for SecurityControllerUpdateRole.
+type SecurityControllerUpdateRoleParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -5529,8 +5907,8 @@ type ApiControllersSecurityControllerUpdateRoleParams struct {
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 }
 
-// ApiControllersSecurityControllerRemoveRolePolicyParams defines parameters for ApiControllersSecurityControllerRemoveRolePolicy.
-type ApiControllersSecurityControllerRemoveRolePolicyParams struct {
+// SecurityControllerRemoveRolePolicyParams defines parameters for SecurityControllerRemoveRolePolicy.
+type SecurityControllerRemoveRolePolicyParams struct {
 	// List of policy IDs (separated by comma), use the keyword 'all' to select all policies
 	PolicyIds PolicyIdsRbacDelete `json:"policy_ids"`
 
@@ -5541,8 +5919,8 @@ type ApiControllersSecurityControllerRemoveRolePolicyParams struct {
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 }
 
-// ApiControllersSecurityControllerSetRolePolicyParams defines parameters for ApiControllersSecurityControllerSetRolePolicy.
-type ApiControllersSecurityControllerSetRolePolicyParams struct {
+// SecurityControllerSetRolePolicyParams defines parameters for SecurityControllerSetRolePolicy.
+type SecurityControllerSetRolePolicyParams struct {
 	// List of policy IDs
 	PolicyIds PolicyIdsRbacRequired `json:"policy_ids"`
 
@@ -5556,8 +5934,8 @@ type ApiControllersSecurityControllerSetRolePolicyParams struct {
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 }
 
-// ApiControllersSecurityControllerRemoveRoleRuleParams defines parameters for ApiControllersSecurityControllerRemoveRoleRule.
-type ApiControllersSecurityControllerRemoveRoleRuleParams struct {
+// SecurityControllerRemoveRoleRuleParams defines parameters for SecurityControllerRemoveRoleRule.
+type SecurityControllerRemoveRoleRuleParams struct {
 	// List of rule IDs (separated by comma), use the keyword 'all' to select all rules
 	RuleIds SecurityRuleIdsDelete `json:"rule_ids"`
 
@@ -5568,8 +5946,8 @@ type ApiControllersSecurityControllerRemoveRoleRuleParams struct {
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 }
 
-// ApiControllersSecurityControllerSetRoleRuleParams defines parameters for ApiControllersSecurityControllerSetRoleRule.
-type ApiControllersSecurityControllerSetRoleRuleParams struct {
+// SecurityControllerSetRoleRuleParams defines parameters for SecurityControllerSetRoleRule.
+type SecurityControllerSetRoleRuleParams struct {
 	// List of rule IDs (separated by comma)
 	RuleIds SecurityRuleIdsRequired `json:"rule_ids"`
 
@@ -5580,8 +5958,8 @@ type ApiControllersSecurityControllerSetRoleRuleParams struct {
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 }
 
-// ApiControllersSecurityControllerRemoveRulesParams defines parameters for ApiControllersSecurityControllerRemoveRules.
-type ApiControllersSecurityControllerRemoveRulesParams struct {
+// SecurityControllerRemoveRulesParams defines parameters for SecurityControllerRemoveRules.
+type SecurityControllerRemoveRulesParams struct {
 	// List of rule IDs (separated by comma), use the keyword 'all' to select all rules
 	RuleIds SecurityRuleIdsDelete `json:"rule_ids"`
 
@@ -5592,8 +5970,8 @@ type ApiControllersSecurityControllerRemoveRulesParams struct {
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 }
 
-// ApiControllersSecurityControllerGetRulesParams defines parameters for ApiControllersSecurityControllerGetRules.
-type ApiControllersSecurityControllerGetRulesParams struct {
+// SecurityControllerGetRulesParams defines parameters for SecurityControllerGetRules.
+type SecurityControllerGetRulesParams struct {
 	// List of rule IDs (separated by comma)
 	RuleIds *SecurityRuleIds `json:"rule_ids,omitempty"`
 
@@ -5606,8 +5984,11 @@ type ApiControllersSecurityControllerGetRulesParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
-	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beggining
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
+
+	// Select which fields to return (separated by comma). Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
+	Select *Select `json:"select,omitempty"`
 
 	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
 	Sort *Sort `json:"sort,omitempty"`
@@ -5616,11 +5997,11 @@ type ApiControllersSecurityControllerGetRulesParams struct {
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 }
 
-// ApiControllersSecurityControllerAddRuleJSONBody defines parameters for ApiControllersSecurityControllerAddRule.
-type ApiControllersSecurityControllerAddRuleJSONBody SecurityRulesRequest
+// SecurityControllerAddRuleJSONBody defines parameters for SecurityControllerAddRule.
+type SecurityControllerAddRuleJSONBody SecurityRulesRequest
 
-// ApiControllersSecurityControllerAddRuleParams defines parameters for ApiControllersSecurityControllerAddRule.
-type ApiControllersSecurityControllerAddRuleParams struct {
+// SecurityControllerAddRuleParams defines parameters for SecurityControllerAddRule.
+type SecurityControllerAddRuleParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -5628,11 +6009,11 @@ type ApiControllersSecurityControllerAddRuleParams struct {
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 }
 
-// ApiControllersSecurityControllerUpdateRuleJSONBody defines parameters for ApiControllersSecurityControllerUpdateRule.
-type ApiControllersSecurityControllerUpdateRuleJSONBody SecurityRulesRequestNoRequired
+// SecurityControllerUpdateRuleJSONBody defines parameters for SecurityControllerUpdateRule.
+type SecurityControllerUpdateRuleJSONBody SecurityRulesRequestNoRequired
 
-// ApiControllersSecurityControllerUpdateRuleParams defines parameters for ApiControllersSecurityControllerUpdateRule.
-type ApiControllersSecurityControllerUpdateRuleParams struct {
+// SecurityControllerUpdateRuleParams defines parameters for SecurityControllerUpdateRule.
+type SecurityControllerUpdateRuleParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -5640,23 +6021,23 @@ type ApiControllersSecurityControllerUpdateRuleParams struct {
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 }
 
-// ApiControllersSecurityControllerLoginUserParams defines parameters for ApiControllersSecurityControllerLoginUser.
-type ApiControllersSecurityControllerLoginUserParams struct {
+// SecurityControllerLoginUserParams defines parameters for SecurityControllerLoginUser.
+type SecurityControllerLoginUserParams struct {
 	// Format response in plain text
 	Raw *Raw `json:"raw,omitempty"`
 }
 
-// ApiControllersSecurityControllerRunAsLoginJSONBody defines parameters for ApiControllersSecurityControllerRunAsLogin.
-type ApiControllersSecurityControllerRunAsLoginJSONBody map[string]interface{}
+// SecurityControllerRunAsLoginJSONBody defines parameters for SecurityControllerRunAsLogin.
+type SecurityControllerRunAsLoginJSONBody map[string]interface{}
 
-// ApiControllersSecurityControllerRunAsLoginParams defines parameters for ApiControllersSecurityControllerRunAsLogin.
-type ApiControllersSecurityControllerRunAsLoginParams struct {
+// SecurityControllerRunAsLoginParams defines parameters for SecurityControllerRunAsLogin.
+type SecurityControllerRunAsLoginParams struct {
 	// Format response in plain text
 	Raw *Raw `json:"raw,omitempty"`
 }
 
-// ApiControllersSecurityControllerDeleteUsersParams defines parameters for ApiControllersSecurityControllerDeleteUsers.
-type ApiControllersSecurityControllerDeleteUsersParams struct {
+// SecurityControllerDeleteUsersParams defines parameters for SecurityControllerDeleteUsers.
+type SecurityControllerDeleteUsersParams struct {
 	// List of user IDs (separated by comma), use the keyword 'all' to select all users
 	UserIds UserIdsDelete `json:"user_ids"`
 
@@ -5667,8 +6048,8 @@ type ApiControllersSecurityControllerDeleteUsersParams struct {
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 }
 
-// ApiControllersSecurityControllerGetUsersParams defines parameters for ApiControllersSecurityControllerGetUsers.
-type ApiControllersSecurityControllerGetUsersParams struct {
+// SecurityControllerGetUsersParams defines parameters for SecurityControllerGetUsers.
+type SecurityControllerGetUsersParams struct {
 	// List of user IDs (separated by comma)
 	UserIds *UserIds `json:"user_ids,omitempty"`
 
@@ -5681,8 +6062,11 @@ type ApiControllersSecurityControllerGetUsersParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
-	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beggining
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
+
+	// Select which fields to return (separated by comma). Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
+	Select *Select `json:"select,omitempty"`
 
 	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
 	Sort *Sort `json:"sort,omitempty"`
@@ -5691,14 +6075,14 @@ type ApiControllersSecurityControllerGetUsersParams struct {
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 }
 
-// ApiControllersSecurityControllerCreateUserJSONBody defines parameters for ApiControllersSecurityControllerCreateUser.
-type ApiControllersSecurityControllerCreateUserJSONBody struct {
+// SecurityControllerCreateUserJSONBody defines parameters for SecurityControllerCreateUser.
+type SecurityControllerCreateUserJSONBody struct {
 	Password string `json:"password"`
 	Username string `json:"username"`
 }
 
-// ApiControllersSecurityControllerCreateUserParams defines parameters for ApiControllersSecurityControllerCreateUser.
-type ApiControllersSecurityControllerCreateUserParams struct {
+// SecurityControllerCreateUserParams defines parameters for SecurityControllerCreateUser.
+type SecurityControllerCreateUserParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -5706,8 +6090,8 @@ type ApiControllersSecurityControllerCreateUserParams struct {
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 }
 
-// ApiControllersSecurityControllerGetUserMeParams defines parameters for ApiControllersSecurityControllerGetUserMe.
-type ApiControllersSecurityControllerGetUserMeParams struct {
+// SecurityControllerGetUserMeParams defines parameters for SecurityControllerGetUserMe.
+type SecurityControllerGetUserMeParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -5715,19 +6099,19 @@ type ApiControllersSecurityControllerGetUserMeParams struct {
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 }
 
-// ApiControllersSecurityControllerGetUserMePoliciesParams defines parameters for ApiControllersSecurityControllerGetUserMePolicies.
-type ApiControllersSecurityControllerGetUserMePoliciesParams struct {
+// SecurityControllerGetUserMePoliciesParams defines parameters for SecurityControllerGetUserMePolicies.
+type SecurityControllerGetUserMePoliciesParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 }
 
-// ApiControllersSecurityControllerUpdateUserJSONBody defines parameters for ApiControllersSecurityControllerUpdateUser.
-type ApiControllersSecurityControllerUpdateUserJSONBody struct {
+// SecurityControllerUpdateUserJSONBody defines parameters for SecurityControllerUpdateUser.
+type SecurityControllerUpdateUserJSONBody struct {
 	Password *string `json:"password,omitempty"`
 }
 
-// ApiControllersSecurityControllerUpdateUserParams defines parameters for ApiControllersSecurityControllerUpdateUser.
-type ApiControllersSecurityControllerUpdateUserParams struct {
+// SecurityControllerUpdateUserParams defines parameters for SecurityControllerUpdateUser.
+type SecurityControllerUpdateUserParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -5735,8 +6119,8 @@ type ApiControllersSecurityControllerUpdateUserParams struct {
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 }
 
-// ApiControllersSecurityControllerRemoveUserRoleParams defines parameters for ApiControllersSecurityControllerRemoveUserRole.
-type ApiControllersSecurityControllerRemoveUserRoleParams struct {
+// SecurityControllerRemoveUserRoleParams defines parameters for SecurityControllerRemoveUserRole.
+type SecurityControllerRemoveUserRoleParams struct {
 	// List of role IDs (separated by comma), use the keyword 'all' to select all roles
 	RoleIds RoleIdsDelete `json:"role_ids"`
 
@@ -5747,8 +6131,8 @@ type ApiControllersSecurityControllerRemoveUserRoleParams struct {
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 }
 
-// ApiControllersSecurityControllerSetUserRoleParams defines parameters for ApiControllersSecurityControllerSetUserRole.
-type ApiControllersSecurityControllerSetUserRoleParams struct {
+// SecurityControllerSetUserRoleParams defines parameters for SecurityControllerSetUserRole.
+type SecurityControllerSetUserRoleParams struct {
 	// List of role IDs (separated by comma)
 	RoleIds RoleIdsRequired `json:"role_ids"`
 
@@ -5762,8 +6146,8 @@ type ApiControllersSecurityControllerSetUserRoleParams struct {
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 }
 
-// ApiControllersSecurityControllerEditRunAsParams defines parameters for ApiControllersSecurityControllerEditRunAs.
-type ApiControllersSecurityControllerEditRunAsParams struct {
+// SecurityControllerEditRunAsParams defines parameters for SecurityControllerEditRunAs.
+type SecurityControllerEditRunAsParams struct {
 	// Value for the allow_run_as flag
 	AllowRunAs *AllowRunAs `json:"allow_run_as,omitempty"`
 
@@ -5774,8 +6158,8 @@ type ApiControllersSecurityControllerEditRunAsParams struct {
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 }
 
-// ApiControllersSyscheckControllerPutSyscheckParams defines parameters for ApiControllersSyscheckControllerPutSyscheck.
-type ApiControllersSyscheckControllerPutSyscheckParams struct {
+// SyscheckControllerPutSyscheckParams defines parameters for SyscheckControllerPutSyscheck.
+type SyscheckControllerPutSyscheckParams struct {
 	// List of agent IDs (separated by comma), all agents selected by default if not specified
 	AgentsList *AgentsList `json:"agents_list,omitempty"`
 
@@ -5786,8 +6170,8 @@ type ApiControllersSyscheckControllerPutSyscheckParams struct {
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 }
 
-// ApiControllersSyscheckControllerDeleteSyscheckAgentParams defines parameters for ApiControllersSyscheckControllerDeleteSyscheckAgent.
-type ApiControllersSyscheckControllerDeleteSyscheckAgentParams struct {
+// SyscheckControllerDeleteSyscheckAgentParams defines parameters for SyscheckControllerDeleteSyscheckAgent.
+type SyscheckControllerDeleteSyscheckAgentParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -5795,8 +6179,8 @@ type ApiControllersSyscheckControllerDeleteSyscheckAgentParams struct {
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 }
 
-// ApiControllersSyscheckControllerGetSyscheckAgentParams defines parameters for ApiControllersSyscheckControllerGetSyscheckAgent.
-type ApiControllersSyscheckControllerGetSyscheckAgentParams struct {
+// SyscheckControllerGetSyscheckAgentParams defines parameters for SyscheckControllerGetSyscheckAgent.
+type SyscheckControllerGetSyscheckAgentParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -5812,7 +6196,7 @@ type ApiControllersSyscheckControllerGetSyscheckAgentParams struct {
 	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
 	Sort *Sort `json:"sort,omitempty"`
 
-	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beggining
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
 
 	// Select which fields to return (separated by comma). Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
@@ -5822,7 +6206,7 @@ type ApiControllersSyscheckControllerGetSyscheckAgentParams struct {
 	File *FullPathFilter `json:"file,omitempty"`
 
 	// Filter by architecture
-	Arch *ApiControllersSyscheckControllerGetSyscheckAgentParamsArch `json:"arch,omitempty"`
+	Arch *SyscheckControllerGetSyscheckAgentParamsArch `json:"arch,omitempty"`
 
 	// Filter by value name
 	ValueName *ValueName `json:"value.name,omitempty"`
@@ -5831,7 +6215,7 @@ type ApiControllersSyscheckControllerGetSyscheckAgentParams struct {
 	ValueType *ValueType `json:"value.type,omitempty"`
 
 	// Filter by file type. Registry_key and registry_value types are only available in Windows agents
-	Type *ApiControllersSyscheckControllerGetSyscheckAgentParamsType `json:"type,omitempty"`
+	Type *SyscheckControllerGetSyscheckAgentParamsType `json:"type,omitempty"`
 
 	// Return a summary grouping by filename
 	Summary *Summary `json:"summary,omitempty"`
@@ -5855,14 +6239,14 @@ type ApiControllersSyscheckControllerGetSyscheckAgentParams struct {
 	Q *Query `json:"q,omitempty"`
 }
 
-// ApiControllersSyscheckControllerGetSyscheckAgentParamsArch defines parameters for ApiControllersSyscheckControllerGetSyscheckAgent.
-type ApiControllersSyscheckControllerGetSyscheckAgentParamsArch string
+// SyscheckControllerGetSyscheckAgentParamsArch defines parameters for SyscheckControllerGetSyscheckAgent.
+type SyscheckControllerGetSyscheckAgentParamsArch string
 
-// ApiControllersSyscheckControllerGetSyscheckAgentParamsType defines parameters for ApiControllersSyscheckControllerGetSyscheckAgent.
-type ApiControllersSyscheckControllerGetSyscheckAgentParamsType string
+// SyscheckControllerGetSyscheckAgentParamsType defines parameters for SyscheckControllerGetSyscheckAgent.
+type SyscheckControllerGetSyscheckAgentParamsType string
 
-// ApiControllersSyscheckControllerGetLastScanAgentParams defines parameters for ApiControllersSyscheckControllerGetLastScanAgent.
-type ApiControllersSyscheckControllerGetLastScanAgentParams struct {
+// SyscheckControllerGetLastScanAgentParams defines parameters for SyscheckControllerGetLastScanAgent.
+type SyscheckControllerGetLastScanAgentParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -5870,8 +6254,8 @@ type ApiControllersSyscheckControllerGetLastScanAgentParams struct {
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 }
 
-// ApiControllersSyscollectorControllerGetHardwareInfoParams defines parameters for ApiControllersSyscollectorControllerGetHardwareInfo.
-type ApiControllersSyscollectorControllerGetHardwareInfoParams struct {
+// SyscollectorControllerGetHardwareInfoParams defines parameters for SyscollectorControllerGetHardwareInfo.
+type SyscollectorControllerGetHardwareInfoParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -5882,8 +6266,8 @@ type ApiControllersSyscollectorControllerGetHardwareInfoParams struct {
 	Select *Select `json:"select,omitempty"`
 }
 
-// ApiControllersSyscollectorControllerGetHotfixInfoParams defines parameters for ApiControllersSyscollectorControllerGetHotfixInfo.
-type ApiControllersSyscollectorControllerGetHotfixInfoParams struct {
+// SyscollectorControllerGetHotfixInfoParams defines parameters for SyscollectorControllerGetHotfixInfo.
+type SyscollectorControllerGetHotfixInfoParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -5899,7 +6283,7 @@ type ApiControllersSyscollectorControllerGetHotfixInfoParams struct {
 	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
 	Sort *Sort `json:"sort,omitempty"`
 
-	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beggining
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
 
 	// Select which fields to return (separated by comma). Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
@@ -5912,8 +6296,8 @@ type ApiControllersSyscollectorControllerGetHotfixInfoParams struct {
 	Q *Query `json:"q,omitempty"`
 }
 
-// ApiControllersSyscollectorControllerGetNetworkAddressInfoParams defines parameters for ApiControllersSyscollectorControllerGetNetworkAddressInfo.
-type ApiControllersSyscollectorControllerGetNetworkAddressInfoParams struct {
+// SyscollectorControllerGetNetworkAddressInfoParams defines parameters for SyscollectorControllerGetNetworkAddressInfo.
+type SyscollectorControllerGetNetworkAddressInfoParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -5929,7 +6313,7 @@ type ApiControllersSyscollectorControllerGetNetworkAddressInfoParams struct {
 	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
 	Sort *Sort `json:"sort,omitempty"`
 
-	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beggining
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
 
 	// Select which fields to return (separated by comma). Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
@@ -5954,8 +6338,8 @@ type ApiControllersSyscollectorControllerGetNetworkAddressInfoParams struct {
 	Q *Query `json:"q,omitempty"`
 }
 
-// ApiControllersSyscollectorControllerGetNetworkInterfaceInfoParams defines parameters for ApiControllersSyscollectorControllerGetNetworkInterfaceInfo.
-type ApiControllersSyscollectorControllerGetNetworkInterfaceInfoParams struct {
+// SyscollectorControllerGetNetworkInterfaceInfoParams defines parameters for SyscollectorControllerGetNetworkInterfaceInfo.
+type SyscollectorControllerGetNetworkInterfaceInfoParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -5971,7 +6355,7 @@ type ApiControllersSyscollectorControllerGetNetworkInterfaceInfoParams struct {
 	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
 	Sort *Sort `json:"sort,omitempty"`
 
-	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beggining
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
 
 	// Select which fields to return (separated by comma). Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
@@ -5983,7 +6367,7 @@ type ApiControllersSyscollectorControllerGetNetworkInterfaceInfoParams struct {
 	// Filter by adapter
 	Adapter *Adapter `json:"adapter,omitempty"`
 
-	// Type of file
+	// Type of interface
 	Type *Typesys `json:"type,omitempty"`
 
 	// Filter by state
@@ -6020,8 +6404,8 @@ type ApiControllersSyscollectorControllerGetNetworkInterfaceInfoParams struct {
 	Q *Query `json:"q,omitempty"`
 }
 
-// ApiControllersSyscollectorControllerGetNetworkProtocolInfoParams defines parameters for ApiControllersSyscollectorControllerGetNetworkProtocolInfo.
-type ApiControllersSyscollectorControllerGetNetworkProtocolInfoParams struct {
+// SyscollectorControllerGetNetworkProtocolInfoParams defines parameters for SyscollectorControllerGetNetworkProtocolInfo.
+type SyscollectorControllerGetNetworkProtocolInfoParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -6037,7 +6421,7 @@ type ApiControllersSyscollectorControllerGetNetworkProtocolInfoParams struct {
 	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
 	Sort *Sort `json:"sort,omitempty"`
 
-	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beggining
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
 
 	// Select which fields to return (separated by comma). Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
@@ -6059,8 +6443,8 @@ type ApiControllersSyscollectorControllerGetNetworkProtocolInfoParams struct {
 	Q *Query `json:"q,omitempty"`
 }
 
-// ApiControllersSyscollectorControllerGetOsInfoParams defines parameters for ApiControllersSyscollectorControllerGetOsInfo.
-type ApiControllersSyscollectorControllerGetOsInfoParams struct {
+// SyscollectorControllerGetOsInfoParams defines parameters for SyscollectorControllerGetOsInfo.
+type SyscollectorControllerGetOsInfoParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -6071,8 +6455,8 @@ type ApiControllersSyscollectorControllerGetOsInfoParams struct {
 	Select *Select `json:"select,omitempty"`
 }
 
-// ApiControllersSyscollectorControllerGetPackagesInfoParams defines parameters for ApiControllersSyscollectorControllerGetPackagesInfo.
-type ApiControllersSyscollectorControllerGetPackagesInfoParams struct {
+// SyscollectorControllerGetPackagesInfoParams defines parameters for SyscollectorControllerGetPackagesInfo.
+type SyscollectorControllerGetPackagesInfoParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -6088,7 +6472,7 @@ type ApiControllersSyscollectorControllerGetPackagesInfoParams struct {
 	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
 	Sort *Sort `json:"sort,omitempty"`
 
-	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beggining
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
 
 	// Select which fields to return (separated by comma). Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
@@ -6106,15 +6490,15 @@ type ApiControllersSyscollectorControllerGetPackagesInfoParams struct {
 	// Filter by file format. For example 'deb' will output deb files
 	Format *FileFormat `json:"format,omitempty"`
 
-	// Filter by version name
+	// Filter by package version
 	Version *PackageVersion `json:"version,omitempty"`
 
 	// Query to filter results by. For example q=&quot;status=active&quot;
 	Q *Query `json:"q,omitempty"`
 }
 
-// ApiControllersSyscollectorControllerGetPortsInfoParams defines parameters for ApiControllersSyscollectorControllerGetPortsInfo.
-type ApiControllersSyscollectorControllerGetPortsInfoParams struct {
+// SyscollectorControllerGetPortsInfoParams defines parameters for SyscollectorControllerGetPortsInfo.
+type SyscollectorControllerGetPortsInfoParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -6130,7 +6514,7 @@ type ApiControllersSyscollectorControllerGetPortsInfoParams struct {
 	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
 	Sort *Sort `json:"sort,omitempty"`
 
-	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beggining
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
 
 	// Select which fields to return (separated by comma). Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
@@ -6164,8 +6548,8 @@ type ApiControllersSyscollectorControllerGetPortsInfoParams struct {
 	Q *Query `json:"q,omitempty"`
 }
 
-// ApiControllersSyscollectorControllerGetProcessesInfoParams defines parameters for ApiControllersSyscollectorControllerGetProcessesInfo.
-type ApiControllersSyscollectorControllerGetProcessesInfoParams struct {
+// SyscollectorControllerGetProcessesInfoParams defines parameters for SyscollectorControllerGetProcessesInfo.
+type SyscollectorControllerGetProcessesInfoParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -6181,7 +6565,7 @@ type ApiControllersSyscollectorControllerGetProcessesInfoParams struct {
 	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
 	Sort *Sort `json:"sort,omitempty"`
 
-	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beggining
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
 
 	// Select which fields to return (separated by comma). Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
@@ -6233,8 +6617,8 @@ type ApiControllersSyscollectorControllerGetProcessesInfoParams struct {
 	Q *Query `json:"q,omitempty"`
 }
 
-// ApiControllersTaskControllerGetTasksStatusParams defines parameters for ApiControllersTaskControllerGetTasksStatus.
-type ApiControllersTaskControllerGetTasksStatusParams struct {
+// TaskControllerGetTasksStatusParams defines parameters for TaskControllerGetTasksStatus.
+type TaskControllerGetTasksStatusParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -6250,7 +6634,7 @@ type ApiControllersTaskControllerGetTasksStatusParams struct {
 	// Query to filter results by. For example q=&quot;status=active&quot;
 	Q *Query `json:"q,omitempty"`
 
-	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beggining
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
 
 	// Select which fields to return (separated by comma). Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
@@ -6278,8 +6662,8 @@ type ApiControllersTaskControllerGetTasksStatusParams struct {
 	Status *Status `json:"status,omitempty"`
 }
 
-// ApiControllersVulnerabilityControllerGetVulnerabilityAgentParams defines parameters for ApiControllersVulnerabilityControllerGetVulnerabilityAgent.
-type ApiControllersVulnerabilityControllerGetVulnerabilityAgentParams struct {
+// VulnerabilityControllerGetVulnerabilityAgentParams defines parameters for VulnerabilityControllerGetVulnerabilityAgent.
+type VulnerabilityControllerGetVulnerabilityAgentParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -6295,7 +6679,7 @@ type ApiControllersVulnerabilityControllerGetVulnerabilityAgentParams struct {
 	// Sort the collection by a field or fields (separated by comma). Use +/- at the beggining to list in ascending or descending order. Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
 	Sort *Sort `json:"sort,omitempty"`
 
-	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beggining
+	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
 
 	// Select which fields to return (separated by comma). Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
@@ -6318,52 +6702,91 @@ type ApiControllersVulnerabilityControllerGetVulnerabilityAgentParams struct {
 
 	// Filter by CVE version
 	Version *CveVersion `json:"version,omitempty"`
+
+	// Filter by CVE type
+	Type *VulnerabilityControllerGetVulnerabilityAgentParamsType `json:"type,omitempty"`
+
+	// Filter by CVE status
+	Status *VulnerabilityControllerGetVulnerabilityAgentParamsStatus `json:"status,omitempty"`
+
+	// Filter by CVE severity
+	Severity *CveSeverity `json:"severity,omitempty"`
 }
 
-// ApiControllersActiveResponseControllerRunCommandJSONRequestBody defines body for ApiControllersActiveResponseControllerRunCommand for application/json ContentType.
-type ApiControllersActiveResponseControllerRunCommandJSONRequestBody ApiControllersActiveResponseControllerRunCommandJSONBody
+// VulnerabilityControllerGetVulnerabilityAgentParamsType defines parameters for VulnerabilityControllerGetVulnerabilityAgent.
+type VulnerabilityControllerGetVulnerabilityAgentParamsType string
 
-// ApiControllersAgentControllerAddAgentJSONRequestBody defines body for ApiControllersAgentControllerAddAgent for application/json ContentType.
-type ApiControllersAgentControllerAddAgentJSONRequestBody ApiControllersAgentControllerAddAgentJSONBody
+// VulnerabilityControllerGetVulnerabilityAgentParamsStatus defines parameters for VulnerabilityControllerGetVulnerabilityAgent.
+type VulnerabilityControllerGetVulnerabilityAgentParamsStatus string
 
-// ApiControllersAgentControllerInsertAgentJSONRequestBody defines body for ApiControllersAgentControllerInsertAgent for application/json ContentType.
-type ApiControllersAgentControllerInsertAgentJSONRequestBody ApiControllersAgentControllerInsertAgentJSONBody
+// VulnerabilityControllerGetLastScanAgentParams defines parameters for VulnerabilityControllerGetLastScanAgent.
+type VulnerabilityControllerGetLastScanAgentParams struct {
+	// Show results in human-readable format
+	Pretty *Pretty `json:"pretty,omitempty"`
 
-// ApiControllersAgentControllerPostGroupJSONRequestBody defines body for ApiControllersAgentControllerPostGroup for application/json ContentType.
-type ApiControllersAgentControllerPostGroupJSONRequestBody ApiControllersAgentControllerPostGroupJSONBody
+	// Disable timeout response
+	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
+}
 
-// ApiControllersLogtestControllerRunLogtestToolJSONRequestBody defines body for ApiControllersLogtestControllerRunLogtestTool for application/json ContentType.
-type ApiControllersLogtestControllerRunLogtestToolJSONRequestBody ApiControllersLogtestControllerRunLogtestToolJSONBody
+// VulnerabilityControllerGetVulnerabilitiesFieldSummaryParams defines parameters for VulnerabilityControllerGetVulnerabilitiesFieldSummary.
+type VulnerabilityControllerGetVulnerabilitiesFieldSummaryParams struct {
+	// Show results in human-readable format
+	Pretty *Pretty `json:"pretty,omitempty"`
 
-// ApiControllersSecurityControllerPutSecurityConfigJSONRequestBody defines body for ApiControllersSecurityControllerPutSecurityConfig for application/json ContentType.
-type ApiControllersSecurityControllerPutSecurityConfigJSONRequestBody ApiControllersSecurityControllerPutSecurityConfigJSONBody
+	// Disable timeout response
+	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 
-// ApiControllersSecurityControllerAddPolicyJSONRequestBody defines body for ApiControllersSecurityControllerAddPolicy for application/json ContentType.
-type ApiControllersSecurityControllerAddPolicyJSONRequestBody ApiControllersSecurityControllerAddPolicyJSONBody
+	// Maximum number of elements to return. Although up to 100.000 can be specified, it is recommended not to exceed 500 elements. Responses may be slower the more this number is exceeded.
+	Limit *Limit `json:"limit,omitempty"`
+}
 
-// ApiControllersSecurityControllerUpdatePolicyJSONRequestBody defines body for ApiControllersSecurityControllerUpdatePolicy for application/json ContentType.
-type ApiControllersSecurityControllerUpdatePolicyJSONRequestBody ApiControllersSecurityControllerUpdatePolicyJSONBody
+// VulnerabilityControllerGetVulnerabilitiesFieldSummaryParamsField defines parameters for VulnerabilityControllerGetVulnerabilitiesFieldSummary.
+type VulnerabilityControllerGetVulnerabilitiesFieldSummaryParamsField string
 
-// ApiControllersSecurityControllerAddRoleJSONRequestBody defines body for ApiControllersSecurityControllerAddRole for application/json ContentType.
-type ApiControllersSecurityControllerAddRoleJSONRequestBody ApiControllersSecurityControllerAddRoleJSONBody
+// ActiveResponseControllerRunCommandJSONRequestBody defines body for ActiveResponseControllerRunCommand for application/json ContentType.
+type ActiveResponseControllerRunCommandJSONRequestBody ActiveResponseControllerRunCommandJSONBody
 
-// ApiControllersSecurityControllerUpdateRoleJSONRequestBody defines body for ApiControllersSecurityControllerUpdateRole for application/json ContentType.
-type ApiControllersSecurityControllerUpdateRoleJSONRequestBody ApiControllersSecurityControllerUpdateRoleJSONBody
+// AgentControllerAddAgentJSONRequestBody defines body for AgentControllerAddAgent for application/json ContentType.
+type AgentControllerAddAgentJSONRequestBody AgentControllerAddAgentJSONBody
 
-// ApiControllersSecurityControllerAddRuleJSONRequestBody defines body for ApiControllersSecurityControllerAddRule for application/json ContentType.
-type ApiControllersSecurityControllerAddRuleJSONRequestBody ApiControllersSecurityControllerAddRuleJSONBody
+// AgentControllerInsertAgentJSONRequestBody defines body for AgentControllerInsertAgent for application/json ContentType.
+type AgentControllerInsertAgentJSONRequestBody AgentControllerInsertAgentJSONBody
 
-// ApiControllersSecurityControllerUpdateRuleJSONRequestBody defines body for ApiControllersSecurityControllerUpdateRule for application/json ContentType.
-type ApiControllersSecurityControllerUpdateRuleJSONRequestBody ApiControllersSecurityControllerUpdateRuleJSONBody
+// AgentControllerPostGroupJSONRequestBody defines body for AgentControllerPostGroup for application/json ContentType.
+type AgentControllerPostGroupJSONRequestBody AgentControllerPostGroupJSONBody
 
-// ApiControllersSecurityControllerRunAsLoginJSONRequestBody defines body for ApiControllersSecurityControllerRunAsLogin for application/json ContentType.
-type ApiControllersSecurityControllerRunAsLoginJSONRequestBody ApiControllersSecurityControllerRunAsLoginJSONBody
+// LogtestControllerRunLogtestToolJSONRequestBody defines body for LogtestControllerRunLogtestTool for application/json ContentType.
+type LogtestControllerRunLogtestToolJSONRequestBody LogtestControllerRunLogtestToolJSONBody
 
-// ApiControllersSecurityControllerCreateUserJSONRequestBody defines body for ApiControllersSecurityControllerCreateUser for application/json ContentType.
-type ApiControllersSecurityControllerCreateUserJSONRequestBody ApiControllersSecurityControllerCreateUserJSONBody
+// SecurityControllerPutSecurityConfigJSONRequestBody defines body for SecurityControllerPutSecurityConfig for application/json ContentType.
+type SecurityControllerPutSecurityConfigJSONRequestBody SecurityControllerPutSecurityConfigJSONBody
 
-// ApiControllersSecurityControllerUpdateUserJSONRequestBody defines body for ApiControllersSecurityControllerUpdateUser for application/json ContentType.
-type ApiControllersSecurityControllerUpdateUserJSONRequestBody ApiControllersSecurityControllerUpdateUserJSONBody
+// SecurityControllerAddPolicyJSONRequestBody defines body for SecurityControllerAddPolicy for application/json ContentType.
+type SecurityControllerAddPolicyJSONRequestBody SecurityControllerAddPolicyJSONBody
+
+// SecurityControllerUpdatePolicyJSONRequestBody defines body for SecurityControllerUpdatePolicy for application/json ContentType.
+type SecurityControllerUpdatePolicyJSONRequestBody SecurityControllerUpdatePolicyJSONBody
+
+// SecurityControllerAddRoleJSONRequestBody defines body for SecurityControllerAddRole for application/json ContentType.
+type SecurityControllerAddRoleJSONRequestBody SecurityControllerAddRoleJSONBody
+
+// SecurityControllerUpdateRoleJSONRequestBody defines body for SecurityControllerUpdateRole for application/json ContentType.
+type SecurityControllerUpdateRoleJSONRequestBody SecurityControllerUpdateRoleJSONBody
+
+// SecurityControllerAddRuleJSONRequestBody defines body for SecurityControllerAddRule for application/json ContentType.
+type SecurityControllerAddRuleJSONRequestBody SecurityControllerAddRuleJSONBody
+
+// SecurityControllerUpdateRuleJSONRequestBody defines body for SecurityControllerUpdateRule for application/json ContentType.
+type SecurityControllerUpdateRuleJSONRequestBody SecurityControllerUpdateRuleJSONBody
+
+// SecurityControllerRunAsLoginJSONRequestBody defines body for SecurityControllerRunAsLogin for application/json ContentType.
+type SecurityControllerRunAsLoginJSONRequestBody SecurityControllerRunAsLoginJSONBody
+
+// SecurityControllerCreateUserJSONRequestBody defines body for SecurityControllerCreateUser for application/json ContentType.
+type SecurityControllerCreateUserJSONRequestBody SecurityControllerCreateUserJSONBody
+
+// SecurityControllerUpdateUserJSONRequestBody defines body for SecurityControllerUpdateUser for application/json ContentType.
+type SecurityControllerUpdateUserJSONRequestBody SecurityControllerUpdateUserJSONBody
 
 // Getter for additional properties for ApiError_DapiErrors. Returns the specified
 // element and whether it was found
@@ -6421,6 +6844,59 @@ func (a *ApiError_DapiErrors) UnmarshalJSON(b []byte) error {
 
 // Override default JSON handling for ApiError_DapiErrors to handle AdditionalProperties
 func (a ApiError_DapiErrors) MarshalJSON() ([]byte, error) {
+	var err error
+	object := make(map[string]json.RawMessage)
+
+	for fieldName, field := range a.AdditionalProperties {
+		object[fieldName], err = json.Marshal(field)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
+		}
+	}
+	return json.Marshal(object)
+}
+
+// Getter for additional properties for GroupDelete. Returns the specified
+// element and whether it was found
+func (a GroupDelete) Get(fieldName string) (value []interface{}, found bool) {
+	if a.AdditionalProperties != nil {
+		value, found = a.AdditionalProperties[fieldName]
+	}
+	return
+}
+
+// Setter for additional properties for GroupDelete
+func (a *GroupDelete) Set(fieldName string, value []interface{}) {
+	if a.AdditionalProperties == nil {
+		a.AdditionalProperties = make(map[string][]interface{})
+	}
+	a.AdditionalProperties[fieldName] = value
+}
+
+// Override default JSON handling for GroupDelete to handle AdditionalProperties
+func (a *GroupDelete) UnmarshalJSON(b []byte) error {
+	object := make(map[string]json.RawMessage)
+	err := json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if len(object) != 0 {
+		a.AdditionalProperties = make(map[string][]interface{})
+		for fieldName, fieldBuf := range object {
+			var fieldVal []interface{}
+			err := json.Unmarshal(fieldBuf, &fieldVal)
+			if err != nil {
+				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
+			}
+			a.AdditionalProperties[fieldName] = fieldVal
+		}
+	}
+	return nil
+}
+
+// Override default JSON handling for GroupDelete to handle AdditionalProperties
+func (a GroupDelete) MarshalJSON() ([]byte, error) {
 	var err error
 	object := make(map[string]json.RawMessage)
 
@@ -6505,3 +6981,4 @@ func (a SimpleApiError_Error) MarshalJSON() ([]byte, error) {
 	}
 	return json.Marshal(object)
 }
+
