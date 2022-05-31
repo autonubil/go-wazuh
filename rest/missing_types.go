@@ -33,7 +33,7 @@ type Vulnerability struct {
 	Title              *string  `json:"title,omitempty"`
 	Version            *string  `json:"version,omitempty"`
 	Architecture       *string  `json:"architecture,omitempty"`
-	Detection_time     *string  `json:"detection_time,omitempty"`
+	DetectionTime      *string  `json:"detection_time,omitempty"`
 	Type               *string  `json:"type,omitempty"`
 	Status             *string  `json:"status,omitempty"`
 	Condition          *string  `json:"condition,omitempty"`
@@ -42,6 +42,7 @@ type Vulnerability struct {
 	ExternalReferences []string `json:"external_references,omitempty"`
 	CVSS2Score         *float32 `json:"cvss2_score,omitempty"`
 	CVSS3Score         *float32 `json:"cvss3_score,omitempty"`
+	Severity           *string  `json:"severity,omitempty"`
 }
 
 // AllItemsResponseAgentsSimple defines model for AllItemsResponseAgentsSimple.
@@ -57,8 +58,5 @@ type AllItemsResponseVulnerability struct {
 	// Embedded struct due to allOf(#/components/schemas/ApiResponse)
 	ApiResponse `yaml:",inline"`
 	// Embedded fields due to inline allOf schema
-	Data *struct {
-		// Embedded struct due to allOf(#/components/schemas/AllItemsResponseAgentIDs)
-		AllItemsResponseVulnerabilities `yaml:",inline"`
-	} `json:"data,omitempty"`
+	Data *AllItemsResponseVulnerabilities `json:"data,omitempty"`
 }

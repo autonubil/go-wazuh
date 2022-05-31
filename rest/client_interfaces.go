@@ -331,5 +331,5 @@ type TaskControllerInterface interface {
 type VulnerabilityControllerInterface interface {
 	GetLastScanAgent(arg1 AgentId, params *VulnerabilityControllerGetLastScanAgentParams, reqEditors ...RequestEditorFn) (*AllItemsResponseLastScan, error)
 	GetVulnerabilitiesFieldSummary(arg1 AgentId, arg2 VulnerabilityControllerGetVulnerabilitiesFieldSummaryParamsField, params *VulnerabilityControllerGetVulnerabilitiesFieldSummaryParams, reqEditors ...RequestEditorFn) (*ApiResponse, error)
-	GetVulnerabilityAgent(arg1 AgentId, params *VulnerabilityControllerGetVulnerabilityAgentParams, reqEditors ...RequestEditorFn) (*AllItemsResponseVulnerability, error)
+	GetVulnerabilityAgent(arg1 AgentId, params *VulnerabilityControllerGetVulnerabilityAgentParams, reqEditors ...RequestEditorFn) (*AllItemsResponseVulnerabilities, error)
 }

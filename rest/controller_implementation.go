@@ -1,6 +1,8 @@
 package rest
 
-import "io"
+import (
+	"io"
+)
 
 // AgentController implementation of the AgentController interface
 type AgentController struct {
@@ -2221,7 +2223,7 @@ func (c *VulnerabilityController) GetVulnerabilitiesFieldSummary(arg1 AgentId, a
 }
 
 // GetVulnerabilityAgent calls the Vulnerability controller´s function
-func (c *VulnerabilityController) GetVulnerabilityAgent(arg1 AgentId, params *VulnerabilityControllerGetVulnerabilityAgentParams, reqEditors ...RequestEditorFn) (*AllItemsResponseVulnerability, error) {
+func (c *VulnerabilityController) GetVulnerabilityAgent(arg1 AgentId, params *VulnerabilityControllerGetVulnerabilityAgentParams, reqEditors ...RequestEditorFn) (*AllItemsResponseVulnerabilities, error) {
 	if c.ClientInterface.(*Client).token == "" {
 		err := c.Authenticate()
 		if err != nil {
@@ -2232,8 +2234,8 @@ func (c *VulnerabilityController) GetVulnerabilityAgent(arg1 AgentId, params *Vu
 	if err != nil {
 		return nil, err
 	}
-	// convert to *ApiResponse
-	if i, ok := r.(*AllItemsResponseVulnerability); ok {
+	// convert to *AllItemsResponseVulnerabilities
+	if i, ok := r.(*AllItemsResponseVulnerabilities); ok {
 		return i, nil
 	}
 
