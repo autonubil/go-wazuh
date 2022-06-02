@@ -27,6 +27,7 @@ import (
 	"github.com/autonubil/go-wazuh/sysinfo"
 	"github.com/joncrlsn/dque"
 	"github.com/matishsiao/goInfo"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 // EncryptionMethod supported transport encryption
@@ -90,36 +91,43 @@ const (
 // Client allowes to handshake with the server to reach a pending state (which allowes the agent to become a group member)
 type Client struct {
 	*AgentKey
-	Server            string
-	Port              uint16
-	UDP               bool
-	basePath          string
-	remotePath        string
-	ridsPath          string
-	localCount        uint
-	globalCount       uint
-	evtCount          uint
-	sentCount         uint
-	receivedCount     uint
-	cOrigSize         uint
-	cCompSize         uint
-	sentBytes         int
-	sentBytesTotal    int
-	EncryptionMethod  EncryptionMethod
-	ClientName        string
-	ClientVersion     string
-	ConfigHash        string
-	ctx               context.Context
-	conn              net.Conn
-	mx                sync.Mutex
-	logger            *zap.Logger
-	connected         bool
-	ratelimit         ratelimit.Limiter
-	outChannel        chan interface{}
-	RemoteFiles       map[string]RemoteFileInfo
-	CurrentRemoteFile *RemoteFileInfo
-	un                *goInfo.GoInfoObject
-	osInfo            *sysinfo.OS
+	Server             string
+	Port               uint16
+	UDP                bool
+	basePath           string
+	remotePath         string
+	ridsPath           string
+	localCount         uint
+	globalCount        uint
+	evtCount           uint64
+	sentCount          uint64
+	receivedCount      uint64
+	connectionAttempts uint64
+	connectionsOpened  uint64
+	connectionsClose   uint64
+	cOrigSize          uint
+	cCompSize          uint
+	sessionID          int64
+	sentBytes          uint64
+	sentBytesTotal     uint64
+	receivedBytes      uint64
+	receivedBytesTotal uint64
+	EncryptionMethod   EncryptionMethod
+	ClientName         string
+	ClientVersion      string
+	ConfigHash         string
+	ctx                context.Context
+	conn               net.Conn
+	mx                 sync.Mutex
+	logger             *zap.Logger
+	connected          bool
+	rateLimit          ratelimit.Limiter
+	outChannel         chan interface{}
+	RemoteFiles        map[string]RemoteFileInfo
+	CurrentRemoteFile  *RemoteFileInfo
+	un                 *goInfo.GoInfoObject
+	osInfo             *sysinfo.OS
+	collector          *agentCollector
 }
 
 type FileUpdatedEvent struct {
@@ -243,7 +251,6 @@ func WithAgentAllowedIPs(allowedIPs string) AgentOption {
 
 // NewAgent create a new Agent for the target server
 func NewAgent(server string, agentID string, agentName string, agentKey string, opts ...AgentOption) (*Client, error) {
-
 	// key... https://github.com/ossec/ossec-hids/blob/10f6ad82f5271593c61d9ac2f14ba918e559be7b/src/os_crypto/shared/keys.c#L31
 	filesum1 := fmt.Sprintf("%00x", md5.Sum([]byte(agentName)))
 	filesum2 := fmt.Sprintf("%00x", md5.Sum([]byte(agentID)))
@@ -272,7 +279,7 @@ func NewAgent(server string, agentID string, agentName string, agentKey string, 
 		EncryptionMethod: EncryptionMethodAES,
 		ClientName:       "go-wazuh",
 		ClientVersion:    "v1.0.0",
-		ratelimit:        ratelimit.New(SendRateLimit), // per second
+		rateLimit:        ratelimit.New(SendRateLimit), // per second
 		RemoteFiles:      make(map[string]RemoteFileInfo),
 		un:               &un,
 		osInfo:           sysinfo.GetOSInfo(),
@@ -317,6 +324,14 @@ func NewAgent(server string, agentID string, agentName string, agentKey string, 
 	err = a.ReadClientCounter()
 	if err != nil {
 		return nil, err
+	}
+
+	collector := newAgentCollector(a)
+	err = prometheus.Register(collector)
+	if err == nil {
+		a.collector = collector
+	} else {
+		a.logger.Debug("registerPrometheus", zap.Any("agentId", a.AgentID), zap.Error(err))
 	}
 
 	return a, nil
@@ -396,16 +411,25 @@ func (a *Client) close(sendCloseMsg bool) error {
 		}
 		a.connected = false
 		a.sentBytes = 0
+		a.sessionID = 0
+		a.receivedBytes = 0
+		a.connectionsClose = a.connectionsClose + 1
 		return a.conn.Close()
 	}
+	a.receivedBytes = 0
 	a.sentBytes = 0
+	a.sessionID = 0
 	return nil
 }
 
 // Close closes the connection.
 // Any blocked Read or Write operations will be unblocked and return errors.
 func (a *Client) Close() error {
-	return a.close(true)
+	err := a.close(true)
+	if a.collector != nil {
+		prometheus.Unregister(a.collector)
+	}
+	return err
 }
 
 // WriteMessage without waiting for an answerr a message and wait for an answer
@@ -479,7 +503,7 @@ func (a *Client) handleResponse(response string) error {
 			return nil
 		} else {
 			if a.logger != nil {
-				a.logger.Debug("receivedMessage", zap.Any("agentId", a.AgentID), zap.String("msg", string(response)), zap.Uint("globalCount", a.globalCount), zap.Uint("localCount", a.localCount), zap.Uint("evtCount", a.evtCount), zap.Uint("sentCount", a.sentCount), zap.Uint("receivedCount", a.receivedCount))
+				a.logger.Debug("receivedMessage", zap.Any("agentId", a.AgentID), zap.String("msg", string(response)), zap.Uint("globalCount", a.globalCount), zap.Uint("localCount", a.localCount), zap.Uint64("evtCount", a.evtCount), zap.Uint64("sentCount", a.sentCount), zap.Uint64("receivedCount", a.receivedCount))
 			}
 		}
 	}
@@ -596,14 +620,14 @@ func (a *Client) writeMessage(msg string) error {
 
 	// ensure ratelimit is honored
 	prev := time.Now()
-	now := a.ratelimit.Take()
+	now := a.rateLimit.Take()
 	ret, err := a.conn.Write(encryptedMsg)
-	a.sentBytes += ret
-	a.sentBytesTotal += ret
+	a.sentBytes += uint64(ret)
+	a.sentBytesTotal += uint64(ret)
 
 	if err != nil {
 		if a.logger != nil {
-			a.logger.Warn("writeMessage", zap.Any("agentId", a.AgentID), zap.String("msg", msg), zap.Int("result", ret), zap.Int("sentBytes", a.sentBytes), zap.Int("sentBytesTotal", a.sentBytesTotal), zap.Duration("rateWait", now.Sub(prev)), zap.Uint("globalCount", a.globalCount), zap.Uint("localCount", a.localCount), zap.Uint("evtCount", a.evtCount), zap.Uint("sentCount", a.sentCount), zap.Uint("receivedCount", a.receivedCount), zap.Error(err))
+			a.logger.Warn("writeMessage", zap.Any("agentId", a.AgentID), zap.String("msg", msg), zap.Int("result", ret), zap.Uint64("sentBytes", a.sentBytes), zap.Uint64("sentBytesTotal", a.sentBytesTotal), zap.Duration("rateWait", now.Sub(prev)), zap.Uint("globalCount", a.globalCount), zap.Uint("localCount", a.localCount), zap.Uint64("evtCount", a.evtCount), zap.Uint64("sentCount", a.sentCount), zap.Uint64("receivedCount", a.receivedCount), zap.Error(err))
 		}
 		err2 := a.close(false)
 		if err2 != nil {
@@ -614,7 +638,7 @@ func (a *Client) writeMessage(msg string) error {
 	a.sentCount++
 	time.Sleep(25 * time.Millisecond)
 	if a.logger != nil {
-		a.logger.Debug("writeMessage", zap.Any("agentId", a.AgentID), zap.String("msg", msg), zap.Int("result", ret), zap.Int("sentBytes", a.sentBytes), zap.Int("sentBytesTotal", a.sentBytesTotal), zap.Duration("rateWait", now.Sub(prev)), zap.Uint("globalCount", a.globalCount), zap.Uint("localCount", a.localCount), zap.Uint("evtCount", a.evtCount), zap.Uint("sentCount", a.sentCount), zap.Uint("receivedCount", a.receivedCount))
+		a.logger.Debug("writeMessage", zap.Any("agentId", a.AgentID), zap.String("msg", msg), zap.Int("result", ret), zap.Uint64("sentBytes", a.sentBytes), zap.Uint64("sentBytesTotal", a.sentBytesTotal), zap.Duration("rateWait", now.Sub(prev)), zap.Uint("globalCount", a.globalCount), zap.Uint("localCount", a.localCount), zap.Uint64("evtCount", a.evtCount), zap.Uint64("sentCount", a.sentCount), zap.Uint64("receivedCount", a.receivedCount))
 	}
 	return nil
 }
@@ -681,6 +705,8 @@ func (a *Client) readServerResponse(timeout time.Duration) error {
 	for {
 
 		nRead, err := a.conn.Read(buffer)
+		a.receivedBytes = a.receivedBytes + uint64(nRead)
+		a.receivedBytesTotal = a.receivedBytesTotal + uint64(nRead)
 		// a.logger.Info("read", zap.Any("agentId", a.AgentID), zap.Any("deadline", deadline), zap.Int("read", nRead), zap.Int("readSoFar", totallyRead), zap.Error(err))
 		if nRead == 0 {
 			if oe, ok := err.(*net.OpError); ok && oe.Err != os.ErrDeadlineExceeded {
@@ -793,13 +819,28 @@ func (a *Client) readServerResponse(timeout time.Duration) error {
 func (a *Client) Connect(isStartup bool) error {
 	a.mx.Lock()
 	defer a.mx.Unlock()
+	a.sessionID = time.Now().UnixMicro()
+
 	a.connected = false
 	var err error
+
+	a.connectionAttempts = a.connectionAttempts + 1
+
+	// try to re-register agent if the connection has been closed before
+	if a.collector == nil {
+		collector := newAgentCollector(a)
+		err = prometheus.Register(collector)
+		if err == nil {
+			a.collector = collector
+		}
+	}
+
 	var localAddr net.Addr
 	if a.UDP {
 		a.logger.Debug("connect", zap.Any("agentId", a.AgentID), zap.String("protocol", "udp"), zap.String("server", a.Server))
 		a.conn, err = net.Dial("udp", fmt.Sprintf("%s:%d", a.Server, a.Port))
 		if err != nil {
+			a.sessionID = 0
 			return err
 		}
 		localAddr = a.conn.LocalAddr().(*net.UDPAddr)
@@ -807,6 +848,7 @@ func (a *Client) Connect(isStartup bool) error {
 		a.logger.Debug("connect", zap.Any("agentId", a.AgentID), zap.String("protocol", "tcp"), zap.String("server", a.Server))
 		a.conn, err = net.Dial("tcp", fmt.Sprintf("%s:%d", a.Server, a.Port))
 		if err != nil {
+			a.sessionID = 0
 			return err
 		}
 		localAddr = a.conn.LocalAddr().(*net.TCPAddr)
@@ -826,6 +868,7 @@ func (a *Client) Connect(isStartup bool) error {
 	msg := fmt.Sprintf("%s%s", CONTROL_HEADER, HC_STARTUP)
 	err = a.sendMessage(msg, ReadWaitTimeout)
 	if err != nil {
+		a.sessionID = 0
 		return err
 	}
 
@@ -841,18 +884,19 @@ func (a *Client) Connect(isStartup bool) error {
 		msg = fmt.Sprintf("%c:%s:%s", LOCALFILE_MQ, "ossec", msg)
 		err = a.writeMessage(msg)
 		if err != nil {
+			a.sessionID = 0
 			return err
 		}
 
 		time.Sleep(1 * time.Second)
 		err = a.pingServer()
 		if err != nil {
+			a.sessionID = 0
 			return err
 		}
-
 	}
+	a.connectionsOpened = a.connectionsOpened + 1
 	a.connected = true
-
 	return nil
 }
 
