@@ -915,8 +915,11 @@ func (a *Client) openQueue(ctx context.Context) (chan *QueuePosting, *dque.DQue,
 					continue
 				}
 
-				if err = q.Enqueue(msg); err != nil {
+				if err = q.Enqueue(msg); err == nil {
+					AgentCollector.Enqueue(a)
+				} else {
 					a.logger.Error("enqueueItem", zap.Any("agentId", a.AgentID), zap.Any("item", msg), zap.Error(err))
+					AgentCollector.SetQueueSize(a, q.Size())
 				}
 			}
 			if ctx.Err() != nil {
@@ -954,6 +957,7 @@ func (a *Client) AgentLoop(ctx context.Context, closeOnError bool) (chan *QueueP
 	if err != nil {
 		return nil, out, err
 	}
+	AgentCollector.SetQueueSize(a, q.Size())
 
 	go func() {
 		defer func() {
@@ -993,16 +997,19 @@ func (a *Client) AgentLoop(ctx context.Context, closeOnError bool) (chan *QueueP
 					for {
 						item, dqErr := q.Peek()
 						if dqErr == dque.ErrEmpty {
+							AgentCollector.SetQueueSize(a, 0)
 							// a.logger.Debug("dequeue", zap.Any("agentId", a.AgentID), zap.String("problem", "queue empty"))
 							break
 						}
 						if dqErr != nil {
 							a.logger.Error("dequeue", zap.Any("agentId", a.AgentID), zap.Error(dqErr))
+							AgentCollector.SetQueueSize(a, q.Size())
 							break
 						}
 
 						if item == nil {
 							a.logger.Warn("dequeue", zap.Any("agentId", a.AgentID), zap.String("problem", "nil item"))
+							AgentCollector.SetQueueSize(a, q.Size())
 							continue
 						}
 
@@ -1025,6 +1032,7 @@ func (a *Client) AgentLoop(ctx context.Context, closeOnError bool) (chan *QueueP
 								a.logger.Error("marshall", zap.Any("agentId", a.AgentID), zap.Error(err))
 								item = nil
 								q.Dequeue()
+								AgentCollector.Dequeue(a)
 								continue
 							}
 
@@ -1051,8 +1059,10 @@ func (a *Client) AgentLoop(ctx context.Context, closeOnError bool) (chan *QueueP
 						}
 						// remove last item from queue
 						_, err = q.Dequeue()
+						AgentCollector.Dequeue(a)
 						if err != nil {
 							a.logger.Error("dequeue", zap.Any("agentId", a.AgentID), zap.Error(err))
+							AgentCollector.SetQueueSize(a, q.Size())
 							item = nil
 						}
 						// make sure, we take a pause
