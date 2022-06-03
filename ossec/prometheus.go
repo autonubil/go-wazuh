@@ -1,8 +1,6 @@
 package ossec
 
 import (
-	"strconv"
-
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -11,116 +9,116 @@ import (
 //Note you can also include fields of other types if they provide utility
 //but we just won't be exposing them as metrics.
 type agentCollector struct {
-	agent                       *Client
-	connectedMetric             *prometheus.Desc
-	eventsTotalMetric           *prometheus.Desc
-	messagesSentTotalMetric     *prometheus.Desc
-	messagesReceivedTotalMetric *prometheus.Desc
+	agents                      []*Client
+	connectedMetric             *prometheus.GaugeVec
+	eventsTotalMetric           *prometheus.GaugeVec
+	messagesSentTotalMetric     *prometheus.GaugeVec
+	messagesReceivedTotalMetric *prometheus.GaugeVec
+	messageErrorsTotalMetric    *prometheus.GaugeVec
 
-	sentBytesTotalMetric        *prometheus.Desc
-	sentBytesSessionTotalMetric *prometheus.Desc
+	bytesSentTotalMetric     *prometheus.GaugeVec
+	bytesReceivedTotalMetric *prometheus.GaugeVec
 
-	receivedBytesTotalMetric        *prometheus.Desc
-	receivedBytesSessionTotalMetric *prometheus.Desc
-
-	connectionAttemptsTotalMetric *prometheus.Desc
-	connectionsOpenedTotalMetric  *prometheus.Desc
-	connectionsClosedTotalMetric  *prometheus.Desc
+	connectionAttemptsTotalMetric *prometheus.GaugeVec
+	connectionsOpenedTotalMetric  *prometheus.GaugeVec
+	connectionsClosedTotalMetric  *prometheus.GaugeVec
 }
 
-var agentLabels = []string{"agent_id", "agent_name", "agent_ip", "agent_protocol", "agent_encryption", "session_id"}
+var agentLabels = []string{"agent_id", "agent_name", "agent_protocol", "agent_encryption"}
+
+var AgentCollector = newAgentCollector()
+
+func init() {
+	prometheus.Register(AgentCollector)
+}
 
 //You must create a constructor for you collector that
 //initializes every descriptor and returns a pointer to the collector
-func newAgentCollector(agent *Client) *agentCollector {
+func newAgentCollector() *agentCollector {
 	return &agentCollector{
-		agent: agent,
-		connectedMetric: prometheus.NewDesc("ossec_agent_connections_total",
-			"agent connection count (normally 0 or 1)",
-			agentLabels, nil,
-		),
+		agents: make([]*Client, 0),
+		connectedMetric: prometheus.NewGaugeVec(prometheus.GaugeOpts{
+			Namespace: "ossec",
+			Subsystem: "agent",
+			Name:      "connections",
+			Help:      "agent connection count",
+		}, agentLabels),
 
-		eventsTotalMetric: prometheus.NewDesc("ossec_agent_events_total",
-			"total events processes",
-			agentLabels, nil,
-		),
-		messagesSentTotalMetric: prometheus.NewDesc("ossec_agent_messages_sent_total",
-			"total messages sent",
-			agentLabels, nil,
-		),
-		messagesReceivedTotalMetric: prometheus.NewDesc("ossec_agent_messages_received_total",
-			"total messages received",
-			agentLabels, nil,
-		),
+		eventsTotalMetric: prometheus.NewGaugeVec(prometheus.GaugeOpts{
+			Namespace: "ossec",
+			Subsystem: "agent",
+			Name:      "events_total",
+			Help:      "total events processed",
+		}, agentLabels),
 
-		sentBytesTotalMetric: prometheus.NewDesc("ossec_agent_bytes_sent_total",
-			"total bytes sent",
-			agentLabels, nil,
-		),
-		sentBytesSessionTotalMetric: prometheus.NewDesc("ossec_agent_session_bytes_sent_total",
-			"bytes sent during current session",
-			agentLabels, nil,
-		),
+		messageErrorsTotalMetric: prometheus.NewGaugeVec(prometheus.GaugeOpts{
+			Namespace: "ossec",
+			Subsystem: "agent",
+			Name:      "message_errors_total",
+			Help:      "total errors in messages",
+		}, agentLabels),
 
-		receivedBytesTotalMetric: prometheus.NewDesc("ossec_agent_bytes_received_total",
-			"total bytes received",
-			agentLabels, nil,
-		),
-		receivedBytesSessionTotalMetric: prometheus.NewDesc("ossec_agent_session_bytes_received_total",
-			"bytes received during current session",
-			agentLabels, nil,
-		),
+		messagesSentTotalMetric: prometheus.NewGaugeVec(prometheus.GaugeOpts{
+			Namespace: "ossec",
+			Subsystem: "agent",
+			Name:      "messages_sent_total",
+			Help:      "total messages sent",
+		}, agentLabels),
 
-		connectionAttemptsTotalMetric: prometheus.NewDesc("ossec_agent_connection_attempts_total",
-			"total connection attempts",
-			agentLabels, nil,
-		),
+		messagesReceivedTotalMetric: prometheus.NewGaugeVec(prometheus.GaugeOpts{
+			Namespace: "ossec",
+			Subsystem: "agent",
+			Name:      "messages_received_total",
+			Help:      "total bytes received",
+		}, agentLabels),
 
-		connectionsOpenedTotalMetric: prometheus.NewDesc("ossec_agent_connections_openend_total",
-			"total succesfull connection attempts",
-			agentLabels, nil,
-		),
+		bytesSentTotalMetric: prometheus.NewGaugeVec(prometheus.GaugeOpts{
+			Namespace: "ossec",
+			Subsystem: "agent",
+			Name:      "bytes_sent_total",
+			Help:      "total bytes sent",
+		}, agentLabels),
 
-		connectionsClosedTotalMetric: prometheus.NewDesc("ossec_agent_connections_closed_total",
-			"total connection activly closed ",
-			agentLabels, nil,
-		),
+		bytesReceivedTotalMetric: prometheus.NewGaugeVec(prometheus.GaugeOpts{
+			Namespace: "ossec",
+			Subsystem: "agent",
+			Name:      "bytes_received_total",
+			Help:      "total bytes received",
+		}, agentLabels),
+
+		connectionAttemptsTotalMetric: prometheus.NewGaugeVec(prometheus.GaugeOpts{
+			Namespace: "ossec",
+			Subsystem: "agent",
+			Name:      "connection_attempts_total",
+			Help:      "total connection attempts",
+		}, agentLabels),
+
+		connectionsOpenedTotalMetric: prometheus.NewGaugeVec(prometheus.GaugeOpts{
+			Namespace: "ossec",
+			Subsystem: "agent",
+			Name:      "connections_openend_total",
+			Help:      "succesfull connection attempts",
+		}, agentLabels),
+
+		connectionsClosedTotalMetric: prometheus.NewGaugeVec(prometheus.GaugeOpts{
+			Namespace: "ossec",
+			Subsystem: "agent",
+			Name:      "connections_closed_total",
+			Help:      "total connection activly closed",
+		}, agentLabels),
 	}
 }
 
-//Each and every collector must implement the Describe function.
-//It essentially writes all descriptors to the prometheus desc channel.
-func (collector *agentCollector) Describe(ch chan<- *prometheus.Desc) {
-	//Update this section with the each metric you create for a given collector
-	ch <- collector.connectedMetric
-	ch <- collector.eventsTotalMetric
-	ch <- collector.messagesSentTotalMetric
-	ch <- collector.messagesReceivedTotalMetric
-
-	ch <- collector.sentBytesTotalMetric
-	ch <- collector.sentBytesSessionTotalMetric
-
-	ch <- collector.receivedBytesTotalMetric
-	ch <- collector.receivedBytesSessionTotalMetric
-
-	ch <- collector.connectionAttemptsTotalMetric
-	ch <- collector.connectionsOpenedTotalMetric
-	ch <- collector.connectionsClosedTotalMetric
-}
-
-//Collect implements required collect function for all promehteus collectors
-func (collector *agentCollector) Collect(ch chan<- prometheus.Metric) {
-	//Implement logic here to determine proper metric value to return to prometheus
-	//for each descriptor or call other functions that do so.
-	if collector.agent != nil {
+func (collector *agentCollector) getAgentLabels(agent *Client) []string {
+	if agent != nil {
 		var protocol string
-		if collector.agent.UDP {
+		if agent.UDP {
 			protocol = "UDP"
 		} else {
 			protocol = "TCP"
 		}
 		var encryption string
-		switch collector.agent.EncryptionMethod {
+		switch agent.EncryptionMethod {
 		case EncryptionMethodBlowFish:
 			encryption = "BlowFish"
 		case EncryptionMethodAES:
@@ -128,32 +126,195 @@ func (collector *agentCollector) Collect(ch chan<- prometheus.Metric) {
 		default:
 			encryption = "Unknown"
 		}
+		/* TODO: Implement session stats?
 		var sessionID string
-		if collector.agent.sessionID == 0 {
+		if agent.sessionID == 0 {
 			sessionID = "none"
 		} else {
-			sessionID = strconv.FormatInt(collector.agent.sessionID, 16)
+			sessionID = strconv.FormatInt(agent.sessionID, 16)
 		}
-		agentLabeValues := []string{collector.agent.AgentID, collector.agent.AgentName, collector.agent.AgentIP, protocol, encryption, sessionID}
-
-		var connections float64
-		if collector.agent.IsConencted() {
-			connections = 1
-		}
-		ch <- prometheus.MustNewConstMetric(collector.connectedMetric, prometheus.CounterValue, connections, agentLabeValues...)
-		ch <- prometheus.MustNewConstMetric(collector.eventsTotalMetric, prometheus.CounterValue, float64(collector.agent.evtCount), agentLabeValues...)
-		ch <- prometheus.MustNewConstMetric(collector.messagesSentTotalMetric, prometheus.CounterValue, float64(collector.agent.sentCount), agentLabeValues...)
-		ch <- prometheus.MustNewConstMetric(collector.messagesReceivedTotalMetric, prometheus.CounterValue, float64(collector.agent.receivedCount), agentLabeValues...)
-
-		ch <- prometheus.MustNewConstMetric(collector.sentBytesTotalMetric, prometheus.CounterValue, float64(collector.agent.sentBytes), agentLabeValues...)
-		ch <- prometheus.MustNewConstMetric(collector.sentBytesSessionTotalMetric, prometheus.CounterValue, float64(collector.agent.sentBytesTotal), agentLabeValues...)
-
-		ch <- prometheus.MustNewConstMetric(collector.receivedBytesTotalMetric, prometheus.CounterValue, float64(collector.agent.receivedBytes), agentLabeValues...)
-		ch <- prometheus.MustNewConstMetric(collector.receivedBytesSessionTotalMetric, prometheus.CounterValue, float64(collector.agent.receivedBytesTotal), agentLabeValues...)
-
-		ch <- prometheus.MustNewConstMetric(collector.connectionAttemptsTotalMetric, prometheus.CounterValue, float64(collector.agent.connectionAttempts), agentLabeValues...)
-		ch <- prometheus.MustNewConstMetric(collector.connectionsOpenedTotalMetric, prometheus.CounterValue, float64(collector.agent.connectionsOpened), agentLabeValues...)
-		ch <- prometheus.MustNewConstMetric(collector.connectionsClosedTotalMetric, prometheus.CounterValue, float64(collector.agent.connectionsOpened), agentLabeValues...)
-
+		*/
+		return []string{agent.AgentID, agent.AgentName, protocol, encryption}
 	}
+	return nil
+}
+
+func (collector *agentCollector) Register(agent *Client) {
+	if agent == nil {
+		return
+	}
+	labels := collector.getAgentLabels(agent)
+	if labels == nil {
+		return
+	}
+	collector.connectedMetric.WithLabelValues(labels...).Set(1)
+	collector.eventsTotalMetric.WithLabelValues(labels...).Set(0)
+	collector.messagesSentTotalMetric.WithLabelValues(labels...).Set(0)
+	collector.messagesReceivedTotalMetric.WithLabelValues(labels...).Set(0)
+	collector.messageErrorsTotalMetric.WithLabelValues(labels...).Set(0)
+	collector.bytesSentTotalMetric.WithLabelValues(labels...).Set(0)
+	collector.bytesReceivedTotalMetric.WithLabelValues(labels...).Set(0)
+	collector.connectionAttemptsTotalMetric.WithLabelValues(labels...).Set(0)
+	collector.connectionsOpenedTotalMetric.WithLabelValues(labels...).Set(0)
+	collector.connectionsClosedTotalMetric.WithLabelValues(labels...).Set(0)
+}
+
+func (collector *agentCollector) TryConnect(agent *Client) {
+	if agent == nil {
+		return
+	}
+	labels := collector.getAgentLabels(agent)
+	if labels == nil {
+		return
+	}
+	collector.connectionAttemptsTotalMetric.WithLabelValues(labels...).Add(1)
+}
+
+func (collector *agentCollector) Connect(agent *Client) {
+	if agent == nil {
+		return
+	}
+	labels := collector.getAgentLabels(agent)
+	if labels == nil {
+		return
+	}
+	collector.connectedMetric.WithLabelValues(labels...).Set(1)
+	collector.connectionsOpenedTotalMetric.WithLabelValues(labels...).Add(1)
+}
+
+func (collector *agentCollector) Disconnect(agent *Client) {
+	if agent == nil {
+		return
+	}
+	labels := collector.getAgentLabels(agent)
+	if labels == nil {
+		return
+	}
+	collector.connectedMetric.WithLabelValues(labels...).Set(0)
+}
+
+func (collector *agentCollector) Unregister(agent *Client) {
+	if agent == nil {
+		return
+	}
+	labels := collector.getAgentLabels(agent)
+	if labels == nil {
+		return
+	}
+	collector.connectedMetric.DeleteLabelValues(labels...)
+}
+
+func (collector *agentCollector) EventsReceived(agent *Client, count int) {
+	if count == 0 {
+		return
+	}
+	if agent == nil {
+		return
+	}
+	labels := collector.getAgentLabels(agent)
+	if labels == nil {
+		return
+	}
+	collector.eventsTotalMetric.WithLabelValues(labels...).Add(float64(count))
+}
+
+func (collector *agentCollector) MessagesReceived(agent *Client, count int) {
+	if count == 0 {
+		return
+	}
+	if agent == nil {
+		return
+	}
+	labels := collector.getAgentLabels(agent)
+	if labels == nil {
+		return
+	}
+	collector.messagesReceivedTotalMetric.WithLabelValues(labels...).Add(float64(count))
+}
+
+func (collector *agentCollector) MessageError(agent *Client, count int) {
+	if count == 0 {
+		return
+	}
+	if agent == nil {
+		return
+	}
+	labels := collector.getAgentLabels(agent)
+	if labels == nil {
+		return
+	}
+	collector.messageErrorsTotalMetric.WithLabelValues(labels...).Add(float64(count))
+}
+
+func (collector *agentCollector) BytesSent(agent *Client, count int) {
+	if count == 0 {
+		return
+	}
+	if agent == nil {
+		return
+	}
+	labels := collector.getAgentLabels(agent)
+	if labels == nil {
+		return
+	}
+	collector.bytesSentTotalMetric.WithLabelValues(labels...).Add(float64(count))
+}
+
+func (collector *agentCollector) BytesRead(agent *Client, count int) {
+	if count == 0 {
+		return
+	}
+	if agent == nil {
+		return
+	}
+	labels := collector.getAgentLabels(agent)
+	if labels == nil {
+		return
+	}
+	collector.bytesReceivedTotalMetric.WithLabelValues(labels...).Add(float64(count))
+}
+
+func (collector *agentCollector) MessagesSent(agent *Client, count int) {
+	if count == 0 {
+		return
+	}
+	if agent == nil {
+		return
+	}
+	labels := collector.getAgentLabels(agent)
+	if labels == nil {
+		return
+	}
+	collector.messagesSentTotalMetric.WithLabelValues(labels...).Add(float64(count))
+}
+
+//Each and every collector must implement the Describe function.
+//It essentially writes all descriptors to the prometheus desc channel.
+func (collector *agentCollector) Describe(ch chan<- *prometheus.Desc) {
+	//Update this section with the each metric you create for a given collector
+	collector.connectedMetric.Describe(ch)
+	collector.eventsTotalMetric.Describe(ch)
+	collector.messagesSentTotalMetric.Describe(ch)
+	collector.messagesReceivedTotalMetric.Describe(ch)
+	collector.messageErrorsTotalMetric.Describe(ch)
+	collector.bytesSentTotalMetric.Describe(ch)
+	collector.bytesReceivedTotalMetric.Describe(ch)
+	collector.connectionAttemptsTotalMetric.Describe(ch)
+	collector.connectionsOpenedTotalMetric.Describe(ch)
+	collector.connectionsClosedTotalMetric.Describe(ch)
+
+}
+
+//Collect implements required collect function for all promehteus collectors
+func (collector *agentCollector) Collect(ch chan<- prometheus.Metric) {
+	collector.connectedMetric.Collect(ch)
+	collector.eventsTotalMetric.Collect(ch)
+	collector.messagesSentTotalMetric.Collect(ch)
+	collector.messagesReceivedTotalMetric.Collect(ch)
+	collector.messageErrorsTotalMetric.Collect(ch)
+	collector.bytesSentTotalMetric.Collect(ch)
+	collector.bytesReceivedTotalMetric.Collect(ch)
+	collector.connectionAttemptsTotalMetric.Collect(ch)
+	collector.connectionsOpenedTotalMetric.Collect(ch)
+	collector.connectionsClosedTotalMetric.Collect(ch)
 }
