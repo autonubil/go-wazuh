@@ -103,15 +103,15 @@ func newAgentCollector() *agentCollector {
 		connectionsOpenedTotalMetric: prometheus.NewCounterVec(prometheus.CounterOpts{
 			Namespace: "ossec",
 			Subsystem: "agent",
-			Name:      "connections_openend_total",
-			Help:      "succesfull connection attempts",
+			Name:      "connections_opened_total",
+			Help:      "succesful connection attempts",
 		}, agentLabels),
 
 		connectionsClosedTotalMetric: prometheus.NewCounterVec(prometheus.CounterOpts{
 			Namespace: "ossec",
 			Subsystem: "agent",
 			Name:      "connections_closed_total",
-			Help:      "total connection activly closed",
+			Help:      "total connection actively closed",
 		}, agentLabels),
 	}
 }
