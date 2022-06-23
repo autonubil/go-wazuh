@@ -55,7 +55,7 @@ func GetAgentKey(filename string) (*AgentKey, error) {
 		key := &AgentKey{
 			AgentID:         agentID,
 			AgentName:       agentName,
-			AgentHashedKey:  agentKey,
+			AgentKey:        agentKey,
 			AgentAllowedIPs: agentIP,
 		}
 		return key, nil
