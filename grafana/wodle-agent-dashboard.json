@@ -12,7 +12,7 @@
         "name": "VAR_NAMESPACE",
         "type": "constant",
         "label": "namespace",
-        "value": "opserve",
+        "value": "opsanio",
         "description": ""
       }
     ],
