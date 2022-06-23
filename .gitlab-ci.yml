@@ -7,6 +7,11 @@ cache:
         - .sonar/cache
         - app/
 
+default:
+  tags:
+    - autonubil
+    - dev
+
 stages:
     - validate
     - build
