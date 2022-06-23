@@ -41,10 +41,9 @@ const (
 	SendRateLimit = 450
 
 	// time between server pings
-	NotifyTime       = 10
-	SysinfoIntervall = 60 // each 60th  ping -> 1/h
-
-	WazuhVersion = "4.3.0"
+	NotifyTime      = 10
+	SysinfoInterval = 60 // each 60th  ping -> 1/h
+	WazuhVersion    = "4.3.0"
 )
 
 const (
@@ -77,10 +76,45 @@ const (
 	POSTGRESQL_MQ   = 'b'
 	AUTH_MQ         = 'c'
 	SYSCOLLECTOR_MQ = 'd'
+	CISCAT_MQ       = 'e'
+	WIN_EVT_MQ      = 'f'
 
 	RIDS_DIR        = "rids"
 	REMOTE_DIR      = "remote"
 	WM_SYS_LOCATION = "syscollector"
+
+	STATS_MODULE    = 11
+	FTS_MODULE      = 12
+	SYSCHECK_MODULE = 13
+	HOSTINFO_MODULE = 15
+
+	ROOTCHECK_MOD    = "rootcheck"
+	HOSTINFO_NEW     = "hostinfo_new"
+	HOSTINFO_MOD     = "hostinfo_modified"
+	FIM_MOD          = "syscheck_integrity_changed"
+	FIM_NEW          = "syscheck_new_entry"
+	FIM_DEL          = "syscheck_deleted"
+	FIM_REG_KEY_MOD  = "syscheck_registry_key_modified"
+	FIM_REG_KEY_NEW  = "syscheck_registry_key_added"
+	FIM_REG_KEY_DEL  = "syscheck_registry_key_deleted"
+	FIM_REG_VAL_MOD  = "syscheck_registry_value_modified"
+	FIM_REG_VAL_NEW  = "syscheck_registry_value_added"
+	FIM_REG_VAL_DEL  = "syscheck_registry_value_deleted"
+	SYSCOLLECTOR_MOD = "syscollector"
+	CISCAT_MOD       = "ciscat"
+	WINEVT_MOD       = "windows_eventchannel"
+	SCA_MOD          = "sca"
+
+	/* Types of events (from decoders) */
+	UNKNOWN         = 0
+	SYSLOG          = 1  /* syslog message */
+	IDS             = 2  /* IDS alert */
+	FIREWALL        = 3  /* Firewall event */
+	WEBLOG          = 7  /* Apache log */
+	SQUID           = 8  /* Squid log */
+	DECODER_WINDOWS = 9  /* Windows log */
+	HOST_INFO       = 10 /* Host information log (from nmap or similar) */
+	OSSEC_RL        = 11 /* OSSEC rule */
 
 	maxBufferSize        = 1024 * 1024 * 10
 	ReadWaitTimeout      = time.Duration(30 * time.Second)
@@ -93,6 +127,13 @@ type Client struct {
 	Server             string
 	Port               uint16
 	UDP                bool
+	EncryptionMethod   EncryptionMethod
+	ClientName         string
+	ClientVersion      string
+	ConfigHash         string
+	RemoteFiles        map[string]RemoteFileInfo
+	CurrentRemoteFile  *RemoteFileInfo
+	Scanner            *SysCollector
 	basePath           string
 	remotePath         string
 	ridsPath           string
@@ -108,10 +149,6 @@ type Client struct {
 	sentBytesTotal     uint64
 	receivedBytes      uint64
 	receivedBytesTotal uint64
-	EncryptionMethod   EncryptionMethod
-	ClientName         string
-	ClientVersion      string
-	ConfigHash         string
 	ctx                context.Context
 	conn               net.Conn
 	mx                 sync.Mutex
@@ -119,8 +156,6 @@ type Client struct {
 	connected          bool
 	rateLimit          ratelimit.Limiter
 	outChannel         chan interface{}
-	RemoteFiles        map[string]RemoteFileInfo
-	CurrentRemoteFile  *RemoteFileInfo
 	un                 *goInfo.GoInfoObject
 	osInfo             *sysinfo.OS
 }
@@ -280,6 +315,8 @@ func NewAgent(server string, agentID string, agentName string, agentKey string, 
 		osInfo:           sysinfo.GetOSInfo(),
 	}
 
+	a.Scanner = NewScanner(a)
+
 	// mutate agent and add all optional params
 	for _, o := range opts {
 		if err := o(a); err != nil {
@@ -327,6 +364,10 @@ func NewAgent(server string, agentID string, agentName string, agentKey string, 
 
 func (a *Client) IsConencted() bool {
 	return a.connected
+}
+
+func (a *Client) GetBasePath() string {
+	return a.basePath
 }
 
 // WriteClientCounter persist current counters
@@ -897,9 +938,17 @@ func itemBuilder() interface{} {
 
 func (a *Client) openQueue(ctx context.Context) (chan *QueuePosting, *dque.DQue, error) {
 	q, err := dque.NewOrOpen("event-queue", a.basePath, 500, itemBuilder)
+	queuePath := a.basePath + "/event-queue"
+	if err != nil && strings.HasPrefix(err.Error(), "unable to create queue segment in "+queuePath) {
+		a.logger.Warn("drop corrupt queue", zap.String("path", queuePath), zap.Error(err))
+		os.RemoveAll(queuePath)
+		q, err = dque.NewOrOpen("event-queue", a.basePath, 500, itemBuilder)
+	}
 	if err != nil {
 		return nil, nil, err
 	}
+
+	a.logger.Info("queue opened", zap.String("path", queuePath), zap.Error(err))
 
 	input := make(chan *QueuePosting, 100)
 
@@ -966,7 +1015,7 @@ func (a *Client) AgentLoop(ctx context.Context, closeOnError bool) (chan *QueueP
 			q.Close()
 		}()
 
-		nextSysinfoUpdate := SysinfoIntervall
+		nextSysinfoUpdate := -1
 
 		for {
 			if a.CurrentRemoteFile != nil {
@@ -1043,8 +1092,10 @@ func (a *Client) AgentLoop(ctx context.Context, closeOnError bool) (chan *QueueP
 							var wireMsg string
 							if msg.TargetQueue == LOCALFILE_MQ {
 								wireMsg = fmt.Sprintf("%c:%s:%s %s %s:%s", msg.TargetQueue, msg.Location, msg.Timestamp.UTC().Format("Jan 02 15:04:05"), a.AgentName, msg.ProgramName, string(b))
+							} else if msg.TargetQueue == SECURE_MQ {
+								wireMsg = fmt.Sprintf("%c:%s->%s", msg.TargetQueue, msg.Location, string(b))
 							} else {
-								wireMsg = fmt.Sprintf("%c:%s", msg.TargetQueue, string(b))
+								wireMsg = fmt.Sprintf("%c:%s:%s", msg.TargetQueue, msg.Location, string(b))
 							}
 
 							err = a.WriteMessage(wireMsg)
@@ -1083,14 +1134,13 @@ func (a *Client) AgentLoop(ctx context.Context, closeOnError bool) (chan *QueueP
 					}
 				}
 			}
+
 			if !a.IsConencted() {
 				// abort any open download
 				if a.CurrentRemoteFile != nil {
 					a.CurrentRemoteFile = nil
 				}
-
 				tries := 0
-
 				a.logger.Info("tryReconnect", zap.Any("agentId", a.AgentID))
 				for err = a.Connect(false); err != nil; {
 					time.Sleep(time.Second * 2)
@@ -1104,9 +1154,9 @@ func (a *Client) AgentLoop(ctx context.Context, closeOnError bool) (chan *QueueP
 			} else {
 				err = a.PingServer()
 				nextSysinfoUpdate--
-				if nextSysinfoUpdate == 0 {
-					// TODO: a.PostSysinfo(input)
-					nextSysinfoUpdate = SysinfoIntervall
+				if nextSysinfoUpdate <= 0 {
+					a.Scanner.PostSysinfo(input)
+					nextSysinfoUpdate = SysinfoInterval
 				}
 			}
 		}
