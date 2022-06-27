@@ -1,1 +1,1 @@
-{ "$schema": "https://docs.renovatebot.com/renovate-schema.json", "extends": [ "gitlab>exanio/gitlab/ci-templates:renovate" ] }
+{ "$schema": "https://docs.renovatebot.com/renovate-schema.json", "extends": [ "gitlab>exanio/gitlab//ci-templates:renovate" ] }
