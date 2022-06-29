@@ -13,10 +13,10 @@ require (
 )
 
 require (
-	github.com/4kills/go-libdeflate v1.3.1
+	github.com/4kills/go-libdeflate/v2 v2.0.2
 	github.com/CycloneDX/cyclonedx-go v0.6.0
 	github.com/getsentry/sentry-go v0.13.0
-	github.com/golang-jwt/jwt v3.2.2+incompatible
+	github.com/golang-jwt/jwt/v4 v4.4.2
 	github.com/iancoleman/strcase v0.2.0
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.12.2
@@ -41,7 +41,7 @@ require (
 	github.com/yusufpapurcu/wmi v1.2.2 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.8.0 // indirect
-	golang.org/x/sys v0.0.0-20220615213510-4f61da869c0c // indirect
+	golang.org/x/sys v0.0.0-20220627191245-f75cf1eec38b // indirect
 	google.golang.org/protobuf v1.28.0 // indirect
 )
 

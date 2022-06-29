@@ -14,7 +14,7 @@ import (
 
 	"github.com/autonubil/go-wazuh/ossec"
 	"github.com/getsentry/sentry-go"
-	"github.com/golang-jwt/jwt"
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"

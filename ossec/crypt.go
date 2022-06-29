@@ -15,7 +15,7 @@ import (
 	"math/rand"
 	"strings"
 
-	"github.com/4kills/go-libdeflate"
+	"github.com/4kills/go-libdeflate/v2"
 
 	"golang.org/x/crypto/blowfish"
 )
