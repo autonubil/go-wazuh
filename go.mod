@@ -3,7 +3,7 @@ module github.com/autonubil/go-wazuh
 require (
 	github.com/coreos/go-semver v0.3.0
 	github.com/deepmap/oapi-codegen v1.11.0
-	github.com/google/martian v2.1.0+incompatible
+	github.com/google/martian/v3 v3.3.2
 	github.com/joncrlsn/dque v0.0.0-20211108142734-c2ef48c5192a
 	github.com/matishsiao/goInfo v0.0.0-20210923090445-da2e3fa8d45f
 	github.com/tklauser/go-sysconf v0.3.10 // indirect
@@ -17,6 +17,7 @@ require (
 	github.com/CycloneDX/cyclonedx-go v0.6.0
 	github.com/getsentry/sentry-go v0.13.0
 	github.com/golang-jwt/jwt/v4 v4.4.2
+	github.com/google/martian v2.1.0+incompatible
 	github.com/iancoleman/strcase v0.2.0
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.12.2
