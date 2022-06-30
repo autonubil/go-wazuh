@@ -19,23 +19,11 @@ _cgo_export.*
 
 _testmain.go
 
-# Binaries for programs and plugins
 *.exe
-*.exe~
-*.dll
-*.so
-*.dylib
-
-# Test binary, built with `go test -c`
 *.test
 
-# Output of the go coverage tool, specifically when used with LiteIDE
-*.out
+# debug and local builds
+__debug_bin
+wazuh-go-wazuh
+go-wazuh
 
-# Dependency directories (remove the comment below to include it)
-# vendor/
-
-
-.vscode
-.vscode/settings.json
-generator/spec.yaml.old
