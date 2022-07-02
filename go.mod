@@ -4,13 +4,13 @@ require (
 	github.com/coreos/go-semver v0.3.0
 	github.com/deepmap/oapi-codegen v1.11.0
 	github.com/google/martian/v3 v3.3.2
-	github.com/joncrlsn/dque v0.0.0-20211108142734-c2ef48c5192a
 	github.com/matishsiao/goInfo v0.0.0-20210923090445-da2e3fa8d45f
+	github.com/shirou/gopsutil/v3 v3.22.6
 	github.com/tklauser/go-sysconf v0.3.10 // indirect
 	go.uber.org/ratelimit v0.2.0
 	go.uber.org/zap v1.21.0
 	golang.org/x/crypto v0.0.0-20220622213112-05595931fe9d
-	github.com/shirou/gopsutil/v3 v3.22.6
+
 )
 
 require (
@@ -20,9 +20,9 @@ require (
 	github.com/golang-jwt/jwt/v4 v4.4.2
 	github.com/google/martian v2.1.0+incompatible
 	github.com/iancoleman/strcase v0.2.0
+	github.com/joncrlsn/dque v0.0.0-20211108142734-c2ef48c5192a
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.12.2
-	github.com/shirou/gopsutil v3.21.11+incompatible
 )
 
 require (
@@ -35,7 +35,9 @@ require (
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/go-cmp v0.5.8 // indirect
 	github.com/google/uuid v1.3.0 // indirect
+	github.com/lufia/plan9stats v0.0.0-20211012122336-39d0f177ccd0 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.2-0.20181231171920-c182affec369 // indirect
+	github.com/power-devops/perfstat v0.0.0-20210106213030-5aafc221ea8c // indirect
 	github.com/prometheus/client_model v0.2.0 // indirect
 	github.com/prometheus/common v0.35.0 // indirect
 	github.com/prometheus/procfs v0.7.3 // indirect
@@ -44,7 +46,7 @@ require (
 	github.com/yusufpapurcu/wmi v1.2.2 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.8.0 // indirect
-	golang.org/x/sys v0.0.0-20220627191245-f75cf1eec38b // indirect
+	golang.org/x/sys v0.0.0-20220702020025-31831981b65f // indirect
 	google.golang.org/protobuf v1.28.0 // indirect
 )
 
