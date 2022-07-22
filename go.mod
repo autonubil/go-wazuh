@@ -8,7 +8,7 @@ require (
 	github.com/tklauser/go-sysconf v0.3.10 // indirect
 	go.uber.org/ratelimit v0.2.0
 	go.uber.org/zap v1.21.0
-	golang.org/x/crypto v0.0.0-20220622213112-05595931fe9d
+	golang.org/x/crypto v0.0.0-20220722155217-630584e8d5aa
 
 )
 
