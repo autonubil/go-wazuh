@@ -2,20 +2,20 @@ module github.com/autonubil/go-wazuh
 
 require (
 	github.com/coreos/go-semver v0.3.0
-	github.com/deepmap/oapi-codegen v1.11.0
+	github.com/deepmap/oapi-codegen v1.12.4
 	github.com/matishsiao/goInfo v0.0.0-20210923090445-da2e3fa8d45f
 	github.com/shirou/gopsutil/v3 v3.22.6
 	github.com/tklauser/go-sysconf v0.3.10 // indirect
 	go.uber.org/ratelimit v0.2.0
-	go.uber.org/zap v1.22.0
-	golang.org/x/crypto v0.0.0-20220722155217-630584e8d5aa
+	go.uber.org/zap v1.24.0
+	golang.org/x/crypto v0.4.0
 
 )
 
 require (
-	github.com/CycloneDX/cyclonedx-go v0.6.0
-	github.com/getsentry/sentry-go v0.13.0
-	github.com/golang-jwt/jwt/v4 v4.4.2
+	github.com/CycloneDX/cyclonedx-go v0.7.0
+	github.com/getsentry/sentry-go v0.16.0
+	github.com/golang-jwt/jwt/v4 v4.4.3
 	github.com/google/martian v2.1.0+incompatible
 	github.com/iancoleman/strcase v0.2.0
 	github.com/joncrlsn/dque v0.0.0-20211108142734-c2ef48c5192a
@@ -39,10 +39,11 @@ require (
 	github.com/prometheus/procfs v0.7.3 // indirect
 	github.com/tklauser/numcpus v0.5.0 // indirect
 	github.com/yusufpapurcu/wmi v1.2.2 // indirect
-	go.uber.org/atomic v1.9.0 // indirect
-	go.uber.org/multierr v1.8.0 // indirect
-	golang.org/x/sys v0.0.0-20220702020025-31831981b65f // indirect
-	google.golang.org/protobuf v1.28.0 // indirect
+	go.uber.org/atomic v1.10.0 // indirect
+	go.uber.org/multierr v1.9.0 // indirect
+	golang.org/x/sys v0.3.0 // indirect
+	golang.org/x/text v0.5.0 // indirect
+	google.golang.org/protobuf v1.28.1 // indirect
 )
 
-go 1.18
+go 1.19
