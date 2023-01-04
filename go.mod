@@ -13,7 +13,6 @@ require (
 )
 
 require (
-	github.com/4kills/go-libdeflate/v2 v2.0.2
 	github.com/CycloneDX/cyclonedx-go v0.6.0
 	github.com/getsentry/sentry-go v0.13.0
 	github.com/golang-jwt/jwt/v4 v4.4.2
