@@ -272,7 +272,7 @@ func (c SentryCore) Write(entry zapcore.Entry, fields []zapcore.Field) error {
 	if err != nil {
 		hn = "localhost"
 	}
-	scope.SetTransaction(fmt.Sprintf("%s@%s", sentryUser.Username, hn))
+	scope.SetExtra("hostname", hn)
 
 	for _, fld := range fields {
 		if fld.Interface != nil {

@@ -14,8 +14,8 @@ require (
 
 require (
 	github.com/CycloneDX/cyclonedx-go v0.7.1
-	github.com/getsentry/sentry-go v0.16.0
-	github.com/golang-jwt/jwt/v4 v4.4.3
+	github.com/getsentry/sentry-go v0.21.0
+	github.com/golang-jwt/jwt/v4 v4.5.0
 	github.com/google/martian v2.1.0+incompatible
 	github.com/iancoleman/strcase v0.2.0
 	github.com/joncrlsn/dque v0.0.0-20211108142734-c2ef48c5192a
