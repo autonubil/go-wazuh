@@ -73,6 +73,6 @@ func TestAgentNotFound(t *testing.T) {
 
 	fmt.Printf("Get Agents TotalFailedItems %d\n", agents.AllItemsResponse.TotalFailedItems)
 	for i, error := range agents.FailedItems {
-		fmt.Printf(" %d: %s on %v\n", i, *error.Id, *&error.Error)
+		fmt.Printf(" %d: %v on %v\n", i, error.Ids, *&error.Error)
 	}
 }

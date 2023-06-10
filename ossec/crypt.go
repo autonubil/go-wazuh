@@ -5,7 +5,6 @@ package ossec
 
 import (
 	"bytes"
-	"compress/zlib"
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/md5"
@@ -14,6 +13,8 @@ import (
 	"math/rand"
 	"strings"
 
+	"github.com/4kills/go-libdeflate/v2"
+	"github.com/4kills/go-zlib"
 	"golang.org/x/crypto/blowfish"
 )
 
@@ -212,17 +213,15 @@ func (a *Client) cryptMsg(msg string) ([]byte, uint32) {
 	* We assign the first 8 bytes for padding
 	 */
 
-	// c, err := libdeflate.NewCompressorLevel(9)
-	buf := new(bytes.Buffer)
-	c, err := zlib.NewWriterLevel(buf, 9)
+	c, err := libdeflate.NewCompressorLevel(9)
 	if err != nil {
 		return nil, 0
 	}
-	c.Write([]byte(finMsg))
-	c.Flush()
-
-	compressedMsg := buf.Bytes()
-	cmp := len(compressedMsg)
+	compressedMsg := make([]byte, len(finMsg)+32)
+	cmp, _, err := c.Compress([]byte(finMsg), compressedMsg, libdeflate.ModeZlib)
+	if err != nil {
+		return nil, 0
+	}
 	compressedMsg = compressedMsg[:cmp]
 	cmpSize := uint(cmp)
 

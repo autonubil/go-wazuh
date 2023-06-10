@@ -28,6 +28,10 @@ func TestAgentClient(t *testing.T) {
 
 func TestEncoding(t *testing.T) {
 	a, err := NewAgent("172.21.218.27", "003", "myagent", "2801fb64625a4ca5523395d8ab7370dbed275a227688542493c6577c3d9fdf2c", WithAgentIP("any"), WithEncryptionMethod(EncryptionMethodAES))
+	if err != nil {
+		t.Error(err)
+		return
+	}
 	encrypted, len := a.cryptMsg("#ping")
 
 	fmt.Printf("Encrypted: %d: %0x\n", len, encrypted)

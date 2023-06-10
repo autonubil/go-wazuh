@@ -642,8 +642,9 @@ func (a *Client) writeMessage(msg string) error {
 
 	if !a.UDP {
 		// prepend a header containing message size as 4-byte little-endian unsigned integer.
-		encryptedMsg = append([]byte{0, 0, 0, 0}, encryptedMsg...)
-		binary.LittleEndian.PutUint32(encryptedMsg, (uint32)(msgSize))
+		sizeBytes := make([]byte, 4)
+		binary.LittleEndian.PutUint32(sizeBytes, (uint32)(msgSize))
+		encryptedMsg = append(sizeBytes, encryptedMsg...)
 	}
 
 	// ensure ratelimit is honored
@@ -657,7 +658,7 @@ func (a *Client) writeMessage(msg string) error {
 	if err != nil || written == 0 {
 		AgentCollector.MessageError(a, 1)
 		if a.logger != nil {
-			a.logger.Warn("writeMessage", zap.Any("agentId", a.AgentID), zap.String("msg", msg), zap.Int("result", written), zap.Uint64("sentBytes", a.sentBytes), zap.Uint64("sentBytesTotal", a.sentBytesTotal), zap.Duration("rateWait", now.Sub(prev)), zap.Uint("globalCount", a.globalCount), zap.Uint("localCount", a.localCount), zap.Uint64("evtCount", a.evtCount), zap.Uint64("sentCount", a.sentCount), zap.Uint64("receivedCount", a.receivedCount), zap.Error(err))
+			a.logger.Warn("writeMessage", zap.Any("agentId", a.AgentID), zap.String("msg", msg), zap.Int("written", written), zap.Uint64("sentBytes", a.sentBytes), zap.Uint64("sentBytesTotal", a.sentBytesTotal), zap.Duration("rateWait", now.Sub(prev)), zap.Uint("globalCount", a.globalCount), zap.Uint("localCount", a.localCount), zap.Uint64("evtCount", a.evtCount), zap.Uint64("sentCount", a.sentCount), zap.Uint64("receivedCount", a.receivedCount), zap.Error(err))
 		}
 		err2 := a.close(false)
 		if err2 != nil {
@@ -670,7 +671,7 @@ func (a *Client) writeMessage(msg string) error {
 	// time.Sleep(25 * time.Millisecond)
 
 	if a.logger != nil {
-		a.logger.Debug("writeMessage", zap.Any("agentId", a.AgentID), zap.String("msg", msg), zap.Int("result", written), zap.Uint64("sentBytes", a.sentBytes), zap.Uint64("sentBytesTotal", a.sentBytesTotal), zap.Duration("rateWait", now.Sub(prev)), zap.Uint("globalCount", a.globalCount), zap.Uint("localCount", a.localCount), zap.Uint64("evtCount", a.evtCount), zap.Uint64("sentCount", a.sentCount), zap.Uint64("receivedCount", a.receivedCount))
+		a.logger.Debug("writeMessage", zap.Any("agentId", a.AgentID), zap.String("msg", msg), zap.Int("written", written), zap.Uint64("sentBytes", a.sentBytes), zap.Uint64("sentBytesTotal", a.sentBytesTotal), zap.Duration("rateWait", now.Sub(prev)), zap.Uint("globalCount", a.globalCount), zap.Uint("localCount", a.localCount), zap.Uint64("evtCount", a.evtCount), zap.Uint64("sentCount", a.sentCount), zap.Uint64("receivedCount", a.receivedCount))
 	}
 	return nil
 }
