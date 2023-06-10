@@ -658,11 +658,11 @@ func (a *Client) writeMessage(msg string) error {
 	if err != nil || written == 0 {
 		AgentCollector.MessageError(a, 1)
 		if a.logger != nil {
-			a.logger.Warn("writeMessage", zap.Any("agentId", a.AgentID), zap.String("msg", msg), zap.Int("written", written), zap.Uint64("sentBytes", a.sentBytes), zap.Uint64("sentBytesTotal", a.sentBytesTotal), zap.Duration("rateWait", now.Sub(prev)), zap.Uint("globalCount", a.globalCount), zap.Uint("localCount", a.localCount), zap.Uint64("evtCount", a.evtCount), zap.Uint64("sentCount", a.sentCount), zap.Uint64("receivedCount", a.receivedCount), zap.Error(err))
+			a.logger.Warn("writeMessage", zap.Any("agentId", a.AgentID), zap.String("msg", msg), zap.Int("written", written), zap.Uint64("sentBytes", a.sentBytes), zap.Uint64("sentBytesTotal", a.sentBytesTotal), zap.Duration("rateWait", now.Sub(prev)), zap.Uint("globalCount", a.globalCount), zap.Uint("localCount", a.localCount), zap.Uint64("evtCount", a.evtCount), zap.Uint64("sentCount", a.sentCount), zap.Uint64("receivedCount", a.receivedCount), zap.String("error", err.Error()))
 		}
 		err2 := a.close(false)
 		if err2 != nil {
-			a.logger.Warn("closeFailed", zap.Any("agentId", a.AgentID), zap.Error(err2))
+			a.logger.Warn("closeFailed", zap.Any("agentId", a.AgentID), zap.String("error", err.Error()))
 		}
 		return err
 	}
