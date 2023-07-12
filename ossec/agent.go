@@ -521,7 +521,6 @@ func (a *Client) handleControlResponse(response string) error {
 }
 
 func (a *Client) handleResponse(response string) error {
-
 	if strings.HasPrefix(string(response), CONTROL_HEADER) {
 		return a.handleControlResponse(response)
 	} else {
@@ -569,7 +568,7 @@ func (a *Client) getSharedFiles() string {
 
 func (a *Client) cacheFileHash(fileName string, hash string, content string) error {
 	fullpath := filepath.Join(a.remotePath, fileName)
-	err := ioutil.WriteFile(fullpath, []byte(content), 0644)
+	err := os.WriteFile(fullpath, []byte(content), 0644)
 	if err == nil {
 		a.RemoteFiles[fileName] = RemoteFileInfo{
 			Filename: fileName,
@@ -725,51 +724,15 @@ func (a *Client) readServerResponse(timeout time.Duration) error {
 	}
 
 	var buf bytes.Buffer
-	buffer := make([]byte, maxBufferSize)
 	totallyRead := 0
 	messagesRead := 0
-	deadline := time.Now().Add(timeout)
-	err := a.conn.SetReadDeadline(deadline)
 
+	totallyRead, shouldReturn, err := readResponse(timeout, a, totallyRead, messagesRead, buf)
 	if err != nil {
-		a.logger.Warn("setReadDeadlineFailed", zap.Any("agentId", a.AgentID), zap.Any("deadline", deadline), zap.Error(err))
 		return err
 	}
-	for {
-
-		nRead, err := a.conn.Read(buffer)
-		a.receivedBytes = a.receivedBytes + uint64(nRead)
-		a.receivedBytesTotal = a.receivedBytesTotal + uint64(nRead)
-		AgentCollector.BytesRead(a, nRead)
-		// a.logger.Info("read", zap.Any("agentId", a.AgentID), zap.Any("deadline", deadline), zap.Int("read", nRead), zap.Int("readSoFar", totallyRead), zap.Error(err))
-		if nRead == 0 {
-			if oe, ok := err.(*net.OpError); ok && oe.Err != os.ErrDeadlineExceeded {
-				return err
-			}
-			break
-		}
-		if err != nil {
-			if oe, ok := err.(*net.OpError); ok && totallyRead > 0 && oe.Err == os.ErrDeadlineExceeded {
-				break
-			} else {
-				if messagesRead > 0 {
-					// time out after at least a message == EOF... not a real error
-					return nil
-				}
-				// time out without any message... not expected
-				// fmt.Printf("%d\t%d\t'%s'\t%s\n", totallyRead, -1, "<nil>", err)
-				return err
-			}
-		}
-
-		buf.Write(buffer[:nRead])
-		totallyRead += nRead
-		deadline = time.Now().Add(ReadImmediateTimeout)
-		err = a.conn.SetReadDeadline(deadline)
-		if err != nil {
-			a.logger.Warn("setReadDeadlineFailed", zap.Any("agentId", a.AgentID), zap.Any("deadline", deadline), zap.Error(err))
-			return err
-		}
+	if shouldReturn {
+		return nil
 	}
 	if totallyRead == 0 {
 		if a.CurrentRemoteFile != nil {
@@ -852,6 +815,53 @@ func (a *Client) readServerResponse(timeout time.Duration) error {
 		}
 	}
 	return nil
+}
+
+func readResponse(timeout time.Duration, a *Client, totallyRead int, messagesRead int, buf bytes.Buffer) (int, bool, error) {
+	deadline := time.Now().Add(timeout)
+	err := a.conn.SetReadDeadline(deadline)
+	if err != nil {
+		a.logger.Warn("setReadDeadlineFailed", zap.Any("agentId", a.AgentID), zap.Any("deadline", deadline), zap.Error(err))
+		return 0, true, err
+	}
+
+	buffer := make([]byte, maxBufferSize)
+	for {
+		nRead, err := a.conn.Read(buffer)
+		a.receivedBytes = a.receivedBytes + uint64(nRead)
+		a.receivedBytesTotal = a.receivedBytesTotal + uint64(nRead)
+		AgentCollector.BytesRead(a, nRead)
+
+		if nRead == 0 {
+			if oe, ok := err.(*net.OpError); ok && oe.Err != os.ErrDeadlineExceeded {
+				return 0, true, err
+			}
+			break
+		}
+		if err != nil {
+			if oe, ok := err.(*net.OpError); ok && totallyRead > 0 && oe.Err == os.ErrDeadlineExceeded {
+				break
+			} else {
+				if messagesRead > 0 {
+
+					return 0, true, nil
+				}
+
+				return 0, true, err
+			}
+		}
+
+		buf.Write(buffer[:nRead])
+		totallyRead += nRead
+		deadline = time.Now().Add(ReadImmediateTimeout)
+		err = a.conn.SetReadDeadline(deadline)
+		if err != nil {
+			a.logger.Warn("setReadDeadlineFailed", zap.Any("agentId", a.AgentID), zap.Any("deadline", deadline), zap.Error(err))
+			return 0, true, err
+		}
+	}
+	buffer = nil
+	return totallyRead, false, nil
 }
 
 // Connect connect and do a handshake
