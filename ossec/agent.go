@@ -727,7 +727,7 @@ func (a *Client) readServerResponse(timeout time.Duration) error {
 	totallyRead := 0
 	messagesRead := 0
 
-	totallyRead, shouldReturn, err := readResponse(timeout, a, totallyRead, messagesRead, buf)
+	totallyRead, shouldReturn, err := readResponse(timeout, a, totallyRead, messagesRead, &buf)
 	if err != nil {
 		return err
 	}
@@ -817,7 +817,7 @@ func (a *Client) readServerResponse(timeout time.Duration) error {
 	return nil
 }
 
-func readResponse(timeout time.Duration, a *Client, totallyRead int, messagesRead int, buf bytes.Buffer) (int, bool, error) {
+func readResponse(timeout time.Duration, a *Client, totallyRead int, messagesRead int, buf *bytes.Buffer) (int, bool, error) {
 	deadline := time.Now().Add(timeout)
 	err := a.conn.SetReadDeadline(deadline)
 	if err != nil {
