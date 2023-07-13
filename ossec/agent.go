@@ -116,7 +116,7 @@ const (
 	HOST_INFO       = 10 /* Host information log (from nmap or similar) */
 	OSSEC_RL        = 11 /* OSSEC rule */
 
-	maxBufferSize        = 1024 * 1024 * 10
+	maxBufferSize        = 1024 * 1024 * 2
 	ReadWaitTimeout      = time.Duration(30 * time.Second)
 	ReadImmediateTimeout = time.Duration(1 * time.Second)
 )
@@ -819,14 +819,15 @@ func (a *Client) readServerResponse(timeout time.Duration) error {
 
 func readResponse(timeout time.Duration, a *Client, totallyRead int, messagesRead int, buf *bytes.Buffer) (int, bool, error) {
 	deadline := time.Now().Add(timeout)
-	err := a.conn.SetReadDeadline(deadline)
-	if err != nil {
-		a.logger.Warn("setReadDeadlineFailed", zap.Any("agentId", a.AgentID), zap.Any("deadline", deadline), zap.Error(err))
-		return 0, true, err
-	}
 
 	buffer := make([]byte, maxBufferSize)
 	for {
+		err := a.conn.SetReadDeadline(deadline)
+		if err != nil {
+			a.logger.Warn("setReadDeadlineFailed", zap.Any("agentId", a.AgentID), zap.Any("deadline", deadline), zap.Error(err))
+			return 0, true, err
+		}
+
 		nRead, err := a.conn.Read(buffer)
 		a.receivedBytes = a.receivedBytes + uint64(nRead)
 		a.receivedBytesTotal = a.receivedBytesTotal + uint64(nRead)
@@ -853,12 +854,6 @@ func readResponse(timeout time.Duration, a *Client, totallyRead int, messagesRea
 
 		buf.Write(buffer[:nRead])
 		totallyRead += nRead
-		deadline = time.Now().Add(ReadImmediateTimeout)
-		err = a.conn.SetReadDeadline(deadline)
-		if err != nil {
-			a.logger.Warn("setReadDeadlineFailed", zap.Any("agentId", a.AgentID), zap.Any("deadline", deadline), zap.Error(err))
-			return 0, true, err
-		}
 	}
 	buffer = nil
 	return totallyRead, false, nil
