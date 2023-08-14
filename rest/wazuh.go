@@ -301,9 +301,7 @@ func NewClient(baseURL string, opts ...ClientOption) (*Client, error) {
 	}
 	c.innerClient = &http.Client{
 		Transport: &t,
-		},
 	}
-
 
 	return c, nil
 }
