@@ -87,13 +87,15 @@ type Client struct {
 	// the network.
 	RequestEditors []RequestEditorFn
 
-	ctx       context.Context
-	userAgent string
-	token     string
-	user      string
-	password  string
-	insecure  bool
-	trace     bool
+	ctx          context.Context
+	userAgent    string
+	token        string
+	user         string
+	password     string
+	insecure     bool
+	trace        bool
+	proxyEnabled bool
+	proxyHost    string
 }
 
 // HTTPRequestDoer performs HTTP requests.
@@ -116,6 +118,15 @@ func WithLogin(user string, password string) ClientOption {
 func WithContext(ctx context.Context) ClientOption {
 	return func(c *Client) error {
 		c.ctx = ctx
+		return nil
+	}
+}
+
+// WithProxy write all requests to the log
+func WithProxy(enabled bool, host string) ClientOption {
+	return func(c *Client) error {
+		c.proxyEnabled = enabled
+		c.proxyHost = host
 		return nil
 	}
 }
@@ -275,12 +286,21 @@ func NewClient(baseURL string, opts ...ClientOption) (*Client, error) {
 	}
 	// create httpClient, if not already present
 	c.Client = c
-	c.innerClient = &http.Client{
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: c.insecure, // test server certificate is not trusted.
-			},
+	t := http.Transport{
+		TLSClientConfig: &tls.Config{
+			InsecureSkipVerify: c.insecure, // test server certificate is not trusted.
 		},
+	}
+
+	if !c.proxyEnabled {
+		t.Proxy = nil
+	} else if c.proxyHost != "" {
+		t.Proxy = func(*http.Request) (*url.URL, error) {
+			return url.Parse(c.proxyHost)
+		}
+	}
+	c.innerClient = &http.Client{
+		Transport: &t,
 	}
 
 	return c, nil
@@ -418,7 +438,7 @@ func (c *ClientWithResponses) RevokeAllTokens() error {
 	return nil
 }
 
-//Authenticate login using basic auth to optain a token
+// Authenticate login using basic auth to optain a token
 func (c *ClientWithResponses) Authenticate() error {
 	// Authenticate
 	c.ClientInterface.(*Client).token = ""
