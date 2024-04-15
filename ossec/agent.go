@@ -844,14 +844,11 @@ func readResponse(timeout time.Duration, a *Client, totallyRead int, messagesRea
 				break
 			} else {
 				if messagesRead > 0 {
-
 					return 0, true, nil
 				}
-
 				return 0, true, err
 			}
 		}
-
 		buf.Write(buffer[:nRead])
 		totallyRead += nRead
 	}
