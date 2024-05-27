@@ -15,7 +15,6 @@ type N200DataNodeType string
 type N200DataEnabled bool
 type N200DataRunning bool
 
-
 // RequestError defines model for RequestError.
 type RequestError struct {
 	RequestDetail string `json:"detail"`
@@ -25,15 +24,12 @@ type RequestError struct {
 	Remediation *string `json:"remediation,omitempty"`
 }
 
- 
 // ApiResponse defines model for ApiResponse.
 type ApiResponse struct {
 	// Human readable description to explain the result of the request
 	Message   *string `json:"message,omitempty"`
 	ErrorCode int     `json:"error,omitempty"`
 }
-
-
 
 // ApiError defines model for ApiError.
 type ApiError struct {
@@ -52,7 +48,6 @@ type ApiError_DapiErrors struct {
 		Logfile *string `json:"logfile,omitempty"`
 	} `json:"-"`
 }
-
 
 const (
 	BasicAuthScopes = "basicAuth.Scopes"
@@ -1137,30 +1132,6 @@ type AllItemsResponseWazuhStats struct {
 	AllItemsResponse `yaml:",inline"`
 }
 
-// ApiError defines model for ApiError.
-type ApiError struct {
-	Code        *int32               `json:"code,omitempty"`
-	DapiErrors  *ApiError_DapiErrors `json:"dapi_errors,omitempty"`
-	Detail      string               `json:"detail"`
-	Instance    *string              `json:"instance,omitempty"`
-	Remediation *string              `json:"remediation,omitempty"`
-	Title       string               `json:"title"`
-}
-
-// ApiError_DapiErrors defines model for ApiError.DapiErrors.
-type ApiError_DapiErrors struct {
-	AdditionalProperties map[string]struct {
-		Error   *string `json:"error,omitempty"`
-		Logfile *string `json:"logfile,omitempty"`
-	} `json:"-"`
-}
-
-// ApiResponse defines model for ApiResponse.
-type ApiResponse struct {
-	// Human readable description to explain the result of the request
-	Message *string `json:"message,omitempty"`
-}
-
 // BasicInfo defines model for BasicInfo.
 type BasicInfo struct {
 	// API version in the manager
@@ -1677,13 +1648,6 @@ type RemotePortInfo struct {
 
 	// Port used
 	Port *int32 `json:"port,omitempty"`
-}
-
-// RequestError defines model for RequestError.
-type RequestError struct {
-	Detail string `json:"detail"`
-	Error  *int32 `json:"error,omitempty"`
-	Title  string `json:"title"`
 }
 
 // Role ID
@@ -5005,8 +4969,8 @@ type ClusterControllerPutRestartParams struct {
 	NodesList *NodesList `json:"nodes_list,omitempty"`
 }
 
-// ClusterControllerGetStatusParams defines parameters for ClusterControllerGetStatus.
-type ClusterControllerGetStatusParams struct {
+// ClusterControllerGetNodesRulesetSyncStatusParams defines parameters for ClusterControllerGetNodesRulesetSyncStatus.
+type ClusterControllerGetNodesRulesetSyncStatusParams struct {
 	// Show results in human-readable format
 	Pretty *Pretty `json:"pretty,omitempty"`
 
@@ -5024,6 +4988,9 @@ type ClusterControllerGetStatusParams struct {
 
 	// Disable timeout response
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
+
+	// List of node IDs (separated by comma), all nodes selected by default if not specified
+	NodesList *NodesList `json:"nodes_list,omitempty"`
 }
 
 // ClusterControllerGetConfigurationNodeParams defines parameters for ClusterControllerGetConfigurationNode.
@@ -8056,6 +8023,9 @@ type AgentControllerAddAgentJSONRequestBody AgentControllerAddAgentJSONBody
 
 // AgentControllerInsertAgentJSONRequestBody defines body for AgentControllerInsertAgent for application/json ContentType.
 type AgentControllerInsertAgentJSONRequestBody AgentControllerInsertAgentJSONBody
+
+// EventControllerForwardEventJSONRequestBody defines body for EventControllerForwardEvent for application/json ContentType.
+type EventControllerForwardEventJSONRequestBody EventControllerForwardEventJSONBody
 
 // AgentControllerPostGroupJSONRequestBody defines body for AgentControllerPostGroup for application/json ContentType.
 type AgentControllerPostGroupJSONRequestBody AgentControllerPostGroupJSONBody

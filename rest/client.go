@@ -7451,6 +7451,7 @@ func NewApiControllersClusterControllerGetClusterNodesRequest(server string, par
 			}
 
 		}
+	}
 
 	if params.Distinct != nil {
 
@@ -7477,6 +7478,7 @@ func NewApiControllersClusterControllerGetClusterNodesRequest(server string, par
 
 	return req, nil
 }
+
 
 // NewApiControllersClusterControllerPutRestartRequest generates requests for ClusterControllerPutRestart
 func NewApiControllersClusterControllerPutRestartRequest(server string, params *ClusterControllerPutRestartParams) (*http.Request, error) {
@@ -9754,7 +9756,7 @@ func NewApiControllersEventControllerForwardEventRequest(server string, params *
 		return nil, err
 	}
 	bodyReader = bytes.NewReader(buf)
-	return NewEventControllerForwardEventRequestWithBody(server, params, "application/json", bodyReader)
+	return NewApiControllersEventControllerForwardEventRequestWithBody(server, params, "application/json", bodyReader)
 }
 
 // NewApiControllersEventControllerForwardEventRequestWithBody generates requests for EventControllerForwardEvent with any type of body
@@ -13706,21 +13708,19 @@ func NewApiControllersAgentControllerGetGroupFileXmlRequest(server string, group
 
 	}
 
-	if params.Raw != nil {
-
-		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "raw", runtime.ParamLocationQuery, *params.Raw); err != nil {
-			return nil, err
-		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-			return nil, err
-		} else {
-			for k, v := range parsed {
-				for _, v2 := range v {
-					queryValues.Add(k, v2)
-				}
-			}
-		}
-
-	}
+	//if params.Raw != nil {
+	//	if queryFrag, err := runtime.StyleParamWithLocation("form", true, "raw", runtime.ParamLocationQuery, *params.Raw); err != nil {
+	//		return nil, err
+	//	} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+	//		return nil, err
+	//	} else {
+	//		for k, v := range parsed {
+	//			for _, v2 := range v {
+	//				queryValues.Add(k, v2)
+	//			}
+	//		}
+	//	}
+	//}
 
 	queryURL.RawQuery = queryValues.Encode()
 
@@ -21280,8 +21280,8 @@ func NewApiControllersSecurityControllerLogoutUserRequest(server string) (*http.
 	return req, nil
 }
 
-// NewApiControllersSecurityControllerLoginUserRequest generates requests for SecurityControllerLoginUser
-func NewApiControllersSecurityControllerLoginUserRequest(server string, params *SecurityControllerLoginUserParams) (*http.Request, error) {
+// NewApiControllersSecurityControllerDeprecatedLoginUserRequest generates requests for SecurityControllerDeprecatedLoginUser
+func NewApiControllersSecurityControllerDeprecatedLoginUserRequest(server string, params *SecurityControllerDeprecatedLoginUserParams) (*http.Request, error) {
 	var err error
 
 	serverURL, err := url.Parse(server)
@@ -35226,7 +35226,7 @@ func ParseApiControllersAgentControllerGetAgentConfigResponse(rsp *http.Response
 
 // ParseApiControllersAgentControllerGetDaemonStatsResponse parses an HTTP response from a AgentControllerGetDaemonStatsWithResponse call
 func ParseApiControllersAgentControllerGetDaemonStatsResponse(rsp *http.Response) (*AgentControllerGetDaemonStatsResponse, error) {
-	bodyBytes, err := ioutil.ReadAll(rsp.Body)
+	bodyBytes, err := io.ReadAll(rsp.Body)
 	defer func() { _ = rsp.Body.Close() }()
 	if err != nil {
 		return nil, err
@@ -36315,6 +36315,72 @@ func ParseApiControllersClusterControllerPutRestartResponse(rsp *http.Response) 
 	return response, nil
 }
 
+// ParseApiControllersClusterControllerGetNodesRulesetSyncStatusResponse parses an HTTP response from a ClusterControllerGetNodesRulesetSyncStatusWithResponse call
+func ParseApiControllersClusterControllerGetNodesRulesetSyncStatusResponse(rsp *http.Response) (*ClusterControllerGetNodesRulesetSyncStatusResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ClusterControllerGetNodesRulesetSyncStatusResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest struct {
+			// Embedded struct due to allOf(#/components/schemas/ApiResponse)
+			ApiResponse `yaml:",inline"`
+			// Embedded fields due to inline allOf schema
+			Data *AllItemsResponseNodeRulesetSynchronizationStatus `json:"data,omitempty"`
+		}
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest RequestError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest RequestError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest ApiError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 405:
+		var dest RequestError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON405 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest RequestError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON429 = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParseApiControllersClusterControllerGetStatusResponse parses an HTTP response from a ClusterControllerGetStatusWithResponse call
 func ParseApiControllersClusterControllerGetStatusResponse(rsp *http.Response) (*ClusterControllerGetStatusResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -36599,7 +36665,7 @@ func ParseApiControllersClusterControllerGetNodeConfigResponse(rsp *http.Respons
 
 // ParseApiControllersClusterControllerGetDaemonStatsNodeResponse parses an HTTP response from a ClusterControllerGetDaemonStatsNodeWithResponse call
 func ParseApiControllersClusterControllerGetDaemonStatsNodeResponse(rsp *http.Response) (*ClusterControllerGetDaemonStatsNodeResponse, error) {
-	bodyBytes, err := ioutil.ReadAll(rsp.Body)
+	bodyBytes, err := io.ReadAll(rsp.Body)
 	defer func() { _ = rsp.Body.Close() }()
 	if err != nil {
 		return nil, err
@@ -37676,7 +37742,7 @@ func ParseApiControllersDecoderControllerGetDecodersParentsResponse(rsp *http.Re
 
 // ParseApiControllersEventControllerForwardEventResponse parses an HTTP response from a EventControllerForwardEventWithResponse call
 func ParseApiControllersEventControllerForwardEventResponse(rsp *http.Response) (*EventControllerForwardEventResponse, error) {
-	bodyBytes, err := ioutil.ReadAll(rsp.Body)
+	bodyBytes, err := io.ReadAll(rsp.Body)
 	defer func() { _ = rsp.Body.Close() }()
 	if err != nil {
 		return nil, err
@@ -40000,7 +40066,7 @@ func ParseApiControllersManagerControllerGetManagerConfigOndemandResponse(rsp *h
 
 // ParseApiControllersManagerControllerGetDaemonStatsResponse parses an HTTP response from a ManagerControllerGetDaemonStatsWithResponse call
 func ParseApiControllersManagerControllerGetDaemonStatsResponse(rsp *http.Response) (*ManagerControllerGetDaemonStatsResponse, error) {
-	bodyBytes, err := ioutil.ReadAll(rsp.Body)
+	bodyBytes, err := io.ReadAll(rsp.Body)
 	defer func() { _ = rsp.Body.Close() }()
 	if err != nil {
 		return nil, err
@@ -40721,7 +40787,7 @@ func ParseApiControllersManagerControllerGetStatusResponse(rsp *http.Response) (
 
 // ParseApiControllersManagerControllerCheckAvailableVersionResponse parses an HTTP response from a ManagerControllerCheckAvailableVersionWithResponse call
 func ParseApiControllersManagerControllerCheckAvailableVersionResponse(rsp *http.Response) (*ManagerControllerCheckAvailableVersionResponse, error) {
-	bodyBytes, err := ioutil.ReadAll(rsp.Body)
+	bodyBytes, err := io.ReadAll(rsp.Body)
 	defer func() { _ = rsp.Body.Close() }()
 	if err != nil {
 		return nil, err
@@ -43693,7 +43759,7 @@ func ParseApiControllersSecurityControllerLogoutUserResponse(rsp *http.Response)
 
 // ParseApiControllersSecurityControllerDeprecatedLoginUserResponse parses an HTTP response from a SecurityControllerDeprecatedLoginUserWithResponse call
 func ParseApiControllersSecurityControllerDeprecatedLoginUserResponse(rsp *http.Response) (*SecurityControllerDeprecatedLoginUserResponse, error) {
-	bodyBytes, err := ioutil.ReadAll(rsp.Body)
+	bodyBytes, err := io.ReadAll(rsp.Body)
 	defer func() { _ = rsp.Body.Close() }()
 	if err != nil {
 		return nil, err
