@@ -26,6 +26,27 @@ func TestStatus(t *testing.T) {
 	fmt.Printf("Connected to %s on %s\n", *status.Title, *status.Hostname)
 }
 
+func TestApiVersion(t *testing.T) {
+	c, err := NewClientFromEnvironment(WithInsecure(true))
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	err = c.Authenticate()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	status, err := c.DefaultController.DefaultInfo(&DefaultControllerDefaultInfoParams{})
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	fmt.Printf("Wazuh API version: %s Revision %d\n", *status.ApiVersion, *status.Revision)
+}
+
 func TestListAgents(t *testing.T) {
 	c, err := NewClientFromEnvironment(WithInsecure(true))
 	if err != nil {

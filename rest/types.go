@@ -15,7 +15,6 @@ type N200DataNodeType string
 type N200DataEnabled bool
 type N200DataRunning bool
 
-
 // RequestError defines model for RequestError.
 type RequestError struct {
 	RequestDetail string `json:"detail"`
@@ -25,15 +24,12 @@ type RequestError struct {
 	Remediation *string `json:"remediation,omitempty"`
 }
 
- 
 // ApiResponse defines model for ApiResponse.
 type ApiResponse struct {
 	// Human readable description to explain the result of the request
 	Message   *string `json:"message,omitempty"`
 	ErrorCode int     `json:"error,omitempty"`
 }
-
-
 
 // ApiError defines model for ApiError.
 type ApiError struct {
@@ -52,7 +48,6 @@ type ApiError_DapiErrors struct {
 		Logfile *string `json:"logfile,omitempty"`
 	} `json:"-"`
 }
-
 
 const (
 	BasicAuthScopes = "basicAuth.Scopes"
@@ -141,11 +136,23 @@ const (
 
 // Defines values for SyscollectorPackagesFormat.
 const (
+	SyscollectorPackagesFormatApk SyscollectorPackagesFormat = "apk"
+
 	SyscollectorPackagesFormatDeb SyscollectorPackagesFormat = "deb"
+
+	SyscollectorPackagesFormatMacports SyscollectorPackagesFormat = "macports"
+
+	SyscollectorPackagesFormatNpm SyscollectorPackagesFormat = "npm"
+
+	SyscollectorPackagesFormatPacman SyscollectorPackagesFormat = "pacman"
 
 	SyscollectorPackagesFormatPkg SyscollectorPackagesFormat = "pkg"
 
+	SyscollectorPackagesFormatPypi SyscollectorPackagesFormat = "pypi"
+
 	SyscollectorPackagesFormatRpm SyscollectorPackagesFormat = "rpm"
+
+	SyscollectorPackagesFormatSnap SyscollectorPackagesFormat = "snap"
 
 	SyscollectorPackagesFormatWin SyscollectorPackagesFormat = "win"
 )
@@ -204,6 +211,21 @@ const (
 	SyscollectorProtocolTypeIpv4 SyscollectorProtocolType = "ipv4"
 
 	SyscollectorProtocolTypeIpv6 SyscollectorProtocolType = "ipv6"
+)
+
+// Defines values for WazuhAnalysisdStatsAgentsItemName.
+const (
+	WazuhAnalysisdStatsAgentsItemNameWazuhAnalysisd WazuhAnalysisdStatsAgentsItemName = "wazuh-analysisd"
+)
+
+// Defines values for WazuhAnalysisdStatsItemName.
+const (
+	WazuhAnalysisdStatsItemNameWazuhAnalysisd WazuhAnalysisdStatsItemName = "wazuh-analysisd"
+)
+
+// Defines values for WazuhDBStatsItemName.
+const (
+	WazuhDBStatsItemNameWazuhDb WazuhDBStatsItemName = "wazuh-db"
 )
 
 // Defines values for WazuhInfoType.
@@ -335,9 +357,17 @@ const (
 	// Remote          Configuration = "remote"
 	// Reports   Configuration = "reports"
 	Rootcheck Configuration = "rootcheck"
+
+	RuleTest Configuration = "rule_test"
+
 	Rules     Configuration = "rules"
+
 	Socket    Configuration = "socket"
+
 	// Syscheck        Configuration = "syscheck"
+
+	Wdb Configuration = "wdb"
+
 	Wmodules Configuration = "wmodules"
 )
 
@@ -348,6 +378,13 @@ const (
 	RegistryKey Filetype = "registry_key"
 
 	RegistryValue Filetype = "registry_value"
+)
+
+// Defines values for GroupConfigStatus.
+const (
+	NotSynced GroupConfigStatus = "not synced"
+
+	Synced GroupConfigStatus = "synced"
 )
 
 // Defines values for Hash.
@@ -709,11 +746,18 @@ type AgentSynced struct {
 
 // AgentsSummaryStatus defines model for AgentsSummaryStatus.
 type AgentsSummaryStatus struct {
-	Active         *int32 `json:"active,omitempty"`
-	Disconnected   *int32 `json:"disconnected,omitempty"`
-	NeverConnected *int32 `json:"never_connected,omitempty"`
-	Pending        *int32 `json:"pending,omitempty"`
-	Total          *int32 `json:"total,omitempty"`
+	Configuration *struct {
+		NotSynced *int32 `json:"not_synced,omitempty"`
+		Synced    *int32 `json:"synced,omitempty"`
+		Total     *int32 `json:"total,omitempty"`
+	} `json:"configuration,omitempty"`
+	Connection *struct {
+		Active         *int32 `json:"active,omitempty"`
+		Disconnected   *int32 `json:"disconnected,omitempty"`
+		NeverConnected *int32 `json:"never_connected,omitempty"`
+		Pending        *int32 `json:"pending,omitempty"`
+		Total          *int32 `json:"total,omitempty"`
+	} `json:"connection,omitempty"`
 }
 
 // AllItemsResponse defines model for AllItemsResponse.
@@ -881,6 +925,15 @@ type AllItemsResponseNodeIDs struct {
 	AllItemsResponse `yaml:",inline"`
 }
 
+// AllItemsResponseNodeRulesetSynchronizationStatus defines model for AllItemsResponseNodeRulesetSynchronizationStatus.
+type AllItemsResponseNodeRulesetSynchronizationStatus struct {
+	// Embedded fields due to inline allOf schema
+	// Items that successfully applied the API call action
+	AffectedItems []NodeRulesetSyncStatus `json:"affected_items"`
+	// Embedded struct due to allOf(#/components/schemas/AllItemsResponse)
+	AllItemsResponse `yaml:",inline"`
+}
+
 // AllItemsResponsePolicies defines model for AllItemsResponsePolicies.
 type AllItemsResponsePolicies struct {
 	// Embedded struct due to allOf(#/components/schemas/AllItemsResponse)
@@ -1041,6 +1094,24 @@ type AllItemsResponseValidationStatus struct {
 	// Embedded fields due to inline allOf schema
 	// Items that successfully applied the API call action
 	AffectedItems []ValidationStatus `json:"affected_items"`
+}
+
+// AllItemsResponseWazuhDaemonStats defines model for AllItemsResponseWazuhDaemonStats.
+type AllItemsResponseWazuhDaemonStats struct {
+	// Embedded fields due to inline allOf schema
+	// Items that successfully applied the API call action
+	AffectedItems []interface{} `json:"affected_items"`
+	// Embedded struct due to allOf(#/components/schemas/AllItemsResponse)
+	AllItemsResponse `yaml:",inline"`
+}
+
+// AllItemsResponseWazuhDaemonStatsAgents defines model for AllItemsResponseWazuhDaemonStatsAgents.
+type AllItemsResponseWazuhDaemonStatsAgents struct {
+	// Embedded fields due to inline allOf schema
+	// Items that successfully applied the API call action
+	AffectedItems []interface{} `json:"affected_items"`
+	// Embedded struct due to allOf(#/components/schemas/AllItemsResponse)
+	AllItemsResponse `yaml:",inline"`
 }
 
 // AllItemsResponseWazuhLogs defines model for AllItemsResponseWazuhLogs.
@@ -1362,6 +1433,66 @@ type NetworkInterfaceSentPackets struct {
 	Packets *int32 `json:"packets,omitempty"`
 }
 
+// NewVersions defines model for NewVersions.
+type NewVersions struct {
+	// Current version in the format vX.Y.Z
+	CurrentVersion *string `json:"current_version,omitempty"`
+
+	// Information about the most recent available major update
+	LastAvailableMajor *struct {
+		Description   *string `json:"description,omitempty"`
+		PublishedDate *string `json:"published_date,omitempty"`
+		Semver        *struct {
+			Major *int32 `json:"major,omitempty"`
+			Minor *int32 `json:"minor,omitempty"`
+			Patch *int32 `json:"patch,omitempty"`
+		} `json:"semver,omitempty"`
+
+		// Version in the format vX.Y.Z
+		Tag   *string `json:"tag,omitempty"`
+		Title *string `json:"title,omitempty"`
+	} `json:"last_available_major,omitempty"`
+
+	// Information about the most recent available minor update
+	LastAvailableMinor *struct {
+		Description   *string `json:"description,omitempty"`
+		PublishedDate *string `json:"published_date,omitempty"`
+		Semver        *struct {
+			Major *int32 `json:"major,omitempty"`
+			Minor *int32 `json:"minor,omitempty"`
+			Patch *int32 `json:"patch,omitempty"`
+		} `json:"semver,omitempty"`
+
+		// Version in the format vX.Y.Z
+		Tag   *string `json:"tag,omitempty"`
+		Title *string `json:"title,omitempty"`
+	} `json:"last_available_minor,omitempty"`
+
+	// Information about the most recent available patch update
+	LastAvailablePatch *struct {
+		Description   *string `json:"description,omitempty"`
+		PublishedDate *string `json:"published_date,omitempty"`
+		Semver        *struct {
+			Major *int32 `json:"major,omitempty"`
+			Minor *int32 `json:"minor,omitempty"`
+			Patch *int32 `json:"patch,omitempty"`
+		} `json:"semver,omitempty"`
+
+		// Version in the format vX.Y.Z
+		Tag   *string `json:"tag,omitempty"`
+		Title *string `json:"title,omitempty"`
+	} `json:"last_available_patch,omitempty"`
+
+	// Datetime of the last query to the CTI service
+	LastCheckDate *string `json:"last_check_date,omitempty"`
+
+	// Flag that indicates if the service is enabled
+	UpdateCheck *bool `json:"update_check,omitempty"`
+
+	// Identifier of the Wazuh instance
+	Uuid *string `json:"uuid,omitempty"`
+}
+
 // NodeHealthcheck defines model for NodeHealthcheck.
 type NodeHealthcheck struct {
 	Name *struct {
@@ -1407,6 +1538,15 @@ type NodeHealthcheck struct {
 
 // Node ID
 type NodeID string
+
+// NodeRulesetSyncStatus defines model for NodeRulesetSyncStatus.
+type NodeRulesetSyncStatus struct {
+	// Node name
+	Name *string `json:"name,omitempty"`
+
+	// Whether the ruleset is synchronized or not
+	Synced *bool `json:"synced,omitempty"`
+}
 
 // OverviewAgents defines model for OverviewAgents.
 type OverviewAgents struct {
@@ -1509,8 +1649,6 @@ type RemotePortInfo struct {
 	// Port used
 	Port *int32 `json:"port,omitempty"`
 }
-
- 
 
 // Role ID
 type RoleId string
@@ -1738,13 +1876,18 @@ type SimpleApiError struct {
 
 // SimpleApiError_Error defines model for SimpleApiError.Error.
 type SimpleApiError_Error struct {
-	Code        int32  `json:"code,omitempty"`
-	Message     string `json:"message,omitempty"`
-	Remediation *string `json:"remediation,omitempty"`
+	AdditionalProperties map[string]struct {
+		Code        *int32  `json:"code,omitempty"`
+		Message     *string `json:"message,omitempty"`
+		Remediation *string `json:"remediation,omitempty"`
+	} `json:"-"`
 }
 
 // SyscheckDatabase defines model for SyscheckDatabase.
 type SyscheckDatabase struct {
+	// Number of changes applied
+	Changes *int32 `json:"changes,omitempty"`
+
 	// Date when the alert was raised
 	Date *time.Time `json:"date,omitempty"`
 
@@ -2297,6 +2440,785 @@ type WazuhAnalysisdStats struct {
 	WinevtQueueUsage *float32 `json:"winevt_queue_usage,omitempty"`
 }
 
+// WazuhAnalysisdStatsAgentsItem defines model for WazuhAnalysisdStatsAgentsItem.
+type WazuhAnalysisdStatsAgentsItem struct {
+	Agents *[]struct {
+		// Agent ID
+		Id      *int32 `json:"id,omitempty"`
+		Metrics *struct {
+			Events *struct {
+				// Total processed events (analyzed by rules) from agent
+				Processed         *int32 `json:"processed,omitempty"`
+				ReceivedBreakdown *struct {
+					DecodedBreakdown *struct {
+						// Events coming from agentd (this agent)
+						Agent *int32 `json:"agent,omitempty"`
+
+						// Synchronization events (this agent)
+						Dbsync                *int32 `json:"dbsync,omitempty"`
+						IntegrationsBreakdown *struct {
+							// Events coming from VirusTotal (this agent)
+							Virustotal *int32 `json:"virustotal,omitempty"`
+						} `json:"integrations_breakdown,omitempty"`
+						ModulesBreakdown *struct {
+							// Events coming from AWS module (this agent)
+							Aws *int32 `json:"aws,omitempty"`
+
+							// Events coming from Azure module (this agent)
+							Azure *int32 `json:"azure,omitempty"`
+
+							// Events coming from CIS-CAT module (this agent)
+							Ciscat *int32 `json:"ciscat,omitempty"`
+
+							// Events coming from command module (this agent)
+							Command *int32 `json:"command,omitempty"`
+
+							// Events coming from Docker module (this agent)
+							Docker *int32 `json:"docker,omitempty"`
+
+							// Events coming from GCP module (this agent)
+							Gcp *int32 `json:"gcp,omitempty"`
+
+							// Events coming from GitHub module (this agent)
+							Github                *int32 `json:"github,omitempty"`
+							LogcollectorBreakdown *struct {
+								// EventChannel events collected by logcollector (this agent)
+								Eventchannel *int32 `json:"eventchannel,omitempty"`
+
+								// EventLog events collected by logcollector (this agent)
+								Eventlog *int32 `json:"eventlog,omitempty"`
+
+								// MacOS events collected by logcollector (this agent)
+								Macos *int32 `json:"macos,omitempty"`
+
+								// Other events collected by logcollector (this agent)
+								Others *int32 `json:"others,omitempty"`
+							} `json:"logcollector_breakdown,omitempty"`
+
+							// Events coming from ms-graph module (this agent)
+							MsGraph *int32 `json:"ms-graph,omitempty"`
+
+							// Events coming from Office365 module (this agent)
+							Office365 *int32 `json:"office365,omitempty"`
+
+							// Events coming from OSCAP module (this agent)
+							Oscap *int32 `json:"oscap,omitempty"`
+
+							// Events coming from OSQuery module (this agent)
+							Osquery *int32 `json:"osquery,omitempty"`
+
+							// Events coming from rootcheck (syscheckd) (this agent)
+							Rootcheck *int32 `json:"rootcheck,omitempty"`
+
+							// Events coming from SCA module (this agent)
+							Sca *int32 `json:"sca,omitempty"`
+
+							// Events coming from syscheckd (this agent)
+							Syscheck *int32 `json:"syscheck,omitempty"`
+
+							// Events coming from syscollector module (this agent)
+							Syscollector *int32 `json:"syscollector,omitempty"`
+
+							// Events coming from upgrade agent module (this agent)
+							Upgrade *int32 `json:"upgrade,omitempty"`
+						} `json:"modules_breakdown,omitempty"`
+
+						// Events coming from monitord (this agent)
+						Monitor *int32 `json:"monitor,omitempty"`
+
+						// Events coming from remoted (this agent)
+						Remote *int32 `json:"remote,omitempty"`
+					} `json:"decoded_breakdown,omitempty"`
+				} `json:"received_breakdown,omitempty"`
+				WrittenBreakdown *struct {
+					// Alerts written in alerts log file (this agent)
+					Alerts *int32 `json:"alerts,omitempty"`
+
+					// Alerts written in archives log file (this agent)
+					Archives *int32 `json:"archives,omitempty"`
+
+					// Alerts written in firewall log file (this agent)
+					Firewall *int32 `json:"firewall,omitempty"`
+				} `json:"written_breakdown,omitempty"`
+			} `json:"events,omitempty"`
+		} `json:"metrics,omitempty"`
+
+		// When the count of the metrics started
+		Uptime *time.Time `json:"uptime,omitempty"`
+	} `json:"agents,omitempty"`
+
+	// Daemon name
+	Name *WazuhAnalysisdStatsAgentsItemName `json:"name,omitempty"`
+
+	// Daemon stats request time
+	Timestamp *time.Time `json:"timestamp,omitempty"`
+}
+
+// Daemon name
+type WazuhAnalysisdStatsAgentsItemName string
+
+// WazuhAnalysisdStatsItem defines model for WazuhAnalysisdStatsItem.
+type WazuhAnalysisdStatsItem struct {
+	Metrics *struct {
+		Bytes *struct {
+			// Bytes received from agents and local modules
+			Received *int32 `json:"received,omitempty"`
+		} `json:"bytes,omitempty"`
+		Eps *struct {
+			// Available credits to process events in the current timeframe
+			AvailableCredits *int32 `json:"available_credits,omitempty"`
+
+			// Available credits to process events in the previous timeframe
+			AvailableCreditsPrev *int32 `json:"available_credits_prev,omitempty"`
+
+			// Events discarded because the EPS limit was reached and queues were full
+			EventsDropped *int32 `json:"events_dropped,omitempty"`
+
+			// Events discarded due to causes unrelated to EPS limit
+			EventsDroppedNotEps *int32 `json:"events_dropped_not_eps,omitempty"`
+
+			// Time in seconds the EPS limit was exceeded
+			SecondsOverLimit *int32 `json:"seconds_over_limit,omitempty"`
+		} `json:"eps,omitempty"`
+		Events *struct {
+			// Total processed events (analyzed by rules)
+			Processed *int32 `json:"processed,omitempty"`
+
+			// Total received events from agents and local modules
+			Received          *int32 `json:"received,omitempty"`
+			ReceivedBreakdown *struct {
+				DecodedBreakdown *struct {
+					// Events coming from agentd
+					Agent *int32 `json:"agent,omitempty"`
+
+					// Events coming from agentlessd
+					Agentless *int32 `json:"agentless,omitempty"`
+
+					// Synchronization events
+					Dbsync                *int32 `json:"dbsync,omitempty"`
+					IntegrationsBreakdown *struct {
+						// Events coming from VirusTotal integration
+						Virustotal *int32 `json:"virustotal,omitempty"`
+					} `json:"integrations_breakdown,omitempty"`
+					ModulesBreakdown *struct {
+						// Events coming from AWS module
+						Aws *int32 `json:"aws,omitempty"`
+
+						// Events coming from Azure module
+						Azure *int32 `json:"azure,omitempty"`
+
+						// Events coming from CIS-CAT module
+						Ciscat *int32 `json:"ciscat,omitempty"`
+
+						// Events coming from command module
+						Command *int32 `json:"command,omitempty"`
+
+						// Events coming from Docker module
+						Docker *int32 `json:"docker,omitempty"`
+
+						// Events coming from GCP module
+						Gcp *int32 `json:"gcp,omitempty"`
+
+						// Events coming from GitHub module
+						Github                *int32 `json:"github,omitempty"`
+						LogcollectorBreakdown *struct {
+							// EventChannel events collected by logcollector
+							Eventchannel *int32 `json:"eventchannel,omitempty"`
+
+							// EventLog events collected by logcollector
+							Eventlog *int32 `json:"eventlog,omitempty"`
+
+							// MacOS events collected by logcollector
+							Macos *int32 `json:"macos,omitempty"`
+
+							// Other events collected by logcollector
+							Others *int32 `json:"others,omitempty"`
+						} `json:"logcollector_breakdown,omitempty"`
+
+						// Events coming from ms-graph module
+						MsGraph *int32 `json:"ms-graph,omitempty"`
+
+						// Events coming from Office365 module
+						Office365 *int32 `json:"office365,omitempty"`
+
+						// Events coming from OSCAP module
+						Oscap *int32 `json:"oscap,omitempty"`
+
+						// Events coming from OSQuery module
+						Osquery *int32 `json:"osquery,omitempty"`
+
+						// Events coming from rootcheck (syscheckd)
+						Rootcheck *int32 `json:"rootcheck,omitempty"`
+
+						// Events coming from SCA module
+						Sca *int32 `json:"sca,omitempty"`
+
+						// Events coming from syscheckd
+						Syscheck *int32 `json:"syscheck,omitempty"`
+
+						// Events coming from syscollector module
+						Syscollector *int32 `json:"syscollector,omitempty"`
+
+						// Events coming from upgrade agent module (upgrade responses)
+						Upgrade *int32 `json:"upgrade,omitempty"`
+					} `json:"modules_breakdown,omitempty"`
+
+					// Events coming from monitord
+					Monitor *int32 `json:"monitor,omitempty"`
+
+					// Events coming from remoted
+					Remote *int32 `json:"remote,omitempty"`
+
+					// Events coming from syslog remoted
+					Syslog *int32 `json:"syslog,omitempty"`
+				} `json:"decoded_breakdown,omitempty"`
+				DroppedBreakdown *struct {
+					// Events discarded from agentd because the queue was full
+					Agent *int32 `json:"agent,omitempty"`
+
+					// Events discarded from agentlessd because the queue was full
+					Agentless *int32 `json:"agentless,omitempty"`
+
+					// Synchronization events discarded because the queue was full
+					Dbsync                *int32 `json:"dbsync,omitempty"`
+					IntegrationsBreakdown *struct {
+						// Events discarded from VirusTotal integration because the queue was full
+						Virustotal *int32 `json:"virustotal,omitempty"`
+					} `json:"integrations_breakdown,omitempty"`
+					ModulesBreakdown *struct {
+						// Events discarded from AWS module because the queue was full
+						Aws *int32 `json:"aws,omitempty"`
+
+						// Events discarded from Azure module because the queue was full
+						Azure *int32 `json:"azure,omitempty"`
+
+						// Events discarded from CIS-CAT module because the queue was full
+						Ciscat *int32 `json:"ciscat,omitempty"`
+
+						// Events discarded from command module because the queue was full
+						Command *int32 `json:"command,omitempty"`
+
+						// Events discarded from Docker module because the queue was full
+						Docker *int32 `json:"docker,omitempty"`
+
+						// Events discarded from GCP module because the queue was full
+						Gcp *int32 `json:"gcp,omitempty"`
+
+						// Events discarded from GitHub module because the queue was full
+						Github                *int32 `json:"github,omitempty"`
+						LogcollectorBreakdown *struct {
+							// EventChannel events collected by logcollector discarded because the queue was full
+							Eventchannel *int32 `json:"eventchannel,omitempty"`
+
+							// EventLog events collected by logcollector discarded because the queue was full
+							Eventlog *int32 `json:"eventlog,omitempty"`
+
+							// MacOS events collected by logcollector discarded because the queue was full
+							Macos *int32 `json:"macos,omitempty"`
+
+							// Other events collected by logcollector discarded because the queue was full
+							Others *int32 `json:"others,omitempty"`
+						} `json:"logcollector_breakdown,omitempty"`
+
+						// Events discarded from ms-graph module because the queue was full
+						MsGraph *int32 `json:"ms-graph,omitempty"`
+
+						// Events discarded from Office365 module because the queue was full
+						Office365 *int32 `json:"office365,omitempty"`
+
+						// Events discarded from OSCAP module because the queue was full
+						Oscap *int32 `json:"oscap,omitempty"`
+
+						// Events discarded from OSQuery module because the queue was full
+						Osquery *int32 `json:"osquery,omitempty"`
+
+						// Events discarded from rootcheck (syscheckd) because the queue was full
+						Rootcheck *int32 `json:"rootcheck,omitempty"`
+
+						// Events discarded from SCA module because the queue was full
+						Sca *int32 `json:"sca,omitempty"`
+
+						// Events discarded from syscheckd because the queue was full
+						Syscheck *int32 `json:"syscheck,omitempty"`
+
+						// Events discarded from syscollector module because the queue was full
+						Syscollector *int32 `json:"syscollector,omitempty"`
+
+						// Events discarded from upgrade agent module because the queue was full
+						Upgrade *int32 `json:"upgrade,omitempty"`
+					} `json:"modules_breakdown,omitempty"`
+
+					// Events discarded from monitord because the queue was full
+					Monitor *int32 `json:"monitor,omitempty"`
+
+					// Events discarded from remoted because the queue was full
+					Remote *int32 `json:"remote,omitempty"`
+
+					// Events discarded from syslog remoted because the queue was full
+					Syslog *int32 `json:"syslog,omitempty"`
+				} `json:"dropped_breakdown,omitempty"`
+			} `json:"received_breakdown,omitempty"`
+			WrittenBreakdown *struct {
+				// Alerts written in alerts log file
+				Alerts *int32 `json:"alerts,omitempty"`
+
+				// Alerts written in archives log file
+				Archives *int32 `json:"archives,omitempty"`
+
+				// Alerts written in firewall log file
+				Firewall *int32 `json:"firewall,omitempty"`
+
+				// Alerts written in FTS queue file
+				Fts *int32 `json:"fts,omitempty"`
+
+				// Alerts written in stats files
+				Stats *int32 `json:"stats,omitempty"`
+			} `json:"written_breakdown,omitempty"`
+		} `json:"events,omitempty"`
+		Queues *struct {
+			Alerts *struct {
+				// Size of alerts messages queue
+				Size *int32 `json:"size,omitempty"`
+
+				// Current usage of the alerts queue (percentage)
+				Usage *int32 `json:"usage,omitempty"`
+			} `json:"alerts,omitempty"`
+			Archives *struct {
+				// Size of archives messages queue
+				Size *int32 `json:"size,omitempty"`
+
+				// Current usage of the archives queue (percentage)
+				Usage *int32 `json:"usage,omitempty"`
+			} `json:"archives,omitempty"`
+			Dbsync *struct {
+				// Size of dbsync messages queue
+				Size *int32 `json:"size,omitempty"`
+
+				// Current usage of the dbsync queue (percentage)
+				Usage *int32 `json:"usage,omitempty"`
+			} `json:"dbsync,omitempty"`
+			Eventchannel *struct {
+				// Size of eventchannel messages queue
+				Size *int32 `json:"size,omitempty"`
+
+				// Current usage of the eventchannel queue (percentage)
+				Usage *int32 `json:"usage,omitempty"`
+			} `json:"eventchannel,omitempty"`
+			Firewall *struct {
+				// Size of firewall messages queue
+				Size *int32 `json:"size,omitempty"`
+
+				// Current usage of the firewall queue (percentage)
+				Usage *int32 `json:"usage,omitempty"`
+			} `json:"firewall,omitempty"`
+			Fts *struct {
+				// Size of FTS messages queue
+				Size *int32 `json:"size,omitempty"`
+
+				// Current usage of the FTS queue (percentage)
+				Usage *int32 `json:"usage,omitempty"`
+			} `json:"fts,omitempty"`
+			Hostinfo *struct {
+				// Size of hostinfo messages queue
+				Size *int32 `json:"size,omitempty"`
+
+				// Current usage of the hostinfo queue (percentage)
+				Usage *int32 `json:"usage,omitempty"`
+			} `json:"hostinfo,omitempty"`
+			Others *struct {
+				// Size of other events messages queue
+				Size *int32 `json:"size,omitempty"`
+
+				// Current usage of the other events queue (percentage)
+				Usage *int32 `json:"usage,omitempty"`
+			} `json:"others,omitempty"`
+			Processed *struct {
+				// Size of processed messages queue
+				Size *int32 `json:"size,omitempty"`
+
+				// Current usage of the processed queue (percentage)
+				Usage *int32 `json:"usage,omitempty"`
+			} `json:"processed,omitempty"`
+			Rootcheck *struct {
+				// Size of rootcheck messages queue
+				Size *int32 `json:"size,omitempty"`
+
+				// Current usage of the rootcheck queue (percentage)
+				Usage *int32 `json:"usage,omitempty"`
+			} `json:"rootcheck,omitempty"`
+			Sca *struct {
+				// Size of SCA messages queue
+				Size *int32 `json:"size,omitempty"`
+
+				// Current usage of the SCA queue (percentage)
+				Usage *int32 `json:"usage,omitempty"`
+			} `json:"sca,omitempty"`
+			Stats *struct {
+				// Size of stats messages queue
+				Size *int32 `json:"size,omitempty"`
+
+				// Current usage of the stats queue (percentage)
+				Usage *int32 `json:"usage,omitempty"`
+			} `json:"stats,omitempty"`
+			Syscheck *struct {
+				// Size of syscheck messages queue
+				Size *int32 `json:"size,omitempty"`
+
+				// Current usage of the syscheck queue (percentage)
+				Usage *int32 `json:"usage,omitempty"`
+			} `json:"syscheck,omitempty"`
+			Syscollector *struct {
+				// Size of syscollector messages queue
+				Size *int32 `json:"size,omitempty"`
+
+				// Current usage of the syscollector queue (percentage)
+				Usage *int32 `json:"usage,omitempty"`
+			} `json:"syscollector,omitempty"`
+			Upgrade *struct {
+				// Size of upgrade messages queue
+				Size *int32 `json:"size,omitempty"`
+
+				// Current usage of the upgrade queue (percentage)
+				Usage *int32 `json:"usage,omitempty"`
+			} `json:"upgrade,omitempty"`
+		} `json:"queues,omitempty"`
+	} `json:"metrics,omitempty"`
+
+	// Daemon name
+	Name *WazuhAnalysisdStatsItemName `json:"name,omitempty"`
+
+	// Daemon stats request time
+	Timestamp *time.Time `json:"timestamp,omitempty"`
+
+	// When the count of the metrics started
+	Uptime *time.Time `json:"uptime,omitempty"`
+}
+
+// Daemon name
+type WazuhAnalysisdStatsItemName string
+
+// WazuhDBStatsItem defines model for WazuhDBStatsItem.
+type WazuhDBStatsItem struct {
+	Metrics *struct {
+		Queries *struct {
+			// Total of queries through WazuhDB socket
+			Received          *int32 `json:"received,omitempty"`
+			ReceivedBreakdown *struct {
+				// Number of agent queries through WazuhDB socket
+				Agent          *int32 `json:"agent,omitempty"`
+				AgentBreakdown *struct {
+					// Number of queries per operation
+					Db *struct {
+						Begin  *int32 `json:"begin,omitempty"`
+						Close  *int32 `json:"close,omitempty"`
+						Commit *int32 `json:"commit,omitempty"`
+						Remove *int32 `json:"remove,omitempty"`
+						Sql    *int32 `json:"sql,omitempty"`
+					} `json:"db,omitempty"`
+
+					// Number of queries per table
+					Tables *struct {
+						Ciscat *struct {
+							Ciscat *int32 `json:"ciscat,omitempty"`
+						} `json:"ciscat,omitempty"`
+						Rootcheck *struct {
+							Rootcheck *int32 `json:"rootcheck,omitempty"`
+						} `json:"rootcheck,omitempty"`
+						Sca *struct {
+							Sca *int32 `json:"sca,omitempty"`
+						} `json:"sca,omitempty"`
+						Sync *struct {
+							Dbsync *int32 `json:"dbsync,omitempty"`
+						} `json:"sync,omitempty"`
+						Syscheck *struct {
+							FimFile          *int32 `json:"fim_file,omitempty"`
+							FimRegistry      *int32 `json:"fim_registry,omitempty"`
+							FimRegistryKey   *int32 `json:"fim_registry_key,omitempty"`
+							FimRegistryValue *int32 `json:"fim_registry_value,omitempty"`
+							Syscheck         *int32 `json:"syscheck,omitempty"`
+						} `json:"syscheck,omitempty"`
+						Syscollector *struct {
+							Deprecated *struct {
+								Hardware *int32 `json:"hardware,omitempty"`
+								Hotfix   *int32 `json:"hotfix,omitempty"`
+								Netaddr  *int32 `json:"netaddr,omitempty"`
+								Netinfo  *int32 `json:"netinfo,omitempty"`
+								Netproto *int32 `json:"netproto,omitempty"`
+								Osinfo   *int32 `json:"osinfo,omitempty"`
+								Package  *int32 `json:"package,omitempty"`
+								Port     *int32 `json:"port,omitempty"`
+								Process  *int32 `json:"process,omitempty"`
+							} `json:"deprecated,omitempty"`
+							SyscollectorHotfixes        *int32 `json:"syscollector_hotfixes,omitempty"`
+							SyscollectorHwinfo          *int32 `json:"syscollector_hwinfo,omitempty"`
+							SyscollectorNetworkAddress  *int32 `json:"syscollector_network_address,omitempty"`
+							SyscollectorNetworkIface    *int32 `json:"syscollector_network_iface,omitempty"`
+							SyscollectorNetworkProtocol *int32 `json:"syscollector_network_protocol,omitempty"`
+							SyscollectorOsinfo          *int32 `json:"syscollector_osinfo,omitempty"`
+							SyscollectorPackages        *int32 `json:"syscollector_packages,omitempty"`
+							SyscollectorPorts           *int32 `json:"syscollector_ports,omitempty"`
+							SyscollectorProcesses       *int32 `json:"syscollector_processes,omitempty"`
+						} `json:"syscollector,omitempty"`
+					} `json:"tables,omitempty"`
+				} `json:"agent_breakdown,omitempty"`
+
+				// Number of global queries through WazuhDB socket
+				Global          *int32 `json:"global,omitempty"`
+				GlobalBreakdown *struct {
+					// Number of queries per operation
+					Db *struct {
+						Backup *int32 `json:"backup,omitempty"`
+						Sql    *int32 `json:"sql,omitempty"`
+					} `json:"db,omitempty"`
+
+					// Number of queries per operation in tables
+					Tables *struct {
+						Agent *struct {
+							DeleteAgent                 *int32 `json:"delete-agent,omitempty"`
+							DisconnectAgents            *int32 `json:"disconnect-agents,omitempty"`
+							FindAgent                   *int32 `json:"find-agent,omitempty"`
+							GetAgentInfo                *int32 `json:"get-agent-info,omitempty"`
+							GetAgentsByConnectionStatus *int32 `json:"get-agents-by-connection-status,omitempty"`
+							GetAllAgents                *int32 `json:"get-all-agents,omitempty"`
+							GetGroupsIntegrity          *int32 `json:"get-groups-integrity,omitempty"`
+							InsertAgent                 *int32 `json:"insert-agent,omitempty"`
+							ResetAgentsConnection       *int32 `json:"reset-agents-connection,omitempty"`
+							SelectAgentGroup            *int32 `json:"select-agent-group,omitempty"`
+							SelectAgentName             *int32 `json:"select-agent-name,omitempty"`
+							SetAgentGroups              *int32 `json:"set-agent-groups,omitempty"`
+							SyncAgentGroupsGet          *int32 `json:"sync-agent-groups-get,omitempty"`
+							SyncAgentInfoGet            *int32 `json:"sync-agent-info-get,omitempty"`
+							SyncAgentInfoSet            *int32 `json:"sync-agent-info-set",omitempty"`
+							UpdateAgentData             *int32 `json:"update-agent-data,omitempty"`
+							UpdateAgentName             *int32 `json:"update-agent-name,omitempty"`
+							UpdateConnectionStatus      *int32 `json:"update-connection-status,omitempty"`
+							UpdateKeepalive             *int32 `json:"update-keepalive,omitempty"`
+						} `json:"agent,omitempty"`
+						Belongs *struct {
+							GetGroupAgents    *int32 `json:"get-group-agents,omitempty"`
+							SelectGroupBelong *int32 `json:"select-group-belong,omitempty"`
+						} `json:"belongs,omitempty"`
+						Group *struct {
+							DeleteGroup      *int32 `json:"delete-group,omitempty"`
+							FindGroup        *int32 `json:"find-group,omitempty"`
+							InsertAgentGroup *int32 `json:"insert-agent-group,omitempty"`
+							SelectGroups     *int32 `json:"select-groups,omitempty"`
+						} `json:"group,omitempty"`
+						Labels *struct {
+							GetLabels *int32 `json:"get-labels,omitempty"`
+						} `json:"labels,omitempty"`
+					} `json:"tables,omitempty"`
+				} `json:"global_breakdown,omitempty"`
+
+				// Number of mitre queries through WazuhDB socket
+				Mitre          *int32 `json:"mitre,omitempty"`
+				MitreBreakdown *struct {
+					// Number of queries per operation
+					Db *struct {
+						Sql *int32 `json:"sql,omitempty"`
+					} `json:"db,omitempty"`
+				} `json:"mitre_breakdown,omitempty"`
+
+				// Number of task queries through WazuhDB socket
+				Task          *int32 `json:"task,omitempty"`
+				TaskBreakdown *struct {
+					// Number of queries per operation
+					Db *struct {
+						Sql *int32 `json:"sql,omitempty"`
+					} `json:"db,omitempty"`
+
+					// Number of queries per operation in tables
+					Tables *struct {
+						Tasks *struct {
+							DeleteOld           *int32 `json:"delete_old,omitempty"`
+							SetTimeout          *int32 `json:"set_timeout,omitempty"`
+							Upgrade             *int32 `json:"upgrade,omitempty"`
+							UpgradeCancelTasks  *int32 `json:"upgrade_cancel_tasks,omitempty"`
+							UpgradeCustom       *int32 `json:"upgrade_custom,omitempty"`
+							UpgradeGetStatus    *int32 `json:"upgrade_get_status,omitempty"`
+							UpgradeResult       *int32 `json:"upgrade_result,omitempty"`
+							UpgradeUpdateStatus *int32 `json:"upgrade_update_status,omitempty"`
+						} `json:"tasks,omitempty"`
+					} `json:"tables,omitempty"`
+				} `json:"task_breakdown,omitempty"`
+
+				// Number of wazuhdb queries through WazuhDB socket
+				Wazuhdb          *int32 `json:"wazuhdb,omitempty"`
+				WazuhdbBreakdown *struct {
+					// Number of queries per operation
+					Db *struct {
+						Remove *int32 `json:"remove,omitempty"`
+					} `json:"db,omitempty"`
+				} `json:"wazuhdb_breakdown,omitempty"`
+			} `json:"received_breakdown,omitempty"`
+		} `json:"queries,omitempty"`
+		Time *struct {
+			// Total time taken by all the queries (milliseconds)
+			Execution          *int32 `json:"execution,omitempty"`
+			ExecutionBreakdown *struct {
+				// Time taken by all agent queries (milliseconds)
+				Agent          *int32 `json:"agent,omitempty"`
+				AgentBreakdown *struct {
+					// Time taken by all queries per operation (milliseconds)
+					Db *struct {
+						Begin  *int32 `json:"begin,omitempty"`
+						Close  *int32 `json:"close,omitempty"`
+						Commit *int32 `json:"commit,omitempty"`
+						Remove *int32 `json:"remove,omitempty"`
+						Sql    *int32 `json:"sql,omitempty"`
+					} `json:"db,omitempty"`
+
+					// Time taken by all queries per table (milliseconds)
+					Tables *struct {
+						Ciscat *struct {
+							Ciscat *int32 `json:"ciscat,omitempty"`
+						} `json:"ciscat,omitempty"`
+						Rootcheck *struct {
+							Rootcheck *int32 `json:"rootcheck,omitempty"`
+						} `json:"rootcheck,omitempty"`
+						Sca *struct {
+							Sca *int32 `json:"sca,omitempty"`
+						} `json:"sca,omitempty"`
+						Sync *struct {
+							Dbsync *int32 `json:"dbsync,omitempty"`
+						} `json:"sync,omitempty"`
+						Syscheck *struct {
+							FimFile          *int32 `json:"fim_file,omitempty"`
+							FimRegistry      *int32 `json:"fim_registry,omitempty"`
+							FimRegistryKey   *int32 `json:"fim_registry_key,omitempty"`
+							FimRegistryValue *int32 `json:"fim_registry_value,omitempty"`
+							Syscheck         *int32 `json:"syscheck,omitempty"`
+						} `json:"syscheck,omitempty"`
+						Syscollector *struct {
+							Deprecated *struct {
+								Hardware *int32 `json:"hardware,omitempty"`
+								Hotfix   *int32 `json:"hotfix,omitempty"`
+								Netaddr  *int32 `json:"netaddr,omitempty"`
+								Netinfo  *int32 `json:"netinfo,omitempty"`
+								Netproto *int32 `json:"netproto,omitempty"`
+								Osinfo   *int32 `json:"osinfo,omitempty"`
+								Package  *int32 `json:"package,omitempty"`
+								Port     *int32 `json:"port,omitempty"`
+								Process  *int32 `json:"process,omitempty"`
+							} `json:"deprecated,omitempty"`
+							SyscollectorHotfixes        *int32 `json:"syscollector_hotfixes,omitempty"`
+							SyscollectorHwinfo          *int32 `json:"syscollector_hwinfo,omitempty"`
+							SyscollectorNetworkAddress  *int32 `json:"syscollector_network_address,omitempty"`
+							SyscollectorNetworkIface    *int32 `json:"syscollector_network_iface,omitempty"`
+							SyscollectorNetworkProtocol *int32 `json:"syscollector_network_protocol,omitempty"`
+							SyscollectorOsinfo          *int32 `json:"syscollector_osinfo,omitempty"`
+							SyscollectorPackages        *int32 `json:"syscollector_packages,omitempty"`
+							SyscollectorPorts           *int32 `json:"syscollector_ports,omitempty"`
+							SyscollectorProcesses       *int32 `json:"syscollector_processes,omitempty"`
+						} `json:"syscollector,omitempty"`
+					} `json:"tables,omitempty"`
+				} `json:"agent_breakdown,omitempty"`
+
+				// Time taken by all global queries (milliseconds)
+				Global          *int32 `json:"global,omitempty"`
+				GlobalBreakdown *struct {
+					// Time taken by all queries per operation (milliseconds)
+					Db *struct {
+						Backup *int32 `json:"backup,omitempty"`
+						Sql    *int32 `json:"sql,omitempty"`
+					} `json:"db,omitempty"`
+
+					// Time taken by all queries per operation in tables (milliseconds)
+					Tables *struct {
+						Agent *struct {
+							DeleteAgent                 *int32 `json:"delete-agent,omitempty"`
+							DisconnectAgents            *int32 `json:"disconnect-agents,omitempty"`
+							FindAgent                   *int32 `json:"find-agent,omitempty"`
+							GetAgentInfo                *int32 `json:"get-agent-info,omitempty"`
+							GetAgentsByConnectionStatus *int32 `json:"get-agents-by-connection-status,omitempty"`
+							GetAllAgents                *int32 `json:"get-all-agents,omitempty"`
+							GetGroupsIntegrity          *int32 `json:"get-groups-integrity,omitempty"`
+							InsertAgent                 *int32 `json:"insert-agent,omitempty"`
+							ResetAgentsConnection       *int32 `json:"reset-agents-connection,omitempty"`
+							SelectAgentGroup            *int32 `json:"select-agent-group,omitempty"`
+							SelectAgentName             *int32 `json:"select-agent-name,omitempty"`
+							SetAgentGroups              *int32 `json:"set-agent-groups,omitempty"`
+							SyncAgentGroupsGet          *int32 `json:"sync-agent-groups-get,omitempty"`
+							SyncAgentInfoGet            *int32 `json:"sync-agent-info-get,omitempty"`
+							SyncAgentInfoSet            *int32 `json:"sync-agent-info-set",omitempty"`
+							UpdateAgentData             *int32 `json:"update-agent-data,omitempty"`
+							UpdateAgentName             *int32 `json:"update-agent-name,omitempty"`
+							UpdateConnectionStatus      *int32 `json:"update-connection-status,omitempty"`
+							UpdateKeepalive             *int32 `json:"update-keepalive,omitempty"`
+						} `json:"agent,omitempty"`
+						Belongs *struct {
+							GetGroupAgents    *int32 `json:"get-group-agents,omitempty"`
+							SelectGroupBelong *int32 `json:"select-group-belong,omitempty"`
+						} `json:"belongs,omitempty"`
+						Group *struct {
+							DeleteGroup      *int32 `json:"delete-group,omitempty"`
+							FindGroup        *int32 `json:"find-group,omitempty"`
+							InsertAgentGroup *int32 `json:"insert-agent-group,omitempty"`
+							SelectGroups     *int32 `json:"select-groups,omitempty"`
+						} `json:"group,omitempty"`
+						Labels *struct {
+							GetLabels *int32 `json:"get-labels,omitempty"`
+						} `json:"labels,omitempty"`
+					} `json:"tables,omitempty"`
+				} `json:"global_breakdown,omitempty"`
+
+				// Time taken by all mitre queries (milliseconds)
+				Mitre          *int32 `json:"mitre,omitempty"`
+				MitreBreakdown *struct {
+					// Time taken by all queries per operation (milliseconds)
+					Db *struct {
+						Sql *int32 `json:"sql,omitempty"`
+					} `json:"db,omitempty"`
+				} `json:"mitre_breakdown,omitempty"`
+
+				// Time taken by all task queries (milliseconds)
+				Task          *int32 `json:"task,omitempty"`
+				TaskBreakdown *struct {
+					// Time taken by all queries per operation (milliseconds)
+					Db *struct {
+						Sql *int32 `json:"sql,omitempty"`
+					} `json:"db,omitempty"`
+
+					// Time taken by all queries per operation in tables (milliseconds)
+					Tables *struct {
+						Tasks *struct {
+							DeleteOld           *int32 `json:"delete_old,omitempty"`
+							SetTimeout          *int32 `json:"set_timeout,omitempty"`
+							Upgrade             *int32 `json:"upgrade,omitempty"`
+							UpgradeCancelTasks  *int32 `json:"upgrade_cancel_tasks,omitempty"`
+							UpgradeCustom       *int32 `json:"upgrade_custom,omitempty"`
+							UpgradeGetStatus    *int32 `json:"upgrade_get_status,omitempty"`
+							UpgradeResult       *int32 `json:"upgrade_result,omitempty"`
+							UpgradeUpdateStatus *int32 `json:"upgrade_update_status,omitempty"`
+						} `json:"tasks,omitempty"`
+					} `json:"tables,omitempty"`
+				} `json:"task_breakdown,omitempty"`
+
+				// Time taken by all wazuhdb queries (milliseconds)
+				Wazuhdb          *int32 `json:"wazuhdb,omitempty"`
+				WazuhdbBreakdown *struct {
+					// Time taken by all queries per operation (milliseconds)
+					Db *struct {
+						Remove *int32 `json:"remove,omitempty"`
+					} `json:"db,omitempty"`
+				} `json:"wazuhdb_breakdown,omitempty"`
+			} `json:"execution_breakdown,omitempty"`
+		} `json:"time,omitempty"`
+	} `json:"metrics,omitempty"`
+
+	// Daemon name
+	Name *WazuhDBStatsItemName `json:"name,omitempty"`
+
+	// Daemon stats request time
+	Timestamp *time.Time `json:"timestamp,omitempty"`
+
+	// When the count of the metrics started
+	Uptime *time.Time `json:"uptime,omitempty"`
+}
+
+// Daemon name
+type WazuhDBStatsItemName string
+
 // WazuhDaemonsStatus defines model for WazuhDaemonsStatus.
 type WazuhDaemonsStatus struct {
 	WazuhAgentlessd   *DaemonStatus `json:"wazuh-agentlessd,omitempty"`
@@ -2369,69 +3291,72 @@ type WazuhLogsTag string
 
 // WazuhLogsSummary defines model for WazuhLogsSummary.
 type WazuhLogsSummary struct {
-	Sca                                *LogSummary `json:"sca,omitempty"`
-	WazuhAgentlessd                    *LogSummary `json:"wazuh-agentlessd,omitempty"`
-	WazuhAnalysisd                     *LogSummary `json:"wazuh-analysisd,omitempty"`
-	WazuhAuthd                         *LogSummary `json:"wazuh-authd,omitempty"`
-	WazuhCsyslogd                      *LogSummary `json:"wazuh-csyslogd,omitempty"`
-	WazuhDb                            *LogSummary `json:"wazuh-db,omitempty"`
-	WazuhDbd                           *LogSummary `json:"wazuh-dbd,omitempty"`
-	WazuhExecd                         *LogSummary `json:"wazuh-execd,omitempty"`
-	WazuhIntegratord                   *LogSummary `json:"wazuh-integratord,omitempty"`
-	WazuhLogcollector                  *LogSummary `json:"wazuh-logcollector,omitempty"`
-	WazuhMaild                         *LogSummary `json:"wazuh-maild,omitempty"`
-	WazuhModulesd                      *LogSummary `json:"wazuh-modulesd,omitempty"`
-	WazuhModulesdAgentKeyPolling       *LogSummary `json:"wazuh-modulesd:agent-key-polling,omitempty"`
-	WazuhModulesdAwsS3                 *LogSummary `json:"wazuh-modulesd:aws-s3,omitempty"`
-	WazuhModulesdAzureLogs             *LogSummary `json:"wazuh-modulesd:azure-logs,omitempty"`
-	WazuhModulesdCiscat                *LogSummary `json:"wazuh-modulesd:ciscat,omitempty"`
-	WazuhModulesdCommand               *LogSummary `json:"wazuh-modulesd:command,omitempty"`
-	WazuhModulesdDatabase              *LogSummary `json:"wazuh-modulesd:database,omitempty"`
-	WazuhModulesdDockerListener        *LogSummary `json:"wazuh-modulesd:docker-listener,omitempty"`
-	WazuhModulesdDownload              *LogSummary `json:"wazuh-modulesd:download,omitempty"`
-	WazuhModulesdOscap                 *LogSummary `json:"wazuh-modulesd:oscap,omitempty"`
-	WazuhModulesdOsquery               *LogSummary `json:"wazuh-modulesd:osquery,omitempty"`
-	WazuhModulesdSyscollector          *LogSummary `json:"wazuh-modulesd:syscollector,omitempty"`
-	WazuhModulesdVulnerabilityDetector *LogSummary `json:"wazuh-modulesd:vulnerability-detector,omitempty"`
-	WazuhMonitord                      *LogSummary `json:"wazuh-monitord,omitempty"`
-	WazuhRemoted                       *LogSummary `json:"wazuh-remoted,omitempty"`
-	WazuhReportd                       *LogSummary `json:"wazuh-reportd,omitempty"`
-	WazuhRootcheck                     *LogSummary `json:"wazuh-rootcheck,omitempty"`
-	WazuhSyscheckd                     *LogSummary `json:"wazuh-syscheckd,omitempty"`
+	IndexerConnector                  *LogSummary `json:"indexer-connector,omitempty"`
+	Rootcheck                         *LogSummary `json:"rootcheck,omitempty"`
+	Sca                               *LogSummary `json:"sca,omitempty"`
+	WazuhAgentlessd                   *LogSummary `json:"wazuh-agentlessd,omitempty"`
+	WazuhAnalysisd                    *LogSummary `json:"wazuh-analysisd,omitempty"`
+	WazuhAuthd                        *LogSummary `json:"wazuh-authd,omitempty"`
+	WazuhCsyslogd                     *LogSummary `json:"wazuh-csyslogd,omitempty"`
+	WazuhDb                           *LogSummary `json:"wazuh-db,omitempty"`
+	WazuhDbd                          *LogSummary `json:"wazuh-dbd,omitempty"`
+	WazuhExecd                        *LogSummary `json:"wazuh-execd,omitempty"`
+	WazuhIntegratord                  *LogSummary `json:"wazuh-integratord,omitempty"`
+	WazuhLogcollector                 *LogSummary `json:"wazuh-logcollector,omitempty"`
+	WazuhMaild                        *LogSummary `json:"wazuh-maild,omitempty"`
+	WazuhModulesd                     *LogSummary `json:"wazuh-modulesd,omitempty"`
+	WazuhModulesdAgentUpgrade         *LogSummary `json:"wazuh-modulesd:agent-upgrade,omitempty"`
+	WazuhModulesdAwsS3                *LogSummary `json:"wazuh-modulesd:aws-s3,omitempty"`
+	WazuhModulesdAzureLogs            *LogSummary `json:"wazuh-modulesd:azure-logs,omitempty"`
+	WazuhModulesdCiscat               *LogSummary `json:"wazuh-modulesd:ciscat,omitempty"`
+	WazuhModulesdCommand              *LogSummary `json:"wazuh-modulesd:command,omitempty"`
+	WazuhModulesdContentManager       *LogSummary `json:"wazuh-modulesd:content_manager,omitempty"`
+	WazuhModulesdControl              *LogSummary `json:"wazuh-modulesd:control,omitempty"`
+	WazuhModulesdDatabase             *LogSummary `json:"wazuh-modulesd:database,omitempty"`
+	WazuhModulesdDockerListener       *LogSummary `json:"wazuh-modulesd:docker-listener,omitempty"`
+	WazuhModulesdDownload             *LogSummary `json:"wazuh-modulesd:download,omitempty"`
+	WazuhModulesdOscap                *LogSummary `json:"wazuh-modulesd:oscap,omitempty"`
+	WazuhModulesdOsquery              *LogSummary `json:"wazuh-modulesd:osquery,omitempty"`
+	WazuhModulesdSyscollector         *LogSummary `json:"wazuh-modulesd:syscollector,omitempty"`
+	WazuhModulesdTaskManager          *LogSummary `json:"wazuh-modulesd:task-manager,omitempty"`
+	WazuhModulesdVulnerabilityScanner *LogSummary `json:"wazuh-modulesd:vulnerability-scanner,omitempty"`
+	WazuhMonitord                     *LogSummary `json:"wazuh-monitord,omitempty"`
+	WazuhRemoted                      *LogSummary `json:"wazuh-remoted,omitempty"`
+	WazuhReportd                      *LogSummary `json:"wazuh-reportd,omitempty"`
+	WazuhSyscheckd                    *LogSummary `json:"wazuh-syscheckd,omitempty"`
 }
 
 // WazuhManagerConfiguration defines model for WazuhManagerConfiguration.
 type WazuhManagerConfiguration struct {
-	ActiveResponse  *[]map[string]interface{} `json:"active-response,omitempty"`
-	AgentKeyPolling *map[string]interface{}   `json:"agent-key-polling,omitempty"`
-	Agentless       *[]map[string]interface{} `json:"agentless,omitempty"`
-	Alerts          *map[string]interface{}   `json:"alerts,omitempty"`
-	Auth            *map[string]interface{}   `json:"auth,omitempty"`
-	AwsS3           *map[string]interface{}   `json:"aws-s3,omitempty"`
-	AzureLogs       *map[string]interface{}   `json:"azure-logs,omitempty"`
-	CisCat          *map[string]interface{}   `json:"cis-cat,omitempty"`
-	Cluster         *map[string]interface{}   `json:"cluster,omitempty"`
-	Command         *[]map[string]interface{} `json:"command,omitempty"`
-	DatabaseOutput  *map[string]interface{}   `json:"database_output,omitempty"`
-	DockerListener  *map[string]interface{}   `json:"docker-listener,omitempty"`
-	EmailAlerts     *map[string]interface{}   `json:"email_alerts,omitempty"`
-	GcpPubsub       *map[string]interface{}   `json:"gcp-pubsub,omitempty"`
-	Global          *map[string]interface{}   `json:"global,omitempty"`
-	Integration     *[]map[string]interface{} `json:"integration,omitempty"`
-	Labels          *map[string]interface{}   `json:"labels,omitempty"`
-	Localfile       *[]map[string]interface{} `json:"localfile,omitempty"`
-	Logging         *map[string]interface{}   `json:"logging,omitempty"`
-	OpenScap        *map[string]interface{}   `json:"open-scap,omitempty"`
-	Osquery         *map[string]interface{}   `json:"osquery,omitempty"`
-	Remote          *[]map[string]interface{} `json:"remote,omitempty"`
-	Reports         *map[string]interface{}   `json:"reports,omitempty"`
-	Rootcheck       *map[string]interface{}   `json:"rootcheck,omitempty"`
-	Ruleset         *map[string]interface{}   `json:"ruleset,omitempty"`
-	Sca             *map[string]interface{}   `json:"sca,omitempty"`
-	Socket          *map[string]interface{}   `json:"socket,omitempty"`
-	Syscheck        *map[string]interface{}   `json:"syscheck,omitempty"`
-	Syscollector    *map[string]interface{}   `json:"syscollector,omitempty"`
-	SyslogOutput    *[]map[string]interface{} `json:"syslog_output,omitempty"`
+	ActiveResponse *[]map[string]interface{} `json:"active-response,omitempty"`
+	Agentless      *[]map[string]interface{} `json:"agentless,omitempty"`
+	Alerts         *map[string]interface{}   `json:"alerts,omitempty"`
+	Auth           *map[string]interface{}   `json:"auth,omitempty"`
+	AwsS3          *map[string]interface{}   `json:"aws-s3,omitempty"`
+	AzureLogs      *map[string]interface{}   `json:"azure-logs,omitempty"`
+	CisCat         *map[string]interface{}   `json:"cis-cat,omitempty"`
+	Cluster        *map[string]interface{}   `json:"cluster,omitempty"`
+	Command        *[]map[string]interface{} `json:"command,omitempty"`
+	DatabaseOutput *map[string]interface{}   `json:"database_output,omitempty"`
+	DockerListener *map[string]interface{}   `json:"docker-listener,omitempty"`
+	EmailAlerts    *map[string]interface{}   `json:"email_alerts,omitempty"`
+	GcpPubsub      *map[string]interface{}   `json:"gcp-pubsub,omitempty"`
+	Global         *map[string]interface{}   `json:"global,omitempty"`
+	Integration    *[]map[string]interface{} `json:"integration,omitempty"`
+	Labels         *map[string]interface{}   `json:"labels,omitempty"`
+	Localfile      *[]map[string]interface{} `json:"localfile,omitempty"`
+	Logging        *map[string]interface{}   `json:"logging,omitempty"`
+	OpenScap       *map[string]interface{}   `json:"open-scap,omitempty"`
+	Osquery        *map[string]interface{}   `json:"osquery,omitempty"`
+	Remote         *[]map[string]interface{} `json:"remote,omitempty"`
+	Reports        *map[string]interface{}   `json:"reports,omitempty"`
+	Rootcheck      *map[string]interface{}   `json:"rootcheck,omitempty"`
+	Ruleset        *map[string]interface{}   `json:"ruleset,omitempty"`
+	Sca            *map[string]interface{}   `json:"sca,omitempty"`
+	Socket         *map[string]interface{}   `json:"socket,omitempty"`
+	Syscheck       *map[string]interface{}   `json:"syscheck,omitempty"`
+	Syscollector   *map[string]interface{}   `json:"syscollector,omitempty"`
+	SyslogOutput   *[]map[string]interface{} `json:"syslog_output,omitempty"`
 }
 
 // WazuhRemotedStats defines model for WazuhRemotedStats.
@@ -2463,6 +3388,162 @@ type WazuhRemotedStats struct {
 	// Total queue size to store events from agents
 	TotalQueueSize *float32 `json:"total_queue_size,omitempty"`
 }
+
+// WazuhRemotedStatsAgentsItem defines model for WazuhRemotedStatsAgentsItem.
+type WazuhRemotedStatsAgentsItem struct {
+	Agents *[]struct {
+		// Agent ID
+		Id      *int32 `json:"id,omitempty"`
+		Metrics *struct {
+			Messages *struct {
+				ReceivedBreakdown *struct {
+					// Control messages received from agent
+					Control          *int32 `json:"control,omitempty"`
+					ControlBreakdown *struct {
+						// Keepalive messages from agent
+						Keepalive *int32 `json:"keepalive,omitempty"`
+
+						// Request messages (for example, WPK responses) from agent
+						Request *int32 `json:"request,omitempty"`
+
+						// Shutdown messages from agent
+						Shutdown *int32 `json:"shutdown,omitempty"`
+
+						// Startup messages from agent
+						Startup *int32 `json:"startup,omitempty"`
+					} `json:"control_breakdown,omitempty"`
+
+					// Event messages (syscheck, syscollector, logcollector, etc.) received from agent
+					Event *int32 `json:"event,omitempty"`
+				} `json:"received_breakdown,omitempty"`
+				SentBreakdown *struct {
+					// ACK messages (response to keepalive, startup and shutdown) sent to agent
+					Ack *int32 `json:"ack,omitempty"`
+
+					// Active response messages sent to agent
+					Ar *int32 `json:"ar,omitempty"`
+
+					// Messages discarded because the send queue was full (for this agent)
+					Discarded *int32 `json:"discarded,omitempty"`
+
+					// Request messages (for example, WPK chunks) sent to agent
+					Request *int32 `json:"request,omitempty"`
+
+					// SCA messages sent to agent
+					Sca *int32 `json:"sca,omitempty"`
+
+					// Shared configuration messages (merged.mg) sent to agent
+					Shared *int32 `json:"shared,omitempty"`
+				} `json:"sent_breakdown,omitempty"`
+			} `json:"messages,omitempty"`
+		} `json:"metrics,omitempty"`
+
+		// When the count of the metrics started
+		Uptime *time.Time `json:"uptime,omitempty"`
+	} `json:"agents,omitempty"`
+
+	// Daemon name
+	Name *WazuhRemotedStatsAgentsItemName `json:"name,omitempty"`
+
+	// Daemon stats request time
+	Timestamp *time.Time `json:"timestamp,omitempty"`
+}
+
+// Daemon name
+type WazuhRemotedStatsAgentsItemName string
+
+// WazuhRemotedStatsItem defines model for WazuhRemotedStatsItem.
+type WazuhRemotedStatsItem struct {
+	Metrics *struct {
+		Bytes *struct {
+			// Bytes received from agents
+			Received *int32 `json:"received,omitempty"`
+
+			// Bytes sent to agents
+			Sent *int32 `json:"sent,omitempty"`
+		} `json:"bytes,omitempty"`
+
+		// Number of times keys were reloaded into memory
+		KeysReloadCount *int32 `json:"keys_reload_count,omitempty"`
+		Messages        *struct {
+			ReceivedBreakdown *struct {
+				// Control messages received from agents
+				Control          *int32 `json:"control,omitempty"`
+				ControlBreakdown *struct {
+					// Keepalive messages from agents
+					Keepalive *int32 `json:"keepalive,omitempty"`
+
+					// Request messages (for example, WPK responses) from agents
+					Request *int32 `json:"request,omitempty"`
+
+					// Shutdown messages from agents
+					Shutdown *int32 `json:"shutdown,omitempty"`
+
+					// Startup messages from agents
+					Startup *int32 `json:"startup,omitempty"`
+				} `json:"control_breakdown,omitempty"`
+
+				// Messages dequeued after newer messages (counter < current counter)
+				DequeuedAfter *int32 `json:"dequeued_after,omitempty"`
+
+				// Messages discarded because the received queue was full
+				Discarded *int32 `json:"discarded,omitempty"`
+
+				// Event messages (syscheck, syscollector, logcollector, etc.) received from agents
+				Event *int32 `json:"event,omitempty"`
+
+				// Ping messages received
+				Ping *int32 `json:"ping,omitempty"`
+
+				// Not recognized messages
+				Unknown *int32 `json:"unknown,omitempty"`
+			} `json:"received_breakdown,omitempty"`
+			SentBreakdown *struct {
+				// ACK messages (response to keepalive, startup and shutdown) sent to agents
+				Ack *int32 `json:"ack,omitempty"`
+
+				// Active response messages sent to agents
+				Ar *int32 `json:"ar,omitempty"`
+
+				// Messages discarded because the send queue was full
+				Discarded *int32 `json:"discarded,omitempty"`
+
+				// Request messages (for example, WPK chunks) sent to agents
+				Request *int32 `json:"request,omitempty"`
+
+				// SCA messages sent to agents
+				Sca *int32 `json:"sca,omitempty"`
+
+				// Shared configuration messages (merged.mg) sent to agents
+				Shared *int32 `json:"shared,omitempty"`
+			} `json:"sent_breakdown,omitempty"`
+		} `json:"messages,omitempty"`
+		Queues *struct {
+			Received *struct {
+				// Size of received messages queue
+				Size *int32 `json:"size,omitempty"`
+
+				// Current usage of the received queue (count)
+				Usage *int32 `json:"usage,omitempty"`
+			} `json:"received,omitempty"`
+		} `json:"queues,omitempty"`
+
+		// Current active TCP sessions (agents)
+		TcpSessions *int32 `json:"tcp_sessions,omitempty"`
+	} `json:"metrics,omitempty"`
+
+	// Daemon name
+	Name *WazuhRemotedStatsItemName `json:"name,omitempty"`
+
+	// Daemon stats request time
+	Timestamp *time.Time `json:"timestamp,omitempty"`
+
+	// When the count of the metrics started
+	Uptime *time.Time `json:"uptime,omitempty"`
+}
+
+// Daemon name
+type WazuhRemotedStatsItemName string
 
 // WazuhStats defines model for WazuhStats.
 type WazuhStats map[string]interface{}
@@ -2534,6 +3615,12 @@ type CpuMhz float32
 
 // CpuName defines model for cpu.name.
 type CpuName string
+
+// DaemonsList defines model for daemons_list.
+type DaemonsList []string
+
+// DaemonsListAgents defines model for daemons_list_agents.
+type DaemonsListAgents []string
 
 // Cve defines model for cve.
 type Cve string
@@ -2610,6 +3697,9 @@ type Filetype string
 // Force defines model for force.
 type Force bool
 
+// ForceQuery defines model for force_query.
+type ForceQuery bool
+
 // ForceSingleGroup defines model for force_single_group.
 type ForceSingleGroup bool
 
@@ -2630,6 +3720,9 @@ type Gpg13 string
 
 // Group defines model for group.
 type Group string
+
+// GroupConfigStatus defines model for group_config_status.
+type GroupConfigStatus string
 
 // Group name
 type GroupId GroupID
@@ -3137,7 +4230,7 @@ type AgentControllerDeleteAgentsParams struct {
 	// Filter by manager hostname where agents are connected to
 	Manager *ManagerHost `json:"manager,omitempty"`
 
-	// Filter by agents version
+	// Filter by agents version using one of the following formats: 'X.Y.Z', 'vX.Y.Z', 'wazuh X.Y.Z' or 'wazuh vX.Y.Z'. For example: '4.4.0'
 	Version *Version `json:"version,omitempty"`
 
 	// Filter by group of agents
@@ -3206,7 +4299,7 @@ type AgentControllerGetAgentsParams struct {
 	// Filter by manager hostname where agents are connected to
 	Manager *ManagerHost `json:"manager,omitempty"`
 
-	// Filter by agents version
+	// Filter by agents version using one of the following formats: 'X.Y.Z', 'vX.Y.Z', 'wazuh X.Y.Z' or 'wazuh vX.Y.Z'. For example: '4.4.0'
 	Version *Version `json:"version,omitempty"`
 
 	// Filter by group of agents
@@ -3223,10 +4316,19 @@ type AgentControllerGetAgentsParams struct {
 
 	// Filter by the IP used when registering the agent
 	RegisterIP *RegisterIP `json:"registerIP,omitempty"`
+
+	// Agent groups configuration sync status
+	GroupConfigStatus *AgentControllerGetAgentsParamsGroupConfigStatus `json:"group_config_status,omitempty"`
+
+	// Look for distinct values.
+	Distinct *Distinct `json:"distinct,omitempty"`
 }
 
 // AgentControllerGetAgentsParamsStatus defines parameters for AgentControllerGetAgents.
 type AgentControllerGetAgentsParamsStatus string
+
+// AgentControllerGetAgentsParamsGroupConfigStatus defines parameters for AgentControllerGetAgents.
+type AgentControllerGetAgentsParamsGroupConfigStatus string
 
 // AgentControllerAddAgentJSONBody defines parameters for AgentControllerAddAgent.
 type AgentControllerAddAgentJSONBody struct {
@@ -3494,7 +4596,7 @@ type AgentControllerPutUpgradeAgentsParams struct {
 	// Filter by manager hostname where agents are connected to
 	Manager *ManagerHost `json:"manager,omitempty"`
 
-	// Filter by agents version
+	// Filter by agents version using one of the following formats: 'X.Y.Z', 'vX.Y.Z', 'wazuh X.Y.Z' or 'wazuh vX.Y.Z'. For example: '4.4.0'
 	Version *Version `json:"version,omitempty"`
 
 	// Filter by group of agents
@@ -3545,7 +4647,7 @@ type AgentControllerPutUpgradeCustomAgentsParams struct {
 	// Filter by manager hostname where agents are connected to
 	Manager *ManagerHost `json:"manager,omitempty"`
 
-	// Filter by agents version
+	// Filter by agents version using one of the following formats: 'X.Y.Z', 'vX.Y.Z', 'wazuh X.Y.Z' or 'wazuh vX.Y.Z'. For example: '4.4.0'
 	Version *Version `json:"version,omitempty"`
 
 	// Filter by group of agents
@@ -3590,7 +4692,7 @@ type AgentControllerGetAgentUpgradeParams struct {
 	// Filter by manager hostname where agents are connected to
 	Manager *ManagerHost `json:"manager,omitempty"`
 
-	// Filter by agents version
+	// Filter by agents version using one of the following formats: 'X.Y.Z', 'vX.Y.Z', 'wazuh X.Y.Z' or 'wazuh vX.Y.Z'. For example: '4.4.0'
 	Version *Version `json:"version,omitempty"`
 
 	// Filter by group of agents
@@ -3623,6 +4725,21 @@ type AgentControllerGetAgentConfigParamsComponent string
 
 // AgentControllerGetAgentConfigParamsConfiguration defines parameters for AgentControllerGetAgentConfig.
 type AgentControllerGetAgentConfigParamsConfiguration string
+
+// AgentControllerGetDaemonStatsParams defines parameters for AgentControllerGetDaemonStats.
+type AgentControllerGetDaemonStatsParams struct {
+	// Show results in human-readable format
+	Pretty *Pretty `json:"pretty,omitempty"`
+
+	// Disable timeout response
+	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
+
+	// List of daemon names (separated by comma), all daemons selected by default if not specified
+	DaemonsList *DaemonsListAgents `json:"daemons_list,omitempty"`
+}
+
+// AgentControllerGetDaemonStatsParamsDaemonsList defines parameters for AgentControllerGetDaemonStats.
+type AgentControllerGetDaemonStatsParamsDaemonsList string
 
 // AgentControllerDeleteSingleAgentMultipleGroupsParams defines parameters for AgentControllerDeleteSingleAgentMultipleGroups.
 type AgentControllerDeleteSingleAgentMultipleGroupsParams struct {
@@ -3832,6 +4949,9 @@ type ClusterControllerGetClusterNodesParams struct {
 
 	// Query to filter results by. For example q=&quot;status=active&quot;
 	Q *Query `json:"q,omitempty"`
+
+	// Look for distinct values.
+	Distinct *Distinct `json:"distinct,omitempty"`
 }
 
 // ClusterControllerGetClusterNodesParamsType defines parameters for ClusterControllerGetClusterNodes.
@@ -3849,6 +4969,18 @@ type ClusterControllerPutRestartParams struct {
 	NodesList *NodesList `json:"nodes_list,omitempty"`
 }
 
+// ClusterControllerGetNodesRulesetSyncStatusParams defines parameters for ClusterControllerGetNodesRulesetSyncStatus.
+type ClusterControllerGetNodesRulesetSyncStatusParams struct {
+	// Show results in human-readable format
+	Pretty *Pretty `json:"pretty,omitempty"`
+
+	// Disable timeout response
+	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
+
+	// List of node IDs (separated by comma), all nodes selected by default if not specified
+	NodesList *NodesList `json:"nodes_list,omitempty"`
+}
+
 // ClusterControllerGetStatusParams defines parameters for ClusterControllerGetStatus.
 type ClusterControllerGetStatusParams struct {
 	// Show results in human-readable format
@@ -3856,6 +4988,9 @@ type ClusterControllerGetStatusParams struct {
 
 	// Disable timeout response
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
+
+	// List of node IDs (separated by comma), all nodes selected by default if not specified
+	NodesList *NodesList `json:"nodes_list,omitempty"`
 }
 
 // ClusterControllerGetConfigurationNodeParams defines parameters for ClusterControllerGetConfigurationNode.
@@ -3903,6 +5038,22 @@ type ClusterControllerGetNodeConfigParamsComponent string
 // ClusterControllerGetNodeConfigParamsConfiguration defines parameters for ClusterControllerGetNodeConfig.
 type ClusterControllerGetNodeConfigParamsConfiguration string
 
+
+// ClusterControllerGetDaemonStatsNodeParams defines parameters for ClusterControllerGetDaemonStatsNode.
+type ClusterControllerGetDaemonStatsNodeParams struct {
+	// Show results in human-readable format
+	Pretty *Pretty `json:"pretty,omitempty"`
+
+	// Disable timeout response
+	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
+
+	// List of daemon names (separated by comma), all daemons selected by default if not specified
+	DaemonsList *DaemonsList `json:"daemons_list,omitempty"`
+}
+
+// ClusterControllerGetDaemonStatsNodeParamsDaemonsList defines parameters for ClusterControllerGetDaemonStatsNode.
+type ClusterControllerGetDaemonStatsNodeParamsDaemonsList string
+
 // ClusterControllerGetInfoNodeParams defines parameters for ClusterControllerGetInfoNode.
 type ClusterControllerGetInfoNodeParams struct {
 	// Show results in human-readable format
@@ -3940,6 +5091,12 @@ type ClusterControllerGetLogNodeParams struct {
 
 	// Query to filter results by. For example q=&quot;status=active&quot;
 	Q *Query `json:"q,omitempty"`
+
+	// Select which fields to return (separated by comma). Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
+	Select *Select `json:"select,omitempty"`
+
+	// Look for distinct values.
+	Distinct *Distinct `json:"distinct,omitempty"`
 }
 
 // ClusterControllerGetLogNodeParamsTag defines parameters for ClusterControllerGetLogNode.
@@ -4051,6 +5208,9 @@ type DecoderControllerGetDecodersParams struct {
 
 	// Filter by list status. Use commas to enter multiple statuses
 	Status *DecoderControllerGetDecodersParamsStatus `json:"status,omitempty"`
+
+	// Look for distinct values.
+	Distinct *Distinct `json:"distinct,omitempty"`
 }
 
 // DecoderControllerGetDecodersParamsStatus defines parameters for DecoderControllerGetDecoders.
@@ -4084,6 +5244,15 @@ type DecoderControllerGetDecodersFilesParams struct {
 
 	// Filter by list status. Use commas to enter multiple statuses
 	Status *DecoderControllerGetDecodersFilesParamsStatus `json:"status,omitempty"`
+
+	// Query to filter results by. For example q=&quot;status=active&quot;
+	Q *Query `json:"q,omitempty"`
+
+	// Select which fields to return (separated by comma). Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
+	Select *Select `json:"select,omitempty"`
+
+	// Look for distinct values.
+	Distinct *Distinct `json:"distinct,omitempty"`
 }
 
 // DecoderControllerGetDecodersFilesParamsStatus defines parameters for DecoderControllerGetDecodersFiles.
@@ -4096,6 +5265,9 @@ type DecoderControllerDeleteFileParams struct {
 
 	// Disable timeout response
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
+
+	// Filter by relative directory name
+	RelativeDirname *GetDirnamesPath `json:"relative_dirname,omitempty"`
 }
 
 // DecoderControllerGetFileParams defines parameters for DecoderControllerGetFile.
@@ -4108,6 +5280,9 @@ type DecoderControllerGetFileParams struct {
 
 	// Format response in plain text
 	Raw *Raw `json:"raw,omitempty"`
+
+	// Filter by relative directory name
+	RelativeDirname *GetDirnamesPath `json:"relative_dirname,omitempty"`
 }
 
 // DecoderControllerPutFileParams defines parameters for DecoderControllerPutFile.
@@ -4120,6 +5295,9 @@ type DecoderControllerPutFileParams struct {
 
 	// If set to false, an exception will be raised when updating contents of an already existing filename
 	Overwrite *Overwrite `json:"overwrite,omitempty"`
+
+	// Filter by relative directory name
+	RelativeDirname *GetDirnamesPath `json:"relative_dirname,omitempty"`
 }
 
 // DecoderControllerGetDecodersParentsParams defines parameters for DecoderControllerGetDecodersParents.
@@ -4146,6 +5324,20 @@ type DecoderControllerGetDecodersParentsParams struct {
 	Search *Search `json:"search,omitempty"`
 }
 
+// EventControllerForwardEventJSONBody defines parameters for EventControllerForwardEvent.
+type EventControllerForwardEventJSONBody struct {
+	// Bulk of events
+	Events []string `json:"events"`
+}
+
+// EventControllerForwardEventParams defines parameters for EventControllerForwardEvent.
+type EventControllerForwardEventParams struct {
+	// Show results in human-readable format
+	Pretty *Pretty `json:"pretty,omitempty"`
+
+	// Disable timeout response
+	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
+}
 // ExperimentalControllerGetCisCatResultsParams defines parameters for ExperimentalControllerGetCisCatResults.
 type ExperimentalControllerGetCisCatResultsParams struct {
 	// Show results in human-readable format
@@ -4681,6 +5873,15 @@ type AgentControllerGetListGroupParams struct {
 
 	// Select algorithm to generate the returned checksums
 	Hash *AgentControllerGetListGroupParamsHash `json:"hash,omitempty"`
+
+	// Query to filter results by. For example q=&quot;status=active&quot;
+	Q *Query `json:"q,omitempty"`
+
+	// Select which fields to return (separated by comma). Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
+	Select *Select `json:"select,omitempty"`
+
+	// Look for distinct values.
+	Distinct *Distinct `json:"distinct,omitempty"`
 }
 
 // AgentControllerGetListGroupParamsHash defines parameters for AgentControllerGetListGroup.
@@ -4688,7 +5889,7 @@ type AgentControllerGetListGroupParamsHash string
 
 // AgentControllerPostGroupJSONBody defines parameters for AgentControllerPostGroup.
 type AgentControllerPostGroupJSONBody struct {
-	// Group name
+	// Group name. It can contain any of the characters between a-z, A-Z, 0-9, '_', '-' and '.'. Names '.' and '..' are restricted.
 	GroupId string `json:"group_id"`
 }
 
@@ -4729,6 +5930,9 @@ type AgentControllerGetAgentsInGroupParams struct {
 
 	// Query to filter results by. For example q=&quot;status=active&quot;
 	Q *Query `json:"q,omitempty"`
+
+	// Look for distinct values.
+	Distinct *Distinct `json:"distinct,omitempty"`
 }
 
 // AgentControllerGetAgentsInGroupParamsStatus defines parameters for AgentControllerGetAgentsInGroup.
@@ -4780,6 +5984,15 @@ type AgentControllerGetGroupFilesParams struct {
 
 	// Select algorithm to generate the returned checksums
 	Hash *AgentControllerGetGroupFilesParamsHash `json:"hash,omitempty"`
+
+	// Query to filter results by. For example q=&quot;status=active&quot;
+	Q *Query `json:"q,omitempty"`
+
+	// Select which fields to return (separated by comma). Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
+	Select *Select `json:"select,omitempty"`
+
+	// Look for distinct values.
+	Distinct *Distinct `json:"distinct,omitempty"`
 }
 
 // AgentControllerGetGroupFilesParamsHash defines parameters for AgentControllerGetGroupFiles.
@@ -4843,6 +6056,12 @@ type CdbListControllerGetListsParams struct {
 
 	// Filter by filename
 	Filename *Filename `json:"filename,omitempty"`
+
+	// Query to filter results by. For example q=&quot;status=active&quot;
+	Q *Query `json:"q,omitempty"`
+
+	// Look for distinct values.
+	Distinct *Distinct `json:"distinct,omitempty"`
 }
 
 // CdbListControllerGetListsFilesParams defines parameters for CdbListControllerGetListsFiles.
@@ -4951,6 +6170,9 @@ type ManagerControllerGetConfigurationParams struct {
 
 	// Indicate a section child. E.g, fields for *ruleset* section are: decoder_dir, rule_dir, etc
 	Field *Field `json:"field,omitempty"`
+
+	// Look for distinct values.
+	Distinct *Distinct `json:"distinct,omitempty"`
 }
 
 // ManagerControllerGetConfigurationParamsSection defines parameters for ManagerControllerGetConfiguration.
@@ -4989,6 +6211,20 @@ type ManagerControllerGetManagerConfigOndemandParamsComponent string
 // ManagerControllerGetManagerConfigOndemandParamsConfiguration defines parameters for ManagerControllerGetManagerConfigOndemand.
 type ManagerControllerGetManagerConfigOndemandParamsConfiguration string
 
+// ManagerControllerGetDaemonStatsParams defines parameters for ManagerControllerGetDaemonStats.
+type ManagerControllerGetDaemonStatsParams struct {
+	// Show results in human-readable format
+	Pretty *Pretty `json:"pretty,omitempty"`
+
+	// Disable timeout response
+	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
+
+	// List of daemon names (separated by comma), all daemons selected by default if not specified
+	DaemonsList *DaemonsList `json:"daemons_list,omitempty"`
+}
+
+// ManagerControllerGetDaemonStatsParamsDaemonsList defines parameters for ManagerControllerGetDaemonStats.
+type ManagerControllerGetDaemonStatsParamsDaemonsList string
 // ManagerControllerGetInfoParams defines parameters for ManagerControllerGetInfo.
 type ManagerControllerGetInfoParams struct {
 	// Show results in human-readable format
@@ -5019,17 +6255,20 @@ type ManagerControllerGetLogParams struct {
 	Search *Search `json:"search,omitempty"`
 
 	// Wazuh component that logged the event
-	Tag *ManagerControllerGetLogParamsTag `json:"tag,omitempty"`
+	Tag *Tag `json:"tag,omitempty"`
 
 	// Filter by log level
 	Level *ManagerControllerGetLogParamsLevel `json:"level,omitempty"`
 
 	// Query to filter results by. For example q=&quot;status=active&quot;
 	Q *Query `json:"q,omitempty"`
-}
 
-// ManagerControllerGetLogParamsTag defines parameters for ManagerControllerGetLog.
-type ManagerControllerGetLogParamsTag string
+	// Select which fields to return (separated by comma). Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
+	Select *Select `json:"select,omitempty"`
+
+	// Look for distinct values.
+	Distinct *Distinct `json:"distinct,omitempty"`
+}
 
 // ManagerControllerGetLogParamsLevel defines parameters for ManagerControllerGetLog.
 type ManagerControllerGetLogParamsLevel string
@@ -5109,6 +6348,15 @@ type ManagerControllerGetStatusParams struct {
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 }
 
+// ManagerControllerCheckAvailableVersionParams defines parameters for ManagerControllerCheckAvailableVersion.
+type ManagerControllerCheckAvailableVersionParams struct {
+	// Show results in human-readable format
+	Pretty *Pretty `json:"pretty,omitempty"`
+
+	// Force query to CTI service
+	ForceQuery *ForceQuery `json:"force_query,omitempty"`
+}
+
 // MitreControllerGetGroupsParams defines parameters for MitreControllerGetGroups.
 type MitreControllerGetGroupsParams struct {
 	// List of MITRE's group IDs (separated by comma)
@@ -5137,6 +6385,9 @@ type MitreControllerGetGroupsParams struct {
 
 	// Query to filter results by. For example q=&quot;status=active&quot;
 	Q *Query `json:"q,omitempty"`
+
+	// Look for distinct values.
+	Distinct *Distinct `json:"distinct,omitempty"`
 }
 
 // MitreControllerGetMetadataParams defines parameters for MitreControllerGetMetadata.
@@ -5176,6 +6427,9 @@ type MitreControllerGetMitigationsParams struct {
 
 	// Query to filter results by. For example q=&quot;status=active&quot;
 	Q *Query `json:"q,omitempty"`
+
+	// Look for distinct values.
+	Distinct *Distinct `json:"distinct,omitempty"`
 }
 
 // MitreControllerGetReferencesParams defines parameters for MitreControllerGetReferences.
@@ -5236,6 +6490,9 @@ type MitreControllerGetSoftwareParams struct {
 
 	// Query to filter results by. For example q=&quot;status=active&quot;
 	Q *Query `json:"q,omitempty"`
+
+	// Look for distinct values.
+	Distinct *Distinct `json:"distinct,omitempty"`
 }
 
 // MitreControllerGetTacticsParams defines parameters for MitreControllerGetTactics.
@@ -5266,6 +6523,9 @@ type MitreControllerGetTacticsParams struct {
 
 	// Query to filter results by. For example q=&quot;status=active&quot;
 	Q *Query `json:"q,omitempty"`
+
+	// Look for distinct values.
+	Distinct *Distinct `json:"distinct,omitempty"`
 }
 
 // MitreControllerGetTechniquesParams defines parameters for MitreControllerGetTechniques.
@@ -5296,6 +6556,9 @@ type MitreControllerGetTechniquesParams struct {
 
 	// Query to filter results by. For example q=&quot;status=active&quot;
 	Q *Query `json:"q,omitempty"`
+
+	// Look for distinct values.
+	Distinct *Distinct `json:"distinct,omitempty"`
 }
 
 // OverviewControllerGetOverviewAgentsParams defines parameters for OverviewControllerGetOverviewAgents.
@@ -5440,6 +6703,9 @@ type RuleControllerGetRulesParams struct {
 
 	// Filters by MITRE technique ID
 	Mitre *Mitre `json:"mitre,omitempty"`
+
+	// Look for distinct values.
+	Distinct *Distinct `json:"distinct,omitempty"`
 }
 
 // RuleControllerGetRulesParamsStatus defines parameters for RuleControllerGetRules.
@@ -5473,6 +6739,15 @@ type RuleControllerGetRulesFilesParams struct {
 
 	// Filter by list status. Use commas to enter multiple statuses
 	Status *RuleControllerGetRulesFilesParamsStatus `json:"status,omitempty"`
+
+	// Query to filter results by. For example q=&quot;status=active&quot;
+	Q *Query `json:"q,omitempty"`
+
+	// Select which fields to return (separated by comma). Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
+	Select *Select `json:"select,omitempty"`
+
+	// Look for distinct values.
+	Distinct *Distinct `json:"distinct,omitempty"`
 }
 
 // RuleControllerGetRulesFilesParamsStatus defines parameters for RuleControllerGetRulesFiles.
@@ -5485,6 +6760,9 @@ type RuleControllerDeleteFileParams struct {
 
 	// Disable timeout response
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
+
+	// Filter by relative directory name
+	RelativeDirname *GetDirnamesPath `json:"relative_dirname,omitempty"`
 }
 
 // RuleControllerGetFileParams defines parameters for RuleControllerGetFile.
@@ -5497,6 +6775,9 @@ type RuleControllerGetFileParams struct {
 
 	// Format response in plain text
 	Raw *Raw `json:"raw,omitempty"`
+
+	// Filter by relative directory name
+	RelativeDirname *GetDirnamesPath `json:"relative_dirname,omitempty"`
 }
 
 // RuleControllerPutFileParams defines parameters for RuleControllerPutFile.
@@ -5509,6 +6790,9 @@ type RuleControllerPutFileParams struct {
 
 	// If set to false, an exception will be raised when updating contents of an already existing filename
 	Overwrite *Overwrite `json:"overwrite,omitempty"`
+
+	// Filter by relative directory name
+	RelativeDirname *GetDirnamesPath `json:"relative_dirname,omitempty"`
 }
 
 // RuleControllerGetRulesGroupsParams defines parameters for RuleControllerGetRulesGroups.
@@ -5585,8 +6869,14 @@ type ScaControllerGetScaAgentParams struct {
 	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
 
+	// Select which fields to return (separated by comma). Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
+	Select *Select `json:"select,omitempty"`
+
 	// Query to filter results by. For example q=&quot;status=active&quot;
 	Q *Query `json:"q,omitempty"`
+
+	// Look for distinct values.
+	Distinct *Distinct `json:"distinct,omitempty"`
 }
 
 // ScaControllerGetScaChecksParams defines parameters for ScaControllerGetScaChecks.
@@ -5651,8 +6941,14 @@ type ScaControllerGetScaChecksParams struct {
 	// Look for elements containing the specified string. To obtain a complementary search, use '-' at the beginning
 	Search *Search `json:"search,omitempty"`
 
+	// Select which fields to return (separated by comma). Use '.' for nested fields. For example, '{field1: field2}' may be selected with 'field1.field2'
+	Select *Select `json:"select,omitempty"`
+
 	// Query to filter results by. For example q=&quot;status=active&quot;
 	Q *Query `json:"q,omitempty"`
+
+	// Look for distinct values.
+	Distinct *Distinct `json:"distinct,omitempty"`
 }
 
 // SecurityControllerGetRbacActionsParams defines parameters for SecurityControllerGetRbacActions.
@@ -5731,6 +7027,12 @@ type SecurityControllerGetPoliciesParams struct {
 
 	// Disable timeout response
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
+
+	// Query to filter results by. For example q=&quot;status=active&quot;
+	Q *Query `json:"q,omitempty"`
+
+	// Look for distinct values.
+	Distinct *Distinct `json:"distinct,omitempty"`
 }
 
 // SecurityControllerAddPolicyJSONBody defines parameters for SecurityControllerAddPolicy.
@@ -5806,6 +7108,12 @@ type SecurityControllerGetRolesParams struct {
 
 	// Disable timeout response
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
+
+	// Query to filter results by. For example q=&quot;status=active&quot;
+	Q *Query `json:"q,omitempty"`
+
+	// Look for distinct values.
+	Distinct *Distinct `json:"distinct,omitempty"`
 }
 
 // SecurityControllerAddRoleJSONBody defines parameters for SecurityControllerAddRole.
@@ -5920,6 +7228,12 @@ type SecurityControllerGetRulesParams struct {
 
 	// Disable timeout response
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
+
+	// Query to filter results by. For example q=&quot;status=active&quot;
+	Q *Query `json:"q,omitempty"`
+
+	// Look for distinct values.
+	Distinct *Distinct `json:"distinct,omitempty"`
 }
 
 // SecurityControllerAddRuleJSONBody defines parameters for SecurityControllerAddRule.
@@ -5944,6 +7258,12 @@ type SecurityControllerUpdateRuleParams struct {
 
 	// Disable timeout response
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
+}
+
+// SecurityControllerDeprecatedLoginUserParams defines parameters for SecurityControllerDeprecatedLoginUser.
+type SecurityControllerDeprecatedLoginUserParams struct {
+	// Format response in plain text
+	Raw *Raw `json:"raw,omitempty"`
 }
 
 // SecurityControllerLoginUserParams defines parameters for SecurityControllerLoginUser.
@@ -5998,6 +7318,12 @@ type SecurityControllerGetUsersParams struct {
 
 	// Disable timeout response
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
+
+	// Query to filter results by. For example q=&quot;status=active&quot;
+	Q *Query `json:"q,omitempty"`
+
+	// Look for distinct values.
+	Distinct *Distinct `json:"distinct,omitempty"`
 }
 
 // SecurityControllerCreateUserJSONBody defines parameters for SecurityControllerCreateUser.
@@ -6219,6 +7545,9 @@ type SyscollectorControllerGetHotfixInfoParams struct {
 
 	// Query to filter results by. For example q=&quot;status=active&quot;
 	Q *Query `json:"q,omitempty"`
+
+	// Look for distinct values.
+	Distinct *Distinct `json:"distinct,omitempty"`
 }
 
 // SyscollectorControllerGetNetworkAddressInfoParams defines parameters for SyscollectorControllerGetNetworkAddressInfo.
@@ -6261,6 +7590,9 @@ type SyscollectorControllerGetNetworkAddressInfoParams struct {
 
 	// Query to filter results by. For example q=&quot;status=active&quot;
 	Q *Query `json:"q,omitempty"`
+
+	// Look for distinct values.
+	Distinct *Distinct `json:"distinct,omitempty"`
 }
 
 // SyscollectorControllerGetNetworkInterfaceInfoParams defines parameters for SyscollectorControllerGetNetworkInterfaceInfo.
@@ -6327,6 +7659,9 @@ type SyscollectorControllerGetNetworkInterfaceInfoParams struct {
 
 	// Query to filter results by. For example q=&quot;status=active&quot;
 	Q *Query `json:"q,omitempty"`
+
+	// Look for distinct values.
+	Distinct *Distinct `json:"distinct,omitempty"`
 }
 
 // SyscollectorControllerGetNetworkProtocolInfoParams defines parameters for SyscollectorControllerGetNetworkProtocolInfo.
@@ -6366,6 +7701,9 @@ type SyscollectorControllerGetNetworkProtocolInfoParams struct {
 
 	// Query to filter results by. For example q=&quot;status=active&quot;
 	Q *Query `json:"q,omitempty"`
+
+	// Look for distinct values.
+	Distinct *Distinct `json:"distinct,omitempty"`
 }
 
 // SyscollectorControllerGetOsInfoParams defines parameters for SyscollectorControllerGetOsInfo.
@@ -6420,6 +7758,9 @@ type SyscollectorControllerGetPackagesInfoParams struct {
 
 	// Query to filter results by. For example q=&quot;status=active&quot;
 	Q *Query `json:"q,omitempty"`
+
+	// Look for distinct values.
+	Distinct *Distinct `json:"distinct,omitempty"`
 }
 
 // SyscollectorControllerGetPortsInfoParams defines parameters for SyscollectorControllerGetPortsInfo.
@@ -6471,6 +7812,9 @@ type SyscollectorControllerGetPortsInfoParams struct {
 
 	// Query to filter results by. For example q=&quot;status=active&quot;
 	Q *Query `json:"q,omitempty"`
+
+	// Look for distinct values.
+	Distinct *Distinct `json:"distinct,omitempty"`
 }
 
 // SyscollectorControllerGetProcessesInfoParams defines parameters for SyscollectorControllerGetProcessesInfo.
@@ -6540,6 +7884,9 @@ type SyscollectorControllerGetProcessesInfoParams struct {
 
 	// Query to filter results by. For example q=&quot;status=active&quot;
 	Q *Query `json:"q,omitempty"`
+
+	// Look for distinct values.
+	Distinct *Distinct `json:"distinct,omitempty"`
 }
 
 // TaskControllerGetTasksStatusParams defines parameters for TaskControllerGetTasksStatus.
@@ -6676,6 +8023,9 @@ type AgentControllerAddAgentJSONRequestBody AgentControllerAddAgentJSONBody
 
 // AgentControllerInsertAgentJSONRequestBody defines body for AgentControllerInsertAgent for application/json ContentType.
 type AgentControllerInsertAgentJSONRequestBody AgentControllerInsertAgentJSONBody
+
+// EventControllerForwardEventJSONRequestBody defines body for EventControllerForwardEvent for application/json ContentType.
+type EventControllerForwardEventJSONRequestBody EventControllerForwardEventJSONBody
 
 // AgentControllerPostGroupJSONRequestBody defines body for AgentControllerPostGroup for application/json ContentType.
 type AgentControllerPostGroupJSONRequestBody AgentControllerPostGroupJSONBody
