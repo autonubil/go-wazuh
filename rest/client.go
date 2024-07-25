@@ -30,7 +30,6 @@ type HttpRequestDoer interface {
 // ClientOption allows setting custom parameters during construction
 type ClientOption func(*Client) error
 
-
 // WithHTTPClient allows overriding the default Doer, which is
 // automatically created using http.Client. This is useful for tests.
 func WithHTTPClient(doer HttpRequestDoer) ClientOption {
@@ -122,7 +121,7 @@ type ClientInterface interface {
 
 	// AgentControllerGetAgentConfig request
 	AgentControllerGetAgentConfig(ctx context.Context, agentId AgentId, component AgentControllerGetAgentConfigParamsComponent, configuration AgentControllerGetAgentConfigParamsConfiguration, params *AgentControllerGetAgentConfigParams, reqEditors ...RequestEditorFn) (*http.Response, error)
-	
+
 	// AgentControllerGetDaemonStats request
 	AgentControllerGetDaemonStats(ctx context.Context, agentId AgentId, params *AgentControllerGetDaemonStatsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -7446,7 +7445,7 @@ func NewApiControllersClusterControllerGetClusterNodesRequest(server string, par
 		} else {
 			for k, v := range parsed {
 				for _, v2 := range v {
-					queryValues.Add(k, v2)	
+					queryValues.Add(k, v2)
 				}
 			}
 
@@ -7466,7 +7465,7 @@ func NewApiControllersClusterControllerGetClusterNodesRequest(server string, par
 				}
 			}
 		}
-	
+
 	}
 
 	queryURL.RawQuery = queryValues.Encode()
@@ -7478,7 +7477,6 @@ func NewApiControllersClusterControllerGetClusterNodesRequest(server string, par
 
 	return req, nil
 }
-
 
 // NewApiControllersClusterControllerPutRestartRequest generates requests for ClusterControllerPutRestart
 func NewApiControllersClusterControllerPutRestartRequest(server string, params *ClusterControllerPutRestartParams) (*http.Request, error) {
@@ -31945,13 +31943,13 @@ func (r TaskControllerGetTasksStatusResponse) StatusCode() int {
 type VulnerabilityControllerGetVulnerabilityAgentResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200       *AllItemsResponseVulnerability
+	JSON200      *AllItemsResponseVulnerability
 
-	JSON400      *RequestError
-	JSON401      *RequestError
-	JSON403      *ApiError
-	JSON405      *RequestError
-	JSON429      *RequestError
+	JSON400 *RequestError
+	JSON401 *RequestError
+	JSON403 *ApiError
+	JSON405 *RequestError
+	JSON429 *RequestError
 }
 
 // Status returns HTTPResponse.Status
@@ -45500,7 +45498,7 @@ func ParseApiControllersVulnerabilityControllerGetVulnerabilityAgentResponse(rsp
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest  AllItemsResponseVulnerability
+		var dest AllItemsResponseVulnerability
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -45672,4 +45670,3 @@ func ParseApiControllersVulnerabilityControllerGetVulnerabilitiesFieldSummaryRes
 
 	return response, nil
 }
-

@@ -4,10 +4,10 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-//Define a struct for you collector that contains pointers
-//to prometheus descriptors for each metric you wish to expose.
-//Note you can also include fields of other types if they provide utility
-//but we just won't be exposing them as metrics.
+// Define a struct for you collector that contains pointers
+// to prometheus descriptors for each metric you wish to expose.
+// Note you can also include fields of other types if they provide utility
+// but we just won't be exposing them as metrics.
 type agentCollector struct {
 	agents                      []*Client
 	connectedMetric             *prometheus.GaugeVec
@@ -33,8 +33,8 @@ func init() {
 	prometheus.Register(AgentCollector)
 }
 
-//You must create a constructor for you collector that
-//initializes every descriptor and returns a pointer to the collector
+// You must create a constructor for you collector that
+// initializes every descriptor and returns a pointer to the collector
 func newAgentCollector() *agentCollector {
 	return &agentCollector{
 		agents: make([]*Client, 0),
@@ -330,8 +330,8 @@ func (collector *agentCollector) Dequeue(agent *Client) {
 	collector.queueSizeMetric.WithLabelValues(labels...).Dec()
 }
 
-//Each and every collector must implement the Describe function.
-//It essentially writes all descriptors to the prometheus desc channel.
+// Each and every collector must implement the Describe function.
+// It essentially writes all descriptors to the prometheus desc channel.
 func (collector *agentCollector) Describe(ch chan<- *prometheus.Desc) {
 	//Update this section with the each metric you create for a given collector
 	collector.connectedMetric.Describe(ch)
@@ -348,7 +348,7 @@ func (collector *agentCollector) Describe(ch chan<- *prometheus.Desc) {
 
 }
 
-//Collect implements required collect function for all promehteus collectors
+// Collect implements required collect function for all promehteus collectors
 func (collector *agentCollector) Collect(ch chan<- prometheus.Metric) {
 	collector.connectedMetric.Collect(ch)
 	collector.queueSizeMetric.Collect(ch)

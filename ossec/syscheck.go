@@ -23,19 +23,16 @@ type FimMessage struct {
 	Data      FimData `json:"data"`
 }
 
-
-
 /* Every syscheck message must be in the following format (OSSEC - Wazuh v3.10):
-	* 'checksum' 'filename'
-	* or
-	* 'checksum'!'extradata' 'filename'
-	* or
-	*                                             |v2.1       |v3.4  |v3.4         |v3.6  |v3.9               |v1.0
-	*                                             |->         |->    |->           |->   |->                  |->
-	* "size:permision:uid:gid:md5:sha1:uname:gname:mtime:inode:sha256!w:h:o:d:a:t:a:tags:symbolic_path:silent filename\nreportdiff"
-	*  ^^^^^^^^^^^^^^^^^^^^^^^^^^^checksum^^^^^^^^^^^^^^^^^^^^^^^^^^^!^^^^^^^^^^^^^^extradata^^^^^^^^^^^^^^^^ filename\n^^^diff^^^
-	*/
-
+* 'checksum' 'filename'
+* or
+* 'checksum'!'extradata' 'filename'
+* or
+*                                             |v2.1       |v3.4  |v3.4         |v3.6  |v3.9               |v1.0
+*                                             |->         |->    |->           |->   |->                  |->
+* "size:permision:uid:gid:md5:sha1:uname:gname:mtime:inode:sha256!w:h:o:d:a:t:a:tags:symbolic_path:silent filename\nreportdiff"
+*  ^^^^^^^^^^^^^^^^^^^^^^^^^^^checksum^^^^^^^^^^^^^^^^^^^^^^^^^^^!^^^^^^^^^^^^^^extradata^^^^^^^^^^^^^^^^ filename\n^^^diff^^^
+ */
 
 func NewFimMessage() (*FimMessage, error) {
 	filename := filepath.Base(os.Args[0])
@@ -88,5 +85,4 @@ func (a *Client) reportIntegrity() error {
 	}
 
 	return nil
-
 }
