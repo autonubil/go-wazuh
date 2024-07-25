@@ -360,9 +360,9 @@ const (
 
 	RuleTest Configuration = "rule_test"
 
-	Rules     Configuration = "rules"
+	Rules Configuration = "rules"
 
-	Socket    Configuration = "socket"
+	Socket Configuration = "socket"
 
 	// Syscheck        Configuration = "syscheck"
 
@@ -702,7 +702,6 @@ type AgentIdKey struct {
 	Key string  `json:"key"`
 }
 
-
 type DisconnectedTime struct {
 	// Enable force disconnected_time option
 	Enabled *bool `json:"enabled,omitempty"`
@@ -716,8 +715,8 @@ type AgentInsertForce struct {
 	// Time the agent must has been registered to force the insertion. Time in seconds, ‘[n_days]d’, ‘[n_hours]h’, ‘[n_minutes]m’ or ‘[n_seconds]s’. For example, `7d`, `10s` and `10` are valid values. If no time unit is specified, seconds are used
 	AfterRegistrationTime *string `json:"after_registration_time,omitempty"`
 	// Enable force option
-	Enabled *bool `json:"enabled,omitempty"`
-	DisconnectedTime      *DisconnectedTime `json:"disconnected_time,omitempty"`
+	Enabled          *bool             `json:"enabled,omitempty"`
+	DisconnectedTime *DisconnectedTime `json:"disconnected_time,omitempty"`
 }
 
 // AgentSimple defines model for AgentSimple.
@@ -1871,7 +1870,7 @@ type SecurityRuleIdDELETE string
 // SimpleApiError defines model for SimpleApiError.
 type SimpleApiError struct {
 	Error SimpleApiError_Error `json:"error"`
-	Ids    []string       `json:"id,omitempty"`
+	Ids   []string             `json:"id,omitempty"`
 }
 
 // SimpleApiError_Error defines model for SimpleApiError.Error.
@@ -5038,7 +5037,6 @@ type ClusterControllerGetNodeConfigParamsComponent string
 // ClusterControllerGetNodeConfigParamsConfiguration defines parameters for ClusterControllerGetNodeConfig.
 type ClusterControllerGetNodeConfigParamsConfiguration string
 
-
 // ClusterControllerGetDaemonStatsNodeParams defines parameters for ClusterControllerGetDaemonStatsNode.
 type ClusterControllerGetDaemonStatsNodeParams struct {
 	// Show results in human-readable format
@@ -5338,6 +5336,7 @@ type EventControllerForwardEventParams struct {
 	// Disable timeout response
 	WaitForComplete *WaitForComplete `json:"wait_for_complete,omitempty"`
 }
+
 // ExperimentalControllerGetCisCatResultsParams defines parameters for ExperimentalControllerGetCisCatResults.
 type ExperimentalControllerGetCisCatResultsParams struct {
 	// Show results in human-readable format
@@ -6225,6 +6224,7 @@ type ManagerControllerGetDaemonStatsParams struct {
 
 // ManagerControllerGetDaemonStatsParamsDaemonsList defines parameters for ManagerControllerGetDaemonStats.
 type ManagerControllerGetDaemonStatsParamsDaemonsList string
+
 // ManagerControllerGetInfoParams defines parameters for ManagerControllerGetInfo.
 type ManagerControllerGetInfoParams struct {
 	// Show results in human-readable format

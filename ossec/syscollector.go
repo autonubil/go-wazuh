@@ -280,6 +280,24 @@ type OS struct {
 	Inventory OSInventory `json:"inventory"`
 }
 
+func (s *SysCollector) NewK8sNodeOS() *OS {
+	result := s.NewOS()
+
+	_, err := os.Stat("/var/run/secrets/kubernetes.io")
+	if err == nil {
+		// Get the k8s node name from the environment variable
+		nodeName := os.Getenv("NODE_NAME")
+		if nodeName != "" {
+			result.Inventory.Hostname = &nodeName
+		}
+		nodeName = os.Getenv("K8S_NODE_NAME")
+		if nodeName != "" {
+			result.Inventory.Hostname = &nodeName
+		}
+	}
+	return result
+}
+
 func (s *SysCollector) NewOS() *OS {
 	arch := runtime.GOARCH
 	os := &OS{

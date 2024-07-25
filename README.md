@@ -93,6 +93,26 @@ Visual Studio Code launch configuration used for tests:
 }
 ```
 
+## Compiling
+
+you need zlib installed on the system
+
+
+### MacOS (HomeBrew):
+
+```bash
+brew install zlib
+brew install libdeflate
+brew install pkg-config
+```
+
+### Ubuntu 
+
+```bash
+sudo apt-get install zlib1g zlib1g-dev
+sudo apt-get install libdeflate0 libdeflate-dev
+```
+
 ## ToDo
 
 - more test cases

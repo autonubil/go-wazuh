@@ -30,10 +30,10 @@ func ParseAgentKey(line string) (*AgentKey, error) {
 		return nil, errors.New("invalid agent key spec")
 	}
 	agent := AgentKey{
-		AgentID: strings.Trim(items[0], " 	"),
-		AgentName: strings.Trim(items[1], " 	"),
+		AgentID:         strings.Trim(items[0], " 	"),
+		AgentName:       strings.Trim(items[1], " 	"),
 		AgentAllowedIPs: strings.Trim(items[2], " 	"),
-		AgentKey: strings.Trim(items[3], " 	"),
+		AgentKey:        strings.Trim(items[3], " 	"),
 	}
 	return &agent, nil
 }
