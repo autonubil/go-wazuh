@@ -324,6 +324,13 @@ func NewAgent(server string, agentID string, agentName string, agentKey string, 
 		}
 	}
 
+	if a.logger == nil {
+		a.logger, err = zap.NewDevelopment()
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	//
 	if a.ctx == nil {
 		a.ctx = context.Background()
