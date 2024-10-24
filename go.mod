@@ -23,7 +23,7 @@ require (
 	github.com/golang-jwt/jwt/v4 v4.5.0
 	github.com/google/martian v2.1.0+incompatible
 	github.com/iancoleman/strcase v0.2.0
-	github.com/joncrlsn/dque v0.0.0-20211108142734-c2ef48c5192a
+	github.com/joncrlsn/dque 7723fd131a64
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.20.1
 )
