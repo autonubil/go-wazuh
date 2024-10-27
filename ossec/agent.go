@@ -25,6 +25,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/autonubil/go-wazuh/sysinfo"
+	"github.com/getsentry/sentry-go"
 	"github.com/joncrlsn/dque"
 	"github.com/matishsiao/goInfo"
 )
@@ -178,6 +179,7 @@ func init() {
 	gob.Register(AgentShutDownEvent{})
 	gob.Register(RemoteFileInfo{})
 	gob.Register(Client{})
+	gob.Register(sentry.TraceID{})
 }
 
 // AgentOption allows setting custom parameters during construction
