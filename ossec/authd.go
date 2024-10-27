@@ -82,7 +82,9 @@ func InitAgent(cfg *EnrollmentConfig) (*AgentKey, error) {
 		var err2 error
 		// Try to register agent
 		agentKey, err2 = RegisterAgent(cfg)
-		if err2 == nil && agentKey != nil {
+		curKey, err3 := GetAgentKey(keyFile)
+
+		if err2 == nil && agentKey != nil && (err3 != nil || curKey != agentKey) {
 			// persist new key
 			err2 = agentKey.WriteAgentKey(keyFile)
 			if err2 != nil {
