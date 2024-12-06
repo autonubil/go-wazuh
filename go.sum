@@ -1,5 +1,7 @@
 github.com/4kills/go-libdeflate/v2 v2.2.0 h1:2kdYT79I+k23LO6VLn9p0l1Og47EWWgKbC1n353zE30=
 github.com/4kills/go-libdeflate/v2 v2.2.0/go.mod h1:hyouZv4OAhHaaMpYuejstUN0xOg8mA+yy75WE3Ty6SM=
+github.com/4kills/go-libdeflate/v2 v2.2.1 h1:0nWXN0qIGg5UTPSYhJCaPenzCJEtsetvc7SoKabO1Oc=
+github.com/4kills/go-libdeflate/v2 v2.2.1/go.mod h1:hyouZv4OAhHaaMpYuejstUN0xOg8mA+yy75WE3Ty6SM=
 github.com/4kills/go-zlib v1.2.0 h1:h/OjHfOi0ZGAhotXzFVJK7V97cKNsEqRJVmJo4e8H6A=
 github.com/4kills/go-zlib v1.2.0/go.mod h1:ngBUonyN1YJBHSknfLPNtWokAjYhHsaZDio8yS+BqSo=
 github.com/BurntSushi/toml v1.3.2 h1:o7IhLm0Msx3BaB+n3Ag7L8EVlByGnpq14C4YWiu/gL8=

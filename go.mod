@@ -16,7 +16,7 @@ require (
 )
 
 require (
-	github.com/4kills/go-libdeflate/v2 v2.2.0
+	github.com/4kills/go-libdeflate/v2 v2.2.1
 	github.com/4kills/go-zlib v1.2.0
 	github.com/CycloneDX/cyclonedx-go v0.9.1
 	github.com/getsentry/sentry-go v0.30.0
