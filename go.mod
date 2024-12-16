@@ -7,7 +7,7 @@ toolchain go1.23.4
 require (
 	github.com/coreos/go-semver v0.3.1
 	github.com/deepmap/oapi-codegen v1.16.3
-	github.com/matishsiao/goInfo v0.0.0-20240924010139-10388a85396f
+	github.com/matishsiao/goInfo v0.0.0-20241216093258-66a9250504d6
 	github.com/shirou/gopsutil/v3 v3.24.5
 	github.com/tklauser/go-sysconf v0.3.14 // indirect
 	go.uber.org/ratelimit v0.3.1
