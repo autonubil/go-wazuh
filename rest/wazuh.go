@@ -269,13 +269,6 @@ func NewClient(baseURL string, opts ...ClientOption) (*Client, error) {
 		userAgent: "go-wazuh",
 	}
 
-	// mutate client and add all optional params
-	for _, o := range opts {
-		if err := o(c); err != nil {
-			return nil, err
-		}
-	}
-
 	if c.ctx == nil {
 		c.ctx = context.Background()
 	}
@@ -301,6 +294,13 @@ func NewClient(baseURL string, opts ...ClientOption) (*Client, error) {
 	}
 	c.innerClient = &http.Client{
 		Transport: &t,
+	}
+
+	// mutate client and add all optional params
+	for _, o := range opts {
+		if err := o(c); err != nil {
+			return nil, err
+		}
 	}
 
 	return c, nil
