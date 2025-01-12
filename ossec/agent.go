@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"reflect"
 	"runtime"
 	"strconv"
 	"strings"
@@ -180,6 +181,8 @@ func init() {
 	gob.Register(RemoteFileInfo{})
 	gob.Register(Client{})
 	gob.Register(sentry.TraceID{})
+	gob.Register(sentry.SpanID{})
+	gob.Register(QueuePosting{})
 }
 
 // AgentOption allows setting custom parameters during construction
@@ -948,6 +951,32 @@ func itemBuilder() interface{} {
 	return &QueuePosting{}
 }
 
+// Helper function to dynamically register a type with Gob
+func registerType(obj interface{}) {
+	typ := reflect.TypeOf(obj)
+	if typ.Kind() == reflect.Ptr {
+		typ = typ.Elem() // Dereference pointer type
+	}
+	gob.Register(obj)
+	fmt.Printf("Registered type: %s\n", typ.Name())
+}
+
+func encodeData(data interface{}) ([]byte, error) {
+	var buf bytes.Buffer
+	enc := gob.NewEncoder(&buf)
+	err := enc.Encode(data)
+	if err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
+}
+
+func decodeData(data []byte, obj interface{}) error {
+	buf := bytes.NewBuffer(data)
+	dec := gob.NewDecoder(buf)
+	return dec.Decode(obj)
+}
+
 func (a *Client) openQueue(ctx context.Context) (chan *QueuePosting, *dque.DQue, error) {
 	q, err := dque.NewOrOpen("event-queue", a.basePath, 500, itemBuilder)
 	queuePath := a.basePath + "/event-queue"
@@ -979,8 +1008,17 @@ func (a *Client) openQueue(ctx context.Context) (chan *QueuePosting, *dque.DQue,
 				if err = q.Enqueue(msg); err == nil {
 					AgentCollector.Enqueue(a)
 				} else {
-					a.logger.Error("enqueueItem", zap.Any("agentId", a.AgentID), zap.Any("item", msg), zap.Error(err))
-					AgentCollector.SetQueueSize(a, q.Size())
+					if strings.Contains(err.Error(), "gob: type not registered") {
+						a.logger.Info("enqueueItem - late register type", zap.Any("agentId", a.AgentID), zap.Any("item", msg), zap.String("cause", err.Error()))
+						registerType(msg)
+						if err = q.Enqueue(msg); err == nil {
+							AgentCollector.Enqueue(a)
+						}
+					}
+					if err != nil {
+						a.logger.Error("enqueueItem", zap.Any("agentId", a.AgentID), zap.Any("item", msg), zap.Error(err))
+						AgentCollector.SetQueueSize(a, q.Size())
+					}
 				}
 			}
 			if ctx.Err() != nil {
