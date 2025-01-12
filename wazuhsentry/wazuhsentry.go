@@ -5,7 +5,6 @@ import (
 	"encoding/gob"
 	"encoding/pem"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/user"
 	"reflect"
@@ -49,6 +48,10 @@ func (t *AgentTransport) Flush(timeout time.Duration) bool {
 	return true
 }
 
+func (t *AgentTransport) Close() {
+	t.wrappedTransport.Close()
+}
+
 var maxErrorDepth = 5
 
 func (t *AgentTransport) Configure(options sentry.ClientOptions) {
@@ -57,7 +60,7 @@ func (t *AgentTransport) Configure(options sentry.ClientOptions) {
 }
 
 func getUserFromJWT(tokenPath string, user *sentry.User) error {
-	rawToken, err := ioutil.ReadFile(tokenPath)
+	rawToken, err := os.ReadFile(tokenPath)
 	if err != nil {
 		return err
 	}
@@ -86,7 +89,7 @@ func getUserFromJWT(tokenPath string, user *sentry.User) error {
 
 func getEnvironmentFromCert(certName string) string {
 	// Create a CA certificate pool and add cert.pem to it
-	caCert, err := ioutil.ReadFile(certName)
+	caCert, err := os.ReadFile(certName)
 	if err != nil {
 		return "kubernetes"
 	}
@@ -105,7 +108,7 @@ func getEnvironmentFromCert(certName string) string {
 var BeforeSend = func(event *sentry.Event, hint *sentry.EventHint) *sentry.Event {
 	if hint != nil {
 		if data, ok := hint.Data.(map[string]interface{}); ok {
-			event.Extra, ok = data["fields"].(map[string]interface{})
+			event.Extra, _ = data["fields"].(map[string]interface{})
 			// event.Level, ok = hint.
 		}
 		if hint.OriginalException != nil {

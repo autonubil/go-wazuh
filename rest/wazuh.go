@@ -131,6 +131,16 @@ func WithProxy(enabled bool, host string) ClientOption {
 	}
 }
 
+// WithHttpClient allows overriding the default client
+// the transport settings like "WithProxy" and "WithInsecure"
+// will have no further impact
+func WithHttpClient(client *http.Client) ClientOption {
+	return func(c *Client) error {
+		c.innerClient = client
+		return nil
+	}
+}
+
 // WithInsecure accept all certificates
 func WithInsecure(insecure bool) ClientOption {
 	return func(c *Client) error {
@@ -286,21 +296,25 @@ func NewClient(baseURL string, opts ...ClientOption) (*Client, error) {
 	}
 	// create httpClient, if not already present
 	c.Client = c
-	t := http.Transport{
-		TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: c.insecure, // test server certificate is not trusted.
-		},
-	}
 
-	if !c.proxyEnabled {
-		t.Proxy = nil
-	} else if c.proxyHost != "" {
-		t.Proxy = func(*http.Request) (*url.URL, error) {
-			return url.Parse(c.proxyHost)
+	// only create an inner client if none was passed via WithHTTPClient
+	if c.innerClient == nil {
+		t := http.Transport{
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: c.insecure, // test server certificate is not trusted.
+			},
 		}
-	}
-	c.innerClient = &http.Client{
-		Transport: &t,
+
+		if !c.proxyEnabled {
+			t.Proxy = nil
+		} else if c.proxyHost != "" {
+			t.Proxy = func(*http.Request) (*url.URL, error) {
+				return url.Parse(c.proxyHost)
+			}
+		}
+		c.innerClient = &http.Client{
+			Transport: &t,
+		}
 	}
 
 	return c, nil
