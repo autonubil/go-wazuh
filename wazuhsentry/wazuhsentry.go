@@ -39,6 +39,8 @@ type SentryEvent struct {
 func init() {
 	gob.Register(SentryIntegrationEvent{})
 	gob.Register(SentryEvent{})
+	gob.Register(sentry.TraceID{})
+	gob.Register(sentry.SpanID{})
 	gob.Register(zap.Strings("reg", []string{""}).Interface)
 }
 

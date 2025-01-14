@@ -26,7 +26,6 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/autonubil/go-wazuh/sysinfo"
-	"github.com/getsentry/sentry-go"
 	"github.com/joncrlsn/dque"
 	"github.com/matishsiao/goInfo"
 )
@@ -176,13 +175,11 @@ type RemoteFileInfo struct {
 
 func init() {
 	gob.Register(map[string]interface{}{})
+	gob.Register(QueuePosting{})
 	gob.Register(FileUpdatedEvent{})
 	gob.Register(AgentShutDownEvent{})
 	gob.Register(RemoteFileInfo{})
 	gob.Register(Client{})
-	gob.Register(sentry.TraceID{})
-	gob.Register(sentry.SpanID{})
-	gob.Register(QueuePosting{})
 }
 
 // AgentOption allows setting custom parameters during construction
