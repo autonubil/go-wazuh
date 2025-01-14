@@ -30,7 +30,7 @@ type HttpRequestDoer interface {
 // ClientOption allows setting custom parameters during construction
 type ClientOption func(*Client) error
 
-// WithHTTPClient allows overriding the default Doer, which is
+// WithHttpRequestDoer allows overriding the default Doer, which is
 // automatically created using http.Client. This is useful for tests.
 func WithHttpRequestDoer(doer HttpRequestDoer) ClientOption {
 	return func(c *Client) error {
