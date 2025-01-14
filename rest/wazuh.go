@@ -97,7 +97,7 @@ type Client struct {
 	proxyEnabled bool
 	proxyHost    string
 }
-
+		
 // HTTPRequestDoer performs HTTP requests.
 //
 // The standard http.Client implements this interface.
