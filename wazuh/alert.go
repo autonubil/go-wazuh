@@ -1,5 +1,27 @@
 package wazuh
 
+import (
+	"strconv"
+	"strings"
+)
+
+type StrUInt uint64
+
+func (t StrUInt) MarshalJSON() ([]byte, error) {
+	return []byte(strconv.FormatUint(uint64(t), 10)), nil
+}
+
+func (t *StrUInt) UnmarshalJSON(s []byte) (err error) {
+	r := strings.Replace(string(s), `"`, ``, -1)
+	q, err := strconv.ParseUint(r, 10, 64)
+	if err == nil {
+		*(*uint64)(t) = q
+		return
+	}
+
+	return err
+}
+
 type GeoPoint struct {
 	Lat  float64 `json:"lat,omitempty"`
 	Long float64 `json:"long,omitempty"`
@@ -49,10 +71,10 @@ type SyscheckAudit struct {
 }
 
 type Syscheck struct {
-	UidAfter     *string        `json:"uid_after,omitempty"`
+	UidAfter     *StrUInt       `json:"uid_after,omitempty"`
 	Md5Before    *string        `json:"md5_before,omitempty"`
 	MtimeAfter   *int64         `json:"mtime_after,omitempty"`
-	GidAfter     *string        `json:"gid_after,omitempty"`
+	GidAfter     *StrUInt       `json:"gid_after,omitempty"`
 	Diff         *string        `json:"diff,omitempty"`
 	Path         *string        `json:"path,omitempty"`
 	PermAfter    *string        `json:"perm_after,omitempty"`
@@ -62,7 +84,7 @@ type Syscheck struct {
 	UnameBefore  *string        `json:"uname_before,omitempty"`
 	Sha256After  *string        `json:"sha256_after,omitempty"`
 	HardLinks    *string        `json:"hard_links,omitempty"`
-	UidBefore    *string        `json:"uid_before,omitempty"`
+	UidBefore    *StrUInt       `json:"uid_before,omitempty"`
 	Event        *string        `json:"event,omitempty"`
 	Sha256Before *string        `json:"sha256_before,omitempty"`
 	Sha1After    *string        `json:"sha1_after,omitempty"`
@@ -72,11 +94,11 @@ type Syscheck struct {
 	PermBefore   *string        `json:"perm_before,omitempty"`
 	GnameAfter   *string        `json:"gname_after,omitempty"`
 	UnameAfter   *string        `json:"uname_after,omitempty"`
-	SizeAfter    *uint64        `json:"size_after,omitempty"`
+	SizeAfter    *StrUInt       `json:"size_after,omitempty"`
 	Mode         *string        `json:"mode,omitempty"`
-	GidBefore    *string        `json:"gid_before,omitempty"`
+	GidBefore    *StrUInt       `json:"gid_before,omitempty"`
 	Md5After     *string        `json:"md5_after,omitempty"`
-	SizeBefore   *uint64        `json:"size_before,omitempty"`
+	SizeBefore   *StrUInt       `json:"size_before,omitempty"`
 	Audit        *SyscheckAudit `json:"syscheck_audit,omitempty"`
 }
 
