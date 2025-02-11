@@ -2,7 +2,7 @@ module github.com/autonubil/go-wazuh
 
 go 1.23
 
-toolchain go1.23.6
+toolchain go1.24.0
 
 require (
 	github.com/coreos/go-semver v0.3.1
