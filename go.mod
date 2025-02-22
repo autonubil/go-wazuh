@@ -1,6 +1,6 @@
 module github.com/autonubil/go-wazuh
 
-go 1.23
+go 1.23.0
 
 toolchain go1.24.0
 
@@ -12,7 +12,7 @@ require (
 	github.com/tklauser/go-sysconf v0.3.14 // indirect
 	go.uber.org/ratelimit v0.3.1
 	go.uber.org/zap v1.27.0
-	golang.org/x/crypto v0.33.0
+	golang.org/x/crypto v0.34.0
 )
 
 require (
