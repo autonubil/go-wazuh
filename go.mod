@@ -9,7 +9,7 @@ require (
 	github.com/deepmap/oapi-codegen v1.16.3
 	github.com/matishsiao/goInfo v0.0.0-20241216093258-66a9250504d6
 	github.com/shirou/gopsutil/v3 v3.24.5
-	github.com/tklauser/go-sysconf v0.3.14 // indirect
+	github.com/tklauser/go-sysconf v0.3.15 // indirect
 	go.uber.org/ratelimit v0.3.1
 	go.uber.org/zap v1.27.0
 	golang.org/x/crypto v0.36.0
@@ -73,7 +73,7 @@ require (
 	github.com/labstack/echo/v4 v4.13.3 // indirect
 	github.com/labstack/gommon v0.4.2 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
-	github.com/lufia/plan9stats v0.0.0-20240909124753-873cd0166683 // indirect
+	github.com/lufia/plan9stats v0.0.0-20250303091104-876f3ea5145d // indirect
 	github.com/mailgun/raymond/v2 v2.0.48 // indirect
 	github.com/mailru/easyjson v0.9.0 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
@@ -93,7 +93,7 @@ require (
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/tdewolff/minify/v2 v2.21.2 // indirect
 	github.com/tdewolff/parse/v2 v2.7.19 // indirect
-	github.com/tklauser/numcpus v0.9.0 // indirect
+	github.com/tklauser/numcpus v0.10.0 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.2.12 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
