@@ -51,7 +51,7 @@ func (i *Indexer) GetAgentVulnerabilities(agentId string, ctx context.Context) (
 		i.client.Search.WithFrom(0),
 		i.client.Search.WithSize(2500),
 		i.client.Search.WithRequestCache(true),
-		i.client.Search.WithSort("vulnerability.cve:asc"),
+		i.client.Search.WithSort("vulnerability.id:asc"),
 	)
 	if err != nil {
 		return nil, err
@@ -76,5 +76,4 @@ func (i *Indexer) GetAgentVulnerabilities(agentId string, ctx context.Context) (
 		vulns = append(vulns, hit.Vulnerability)
 	}
 	return vulns, nil
-
 }
