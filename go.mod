@@ -20,7 +20,7 @@ require (
 	github.com/4kills/go-zlib v1.2.0
 	github.com/CycloneDX/cyclonedx-go v0.9.2
 	github.com/getsentry/sentry-go v0.31.1
-	github.com/golang-jwt/jwt/v4 v4.5.1
+	github.com/golang-jwt/jwt/v4 v4.5.2
 	github.com/google/martian v2.1.0+incompatible
 	github.com/iancoleman/strcase v0.3.0
 	github.com/joncrlsn/dque v0.0.0-20241024143830-7723fd131a64
