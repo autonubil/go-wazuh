@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"errors"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -552,7 +551,7 @@ func (a *Client) getSharedFiles() string {
 	files, err := filepath.Glob(searchPath)
 	if err == nil && len(files) > 0 {
 		for _, filename := range files {
-			content, err := ioutil.ReadFile(filename)
+			content, err := os.ReadFile(filename)
 			if err != nil {
 				a.logger.Warn("corruptFile", zap.Any("agentId", a.AgentID), zap.String("filename", filename), zap.Error(err))
 				os.Remove(filename)
