@@ -41,6 +41,7 @@ func init() {
 	gob.Register(SentryEvent{})
 	gob.Register(sentry.TraceID{})
 	gob.Register(sentry.SpanID{})
+	gob.Register(time.Location{})
 	gob.Register(zap.Strings("reg", []string{""}).Interface)
 }
 
