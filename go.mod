@@ -26,7 +26,7 @@ require (
 	github.com/joncrlsn/dque v0.0.0-20241024143830-7723fd131a64
 	github.com/opensearch-project/opensearch-go v1.1.0
 	github.com/pkg/errors v0.9.1
-	github.com/prometheus/client_golang v1.21.1
+	github.com/prometheus/client_golang v1.22.0
 )
 
 require (
