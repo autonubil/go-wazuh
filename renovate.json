@@ -1,1 +1,0 @@
-{ "extends": ["local>exanio/renovate-bot/renovate-config:development-generic"] }
