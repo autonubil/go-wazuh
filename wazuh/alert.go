@@ -78,8 +78,8 @@ type Syscheck struct {
 	Diff         *string        `json:"diff,omitempty"`
 	Path         *string        `json:"path,omitempty"`
 	PermAfter    *string        `json:"perm_after,omitempty"`
-	InodeAfter   *string        `json:"inode_after,omitempty"`
-	InodeBefore  *string        `json:"inode_before,omitempty"`
+	InodeAfter   *StrUInt       `json:"inode_after,omitempty"`
+	InodeBefore  *StrUInt       `json:"inode_before,omitempty"`
 	MtimeBefore  *int64         `json:"mtime_before,omitempty"`
 	UnameBefore  *string        `json:"uname_before,omitempty"`
 	Sha256After  *string        `json:"sha256_after,omitempty"`
@@ -171,15 +171,15 @@ type Rule struct {
 }
 
 type File struct {
-	Inode *string `json:"inode,omitempty"`
-	Mode  *string `json:"mode,omitempty"`
-	Name  *string `json:"name,omitempty"`
+	Inode *StrUInt `json:"inode,omitempty"`
+	Mode  *string  `json:"mode,omitempty"`
+	Name  *string  `json:"name,omitempty"`
 }
 
 type Directory struct {
-	Name  *string `json:"name,omitempty"`
-	Inode *string `json:"inode,omitempty"`
-	Mode  *string `json:"mode,omitempty"`
+	Name  *string  `json:"name,omitempty"`
+	Inode *StrUInt `json:"inode,omitempty"`
+	Mode  *string  `json:"mode,omitempty"`
 }
 
 type Execve struct {
@@ -528,33 +528,33 @@ type Os struct {
 }
 
 type Port struct {
-	RemoteIp   *string `json:"remote_ip,omitempty"`
-	TxQueue    *uint64 `json:"tx_queue,omitempty"`
-	Inode      *uint64 `json:"inode,omitempty"`
-	State      *string `json:"state,omitempty"`
-	Pid        *uint64 `json:"pid,omitempty"`
-	Process    *string `json:"process,omitempty"`
-	LocalPort  *uint64 `json:"local_port,omitempty"`
-	LocalIp    *string `json:"local_ip,omitempty"`
-	RemotePort *uint64 `json:"remote_port,omitempty"`
-	RxQueue    *uint64 `json:"rx_queue,omitempty"`
-	Protocol   *string `json:"protocol,omitempty"`
+	RemoteIp   *string  `json:"remote_ip,omitempty"`
+	TxQueue    *uint64  `json:"tx_queue,omitempty"`
+	Inode      *StrUInt `json:"inode,omitempty"`
+	State      *string  `json:"state,omitempty"`
+	Pid        *StrUInt `json:"pid,omitempty"`
+	Process    *string  `json:"process,omitempty"`
+	LocalPort  *StrUInt `json:"local_port,omitempty"`
+	LocalIp    *string  `json:"local_ip,omitempty"`
+	RemotePort *StrUInt `json:"remote_port,omitempty"`
+	RxQueue    *StrUInt `json:"rx_queue,omitempty"`
+	Protocol   *string  `json:"protocol,omitempty"`
 }
 
 type Program struct {
-	Version      *string `json:"version,omitempty"`
-	Architecture *string `json:"architecture,omitempty"`
-	Multiarch    *string `json:"multiarch,omitempty"`
-	Source       *string `json:"source,omitempty"`
-	Description  *string `json:"description,omitempty"`
-	Priority     *string `json:"priority,omitempty"`
-	InstallTime  *string `json:"install_time,omitempty"`
-	Section      *string `json:"section,omitempty"`
-	Size         *uint64 `json:"size,omitempty"`
-	Vendor       *string `json:"vendor,omitempty"`
-	Location     *string `json:"location,omitempty"`
-	Format       *string `json:"format,omitempty"`
-	Name         *string `json:"name,omitempty"`
+	Version      *string  `json:"version,omitempty"`
+	Architecture *string  `json:"architecture,omitempty"`
+	Multiarch    *string  `json:"multiarch,omitempty"`
+	Source       *string  `json:"source,omitempty"`
+	Description  *string  `json:"description,omitempty"`
+	Priority     *string  `json:"priority,omitempty"`
+	InstallTime  *string  `json:"install_time,omitempty"`
+	Section      *string  `json:"section,omitempty"`
+	Size         *StrUInt `json:"size,omitempty"`
+	Vendor       *string  `json:"vendor,omitempty"`
+	Location     *string  `json:"location,omitempty"`
+	Format       *string  `json:"format,omitempty"`
+	Name         *string  `json:"name,omitempty"`
 }
 
 type Data struct {
@@ -593,6 +593,7 @@ type Data struct {
 }
 
 type Alert struct {
+	Timestamp_     *int64       `json:"@timestamp,omitempty"`
 	Manager        *Manager     `json:"manager,omitempty"`
 	Cluster        *Cluster     `json:"cluster,omitempty"`
 	Syscheck       *Syscheck    `json:"syscheck,omitempty"`
@@ -601,14 +602,13 @@ type Alert struct {
 	Offset         *string      `json:"offset,omitempty"`
 	Command        *string      `json:"command,omitempty"`
 	Type           *string      `json:"type,omitempty"`
-	Timestamp_     *int64       `json:"@timestamp,omitempty"`
 	Agent          *Agent       `json:"agent,omitempty"`
 	FullLog        *string      `json:"full_log,omitempty"`
 	PreviousLog    *string      `json:"previous_log,omitempty"`
 	Message        *string      `json:"message,omitempty"`
 	Input          *Input       `json:"input,omitempty"`
 	Timestamp      *int64       `json:"timestamp,omitempty"`
-	Version_       *string      `json:"@version,omitempty"`
+	Version        *string      `json:"@version,omitempty"`
 	Host           *string      `json:"host,omitempty"`
 	Predecoder     *Predecoder  `json:"predecoder,omitempty"`
 	ID             *string      `json:"id,omitempty"`
