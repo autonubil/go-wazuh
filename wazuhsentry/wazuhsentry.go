@@ -1,6 +1,7 @@
 package wazuhsentry
 
 import (
+	"context"
 	"crypto/x509"
 	"encoding/gob"
 	"encoding/pem"
@@ -48,6 +49,12 @@ func init() {
 func (t *AgentTransport) Flush(timeout time.Duration) bool {
 	// forward to default tansport
 	t.wrappedTransport.Flush(timeout)
+	return true
+}
+
+func (t *AgentTransport) FlushWithContext(ctx context.Context) bool {
+	// forward to default tansport
+	t.wrappedTransport.FlushWithContext(ctx)
 	return true
 }
 
