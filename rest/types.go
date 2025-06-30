@@ -1146,7 +1146,7 @@ type BasicInfo struct {
 	LicenseUrl *string `json:"license_url,omitempty"`
 
 	// API revision
-	Revision  *int32  `json:"revision,omitempty"`
+	Revision  *string `json:"revision,omitempty"`
 	Timestamp *string `json:"timestamp,omitempty"`
 
 	// API title name
