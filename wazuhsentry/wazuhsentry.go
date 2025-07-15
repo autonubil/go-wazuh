@@ -177,6 +177,7 @@ func (t *AgentTransport) SendEvent(event *sentry.Event) {
 		ProgramName: "sentry",
 		TargetQueue: ossec.LOCALFILE_MQ,
 		Raw:         msg,
+		Timestamp:   event.Timestamp,
 	}
 
 }

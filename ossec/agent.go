@@ -41,7 +41,7 @@ const (
 	SendRateLimit = 450
 
 	// time between server pings
-	NotifyTime      = 10
+	NotifyTime      = 5
 	SysinfoInterval = 60 // each 60th  ping -> 1/h
 	WazuhVersion    = "4.3.0"
 )
@@ -1067,11 +1067,9 @@ func (a *Client) AgentLoop(ctx context.Context, closeOnError bool) (chan *QueueP
 			if a.CurrentRemoteFile != nil {
 				a.logger.Debug("fileTransfer", zap.Any("agentId", a.AgentID), zap.String("fileName", a.CurrentRemoteFile.Filename))
 			} else {
-				loopEntry := time.Now()
-				loopExit := loopEntry.Add(time.Second * (NotifyTime - 1))
 				pingWait := ratelimit.New(1) // per second
 
-				for t := 0; t < NotifyTime; t++ {
+				for {
 					if ctx.Err() != nil {
 						out <- err
 						break
@@ -1088,6 +1086,8 @@ func (a *Client) AgentLoop(ctx context.Context, closeOnError bool) (chan *QueueP
 
 					}
 
+					loopEntry := time.Now()
+					loopExit := loopEntry.Add(time.Second * (NotifyTime - 1))
 					// once a second check if there is any message
 					for {
 						item, dqErr := q.Peek()
