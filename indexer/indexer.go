@@ -65,6 +65,10 @@ func (i *Indexer) GetAgentVulnerabilities(agentId string, ctx context.Context) (
 	buf.ReadFrom(res.Body)
 	raw := buf.String()
 
+	if res.StatusCode != 200 {
+		return nil, fmt.Errorf("query returned code %d (%s)", res.StatusCode, raw)
+	}
+
 	result := osResult{}
 	err = json.Unmarshal(([]byte)(raw), &result)
 	if err != nil {
