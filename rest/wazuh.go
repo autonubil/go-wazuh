@@ -97,7 +97,7 @@ type Client struct {
 	proxyEnabled bool
 	proxyHost    string
 }
-		
+
 // HTTPRequestDoer performs HTTP requests.
 //
 // The standard http.Client implements this interface.
@@ -343,22 +343,22 @@ func (c *Client) Do(req *http.Request) (*http.Response, error) {
 }
 
 // Errorf logs errors
-func (c *Client) Errorf(format string, v ...interface{}) {
+func (c *Client) Errorf(format string, v ...any) {
 	log.Printf("[ERROR] %s", fmt.Sprintf(format, v...))
 }
 
 // Warnf logs warings
-func (c *Client) Warnf(format string, v ...interface{}) {
+func (c *Client) Warnf(format string, v ...any) {
 	log.Printf("[WARN] %s", fmt.Sprintf(format, v...))
 }
 
 // Debugf logs debug info
-func (c *Client) Debugf(format string, v ...interface{}) {
+func (c *Client) Debugf(format string, v ...any) {
 	log.Printf("[DEBUG] %s", fmt.Sprintf(format, v...))
 }
 
 // Tracef logs trace info
-func (c *Client) Tracef(format string, v ...interface{}) {
+func (c *Client) Tracef(format string, v ...any) {
 	log.Printf("[TRACE] %s", fmt.Sprintf(format, v...))
 }
 
@@ -386,7 +386,7 @@ func (e *ApiResponse) Error() string {
 	return *e.Message
 }
 
-func getResponseObject(sr RawAPIResponse) (interface{}, error) {
+func getResponseObject(sr RawAPIResponse) (any, error) {
 	fldForCode := fmt.Sprintf("JSON%d", sr.StatusCode())
 	v := reflect.ValueOf(sr).Elem()
 	if _, ok := v.Type().FieldByName(fldForCode); ok {
@@ -482,7 +482,7 @@ func (c *ClientWithResponses) Authenticate() error {
 	return nil
 }
 
-func (c *ClientWithResponses) evaluateResponse(response RawAPIResponse, err error) (interface{}, error) {
+func (c *ClientWithResponses) evaluateResponse(response RawAPIResponse, err error) (any, error) {
 	if err != nil {
 		return nil, err
 	}

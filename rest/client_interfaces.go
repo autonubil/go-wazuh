@@ -20,7 +20,7 @@ type CdbListControllerInterface interface {
 // ClusterControllerInterface contains all methods for the wazuh controller api
 type ClusterControllerInterface interface {
 	GetAPIConfig(params *ClusterControllerGetApiConfigParams, reqEditors ...RequestEditorFn) (*struct {
-		AdditionalProperties map[string]interface{} "json:\"-\""
+		AdditionalProperties map[string]any "json:\"-\""
 	}, error)
 	GetClusterNode(params *ClusterControllerGetClusterNodeParams, reqEditors ...RequestEditorFn) (*struct {
 		Cluster *string "json:\"cluster,omitempty\""
@@ -210,7 +210,7 @@ type AgentControllerInterface interface {
 		AffectedItems      *[]GroupConfiguration "json:\"affected_items,omitempty\""
 		TotalAffectedItems *int32                "json:\"total_affected_items,omitempty\""
 	}, error)
-	GetGroupFileJSON(arg1 GroupId, arg2 FileName, params *AgentControllerGetGroupFileJsonParams, reqEditors ...RequestEditorFn) (*interface{}, error)
+	GetGroupFileJSON(arg1 GroupId, arg2 FileName, params *AgentControllerGetGroupFileJsonParams, reqEditors ...RequestEditorFn) (*any, error)
 	GetGroupFileXML(arg1 GroupId, arg2 FileName, params *AgentControllerGetGroupFileXmlParams, reqEditors ...RequestEditorFn) (*AgentControllerGetGroupFileXmlResponse, error)
 	GetGroupFiles(arg1 GroupId, params *AgentControllerGetGroupFilesParams, reqEditors ...RequestEditorFn) (*AllItemsResponse, error)
 	GetListGroup(params *AgentControllerGetListGroupParams, reqEditors ...RequestEditorFn) (*AllItemsResponseGroups, error)
@@ -268,7 +268,7 @@ type SecurityControllerInterface interface {
 	AddRule(params *SecurityControllerAddRuleParams, arg2 SecurityControllerAddRuleJSONRequestBody, reqEditors ...RequestEditorFn) (*AllItemsResponseRoles, error)
 	CreateUserWithBody(params *SecurityControllerCreateUserParams, arg2 string, body io.Reader, reqEditors ...RequestEditorFn) (*AllItemsResponseUsers, error)
 	CreateUser(params *SecurityControllerCreateUserParams, arg2 SecurityControllerCreateUserJSONRequestBody, reqEditors ...RequestEditorFn) (*AllItemsResponseUsers, error)
-	DeleteSecurityConfig(params *SecurityControllerDeleteSecurityConfigParams, reqEditors ...RequestEditorFn) (*map[string]interface{}, error)
+	DeleteSecurityConfig(params *SecurityControllerDeleteSecurityConfigParams, reqEditors ...RequestEditorFn) (*map[string]any, error)
 	DeleteUsers(params *SecurityControllerDeleteUsersParams, reqEditors ...RequestEditorFn) (*AllItemsResponseUsers, error)
 	EditRunAs(arg1 UserIdRequired, params *SecurityControllerEditRunAsParams, reqEditors ...RequestEditorFn) (*AllItemsResponseUsers, error)
 	GetPolicies(params *SecurityControllerGetPoliciesParams, reqEditors ...RequestEditorFn) (*AllItemsResponsePolicies, error)
@@ -286,8 +286,8 @@ type SecurityControllerInterface interface {
 	GetUsers(params *SecurityControllerGetUsersParams, reqEditors ...RequestEditorFn) (*AllItemsResponseUsers, error)
 	LoginUser(params *SecurityControllerLoginUserParams, reqEditors ...RequestEditorFn) (*Token, error)
 	LogoutUser(reqEditors ...RequestEditorFn) (*ApiResponse, error)
-	PutSecurityConfigWithBody(params *SecurityControllerPutSecurityConfigParams, arg2 string, body io.Reader, reqEditors ...RequestEditorFn) (*map[string]interface{}, error)
-	PutSecurityConfig(params *SecurityControllerPutSecurityConfigParams, arg2 SecurityControllerPutSecurityConfigJSONRequestBody, reqEditors ...RequestEditorFn) (*map[string]interface{}, error)
+	PutSecurityConfigWithBody(params *SecurityControllerPutSecurityConfigParams, arg2 string, body io.Reader, reqEditors ...RequestEditorFn) (*map[string]any, error)
+	PutSecurityConfig(params *SecurityControllerPutSecurityConfigParams, arg2 SecurityControllerPutSecurityConfigJSONRequestBody, reqEditors ...RequestEditorFn) (*map[string]any, error)
 	RemovePolicies(params *SecurityControllerRemovePoliciesParams, reqEditors ...RequestEditorFn) (*AllItemsResponsePolicies, error)
 	RemoveRolePolicy(arg1 RoleId, params *SecurityControllerRemoveRolePolicyParams, reqEditors ...RequestEditorFn) (*struct {
 		ApiResponse "yaml:\",inline\""
@@ -298,7 +298,7 @@ type SecurityControllerInterface interface {
 	RemoveRoles(params *SecurityControllerRemoveRolesParams, reqEditors ...RequestEditorFn) (*AllItemsResponseRoles, error)
 	RemoveRules(params *SecurityControllerRemoveRulesParams, reqEditors ...RequestEditorFn) (*AllItemsResponseRoles, error)
 	RemoveUserRole(arg1 UserIdRequired, params *SecurityControllerRemoveUserRoleParams, reqEditors ...RequestEditorFn) (*AllItemsResponseUsers, error)
-	RevokeAllTokens(reqEditors ...RequestEditorFn) (*map[string]interface{}, error)
+	RevokeAllTokens(reqEditors ...RequestEditorFn) (*map[string]any, error)
 	RunAsLoginWithBody(params *SecurityControllerRunAsLoginParams, arg2 string, body io.Reader, reqEditors ...RequestEditorFn) (*struct {
 		Token *string "json:\"token,omitempty\""
 	}, error)

@@ -435,7 +435,7 @@ func (c *AgentController) GetGroupConfig(arg1 GroupId, params *AgentControllerGe
 }
 
 // GetGroupFileJSON calls the Agent controller´s function
-func (c *AgentController) GetGroupFileJSON(arg1 GroupId, arg2 FileName, params *AgentControllerGetGroupFileJsonParams, reqEditors ...RequestEditorFn) (*interface{}, error) {
+func (c *AgentController) GetGroupFileJSON(arg1 GroupId, arg2 FileName, params *AgentControllerGetGroupFileJsonParams, reqEditors ...RequestEditorFn) (*any, error) {
 	if c.ClientInterface.(*Client).token == "" {
 		err := c.Authenticate()
 		if err != nil {
@@ -447,7 +447,7 @@ func (c *AgentController) GetGroupFileJSON(arg1 GroupId, arg2 FileName, params *
 		return nil, err
 	}
 	// convert to *interface {}
-	if i, ok := r.(*interface{}); ok {
+	if i, ok := r.(*any); ok {
 		return i, nil
 	}
 
@@ -1362,7 +1362,7 @@ func (c *SecurityController) CreateUser(params *SecurityControllerCreateUserPara
 }
 
 // DeleteSecurityConfig calls the Security controller´s function
-func (c *SecurityController) DeleteSecurityConfig(params *SecurityControllerDeleteSecurityConfigParams, reqEditors ...RequestEditorFn) (*map[string]interface{}, error) {
+func (c *SecurityController) DeleteSecurityConfig(params *SecurityControllerDeleteSecurityConfigParams, reqEditors ...RequestEditorFn) (*map[string]any, error) {
 	if c.ClientInterface.(*Client).token == "" {
 		err := c.Authenticate()
 		if err != nil {
@@ -1374,7 +1374,7 @@ func (c *SecurityController) DeleteSecurityConfig(params *SecurityControllerDele
 		return nil, err
 	}
 	// convert to *map[string]interface {}
-	if i, ok := r.(*map[string]interface{}); ok {
+	if i, ok := r.(*map[string]any); ok {
 		return i, nil
 	}
 
@@ -1664,7 +1664,7 @@ func (c *SecurityController) LogoutUser(reqEditors ...RequestEditorFn) (*ApiResp
 }
 
 // PutSecurityConfigWithBody calls the Security controller´s function
-func (c *SecurityController) PutSecurityConfigWithBody(params *SecurityControllerPutSecurityConfigParams, arg2 string, body io.Reader, reqEditors ...RequestEditorFn) (*map[string]interface{}, error) {
+func (c *SecurityController) PutSecurityConfigWithBody(params *SecurityControllerPutSecurityConfigParams, arg2 string, body io.Reader, reqEditors ...RequestEditorFn) (*map[string]any, error) {
 	if c.ClientInterface.(*Client).token == "" {
 		err := c.Authenticate()
 		if err != nil {
@@ -1676,7 +1676,7 @@ func (c *SecurityController) PutSecurityConfigWithBody(params *SecurityControlle
 		return nil, err
 	}
 	// convert to *map[string]interface {}
-	if i, ok := r.(*map[string]interface{}); ok {
+	if i, ok := r.(*map[string]any); ok {
 		return i, nil
 	}
 
@@ -1685,7 +1685,7 @@ func (c *SecurityController) PutSecurityConfigWithBody(params *SecurityControlle
 }
 
 // PutSecurityConfig calls the Security controller´s function
-func (c *SecurityController) PutSecurityConfig(params *SecurityControllerPutSecurityConfigParams, arg2 SecurityControllerPutSecurityConfigJSONRequestBody, reqEditors ...RequestEditorFn) (*map[string]interface{}, error) {
+func (c *SecurityController) PutSecurityConfig(params *SecurityControllerPutSecurityConfigParams, arg2 SecurityControllerPutSecurityConfigJSONRequestBody, reqEditors ...RequestEditorFn) (*map[string]any, error) {
 	if c.ClientInterface.(*Client).token == "" {
 		err := c.Authenticate()
 		if err != nil {
@@ -1697,7 +1697,7 @@ func (c *SecurityController) PutSecurityConfig(params *SecurityControllerPutSecu
 		return nil, err
 	}
 	// convert to *map[string]interface {}
-	if i, ok := r.(*map[string]interface{}); ok {
+	if i, ok := r.(*map[string]any); ok {
 		return i, nil
 	}
 
@@ -1840,7 +1840,7 @@ func (c *SecurityController) RemoveUserRole(arg1 UserIdRequired, params *Securit
 }
 
 // RevokeAllTokens calls the Security controller´s function
-func (c *SecurityController) RevokeAllTokens(reqEditors ...RequestEditorFn) (*map[string]interface{}, error) {
+func (c *SecurityController) RevokeAllTokens(reqEditors ...RequestEditorFn) (*map[string]any, error) {
 	if c.ClientInterface.(*Client).token == "" {
 		err := c.Authenticate()
 		if err != nil {
@@ -1852,7 +1852,7 @@ func (c *SecurityController) RevokeAllTokens(reqEditors ...RequestEditorFn) (*ma
 		return nil, err
 	}
 	// convert to *map[string]interface {}
-	if i, ok := r.(*map[string]interface{}); ok {
+	if i, ok := r.(*map[string]any); ok {
 		return i, nil
 	}
 
@@ -2372,7 +2372,7 @@ type ClusterController struct {
 
 // GetAPIConfig calls the Cluster controller´s function
 func (c *ClusterController) GetAPIConfig(params *ClusterControllerGetApiConfigParams, reqEditors ...RequestEditorFn) (*struct {
-	AdditionalProperties map[string]interface{} "json:\"-\""
+	AdditionalProperties map[string]any "json:\"-\""
 }, error) {
 	if c.ClientInterface.(*Client).token == "" {
 		err := c.Authenticate()
@@ -2386,7 +2386,7 @@ func (c *ClusterController) GetAPIConfig(params *ClusterControllerGetApiConfigPa
 	}
 	// convert to *struct { AdditionalProperties map[string]interface {} "json:\"-\"" }
 	if i, ok := r.(*struct {
-		AdditionalProperties map[string]interface{} "json:\"-\""
+		AdditionalProperties map[string]any "json:\"-\""
 	}); ok {
 		return i, nil
 	}

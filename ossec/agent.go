@@ -155,7 +155,7 @@ type Client struct {
 	logger             *zap.Logger
 	connected          bool
 	rateLimit          ratelimit.Limiter
-	outChannel         chan interface{}
+	outChannel         chan any
 	un                 *goInfo.GoInfoObject
 	osInfo             *sysinfo.OS
 }
@@ -173,7 +173,7 @@ type RemoteFileInfo struct {
 }
 
 func init() {
-	gob.Register(map[string]interface{}{})
+	gob.Register(map[string]any{})
 	gob.Register(QueuePosting{})
 	gob.Register(FileUpdatedEvent{})
 	gob.Register(AgentShutDownEvent{})
@@ -943,12 +943,12 @@ func (a *Client) Connect(isStartup bool) error {
 
 // ItemBuilder creates a new item and returns a pointer to it.
 // This is used when we load a segment of the queue from disk.
-func itemBuilder() interface{} {
+func itemBuilder() any {
 	return &QueuePosting{}
 }
 
 // Helper function to dynamically register a type with Gob
-func registerType(obj interface{}) {
+func registerType(obj any) {
 	typ := reflect.TypeOf(obj)
 	if typ.Kind() == reflect.Ptr {
 		typ = typ.Elem() // Dereference pointer type
@@ -957,7 +957,7 @@ func registerType(obj interface{}) {
 	fmt.Printf("Registered type: %s\n", typ.Name())
 }
 
-func encodeData(data interface{}) ([]byte, error) {
+func encodeData(data any) ([]byte, error) {
 	var buf bytes.Buffer
 	enc := gob.NewEncoder(&buf)
 	err := enc.Encode(data)
@@ -967,7 +967,7 @@ func encodeData(data interface{}) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func decodeData(data []byte, obj interface{}) error {
+func decodeData(data []byte, obj any) error {
 	buf := bytes.NewBuffer(data)
 	dec := gob.NewDecoder(buf)
 	return dec.Decode(obj)
@@ -1027,7 +1027,7 @@ func (a *Client) openQueue(ctx context.Context) (chan *QueuePosting, *dque.DQue,
 }
 
 // AgentLoop Process messages and keep track of connection status
-func (a *Client) AgentLoop(ctx context.Context, closeOnError bool) (chan *QueuePosting, chan interface{}, error) {
+func (a *Client) AgentLoop(ctx context.Context, closeOnError bool) (chan *QueuePosting, chan any, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -1035,7 +1035,7 @@ func (a *Client) AgentLoop(ctx context.Context, closeOnError bool) (chan *QueueP
 	a.ctx = ctx
 
 	// make the context cancable
-	out := make(chan interface{}, 10)
+	out := make(chan any, 10)
 	a.outChannel = out
 	var err error
 	tries := 0

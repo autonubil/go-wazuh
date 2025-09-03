@@ -29,7 +29,7 @@ type AgentTransport struct {
 
 type SentryIntegrationEvent struct {
 	ossec.IntegrationEvent
-	Sentry interface{} `json:"sentry"`
+	Sentry any `json:"sentry"`
 }
 type SentryEvent struct {
 	*sentry.Event
@@ -75,7 +75,7 @@ func getUserFromJWT(tokenPath string, user *sentry.User) error {
 		return err
 	}
 	claims := jwt.MapClaims{}
-	_, err = jwt.ParseWithClaims(string(rawToken), claims, func(token *jwt.Token) (interface{}, error) {
+	_, err = jwt.ParseWithClaims(string(rawToken), claims, func(token *jwt.Token) (any, error) {
 		return nil, nil
 	})
 
@@ -84,11 +84,11 @@ func getUserFromJWT(tokenPath string, user *sentry.User) error {
 	}
 
 	if k8s, ok := claims["kubernetes.io"]; ok {
-		if pod, ok := k8s.(map[string]interface{})["pod"]; ok {
-			if pidID, ok := pod.(map[string]interface{})["uid"]; ok {
+		if pod, ok := k8s.(map[string]any)["pod"]; ok {
+			if pidID, ok := pod.(map[string]any)["uid"]; ok {
 				user.ID = pidID.(string)
 			}
-			if podName, ok := pod.(map[string]interface{})["name"]; ok {
+			if podName, ok := pod.(map[string]any)["name"]; ok {
 				user.Username = podName.(string)
 				return nil
 			}
@@ -117,8 +117,8 @@ func getEnvironmentFromCert(certName string) string {
 
 var BeforeSend = func(event *sentry.Event, hint *sentry.EventHint) *sentry.Event {
 	if hint != nil {
-		if data, ok := hint.Data.(map[string]interface{}); ok {
-			event.Extra, _ = data["fields"].(map[string]interface{})
+		if data, ok := hint.Data.(map[string]any); ok {
+			event.Extra, _ = data["fields"].(map[string]any)
 			// event.Level, ok = hint.
 		}
 		if hint.OriginalException != nil {
@@ -237,8 +237,8 @@ func (c SentryCore) Write(entry zapcore.Entry, fields []zapcore.Field) error {
 	if client == nil || scope == nil {
 		return nil
 	}
-	data := make(map[string]interface{})
-	flds := make(map[string]interface{})
+	data := make(map[string]any)
+	flds := make(map[string]any)
 	switch entry.Level {
 	case zapcore.DebugLevel:
 		scope.SetLevel(sentry.LevelDebug)

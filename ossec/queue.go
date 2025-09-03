@@ -112,21 +112,21 @@ func NewQueue(typ string, opts ...QueueOption) (*Queue, error) {
 type IntegrationMeta struct {
 	//	InputType       string      `json:"input>type,omitempty"`
 	//	DecoderName     string      `json:"decoder>name,omitempty"`
-	ID               string      `json:"id,omitempty"`
-	URL              string      `json:"url,omitempty"`
-	User             string      `json:"user,omitempty"`
-	SourceUser       string      `json:"srcuser,omitempty"`
-	SourceIP         *net.IP     `json:"srcip,omitempty"`
-	SourcePort       *uint       `json:"srcport,omitempty"`
-	DestinationIP    *net.IP     `json:"dstip,omitempty"`
-	DestinationGeoIP string      `json:"dstgeoip,omitempty"`
-	DestinationUser  string      `json:"dstuser,omitempty"`
-	DestinationPort  *uint       `json:"dstport,omitempty"`
-	Protocol         string      `json:"protocol,omitempty"`
-	Action           string      `json:"action,omitempty"`
-	Status           string      `json:"status,omitempty"`
-	SystemName       string      `json:"systemname,omitempty"`
-	ExtraData        interface{} `json:"extra_data,omitempty"`
+	ID               string  `json:"id,omitempty"`
+	URL              string  `json:"url,omitempty"`
+	User             string  `json:"user,omitempty"`
+	SourceUser       string  `json:"srcuser,omitempty"`
+	SourceIP         *net.IP `json:"srcip,omitempty"`
+	SourcePort       *uint   `json:"srcport,omitempty"`
+	DestinationIP    *net.IP `json:"dstip,omitempty"`
+	DestinationGeoIP string  `json:"dstgeoip,omitempty"`
+	DestinationUser  string  `json:"dstuser,omitempty"`
+	DestinationPort  *uint   `json:"dstport,omitempty"`
+	Protocol         string  `json:"protocol,omitempty"`
+	Action           string  `json:"action,omitempty"`
+	Status           string  `json:"status,omitempty"`
+	SystemName       string  `json:"systemname,omitempty"`
+	ExtraData        any     `json:"extra_data,omitempty"`
 }
 
 // IntegrationEvent basic integration message
@@ -146,11 +146,11 @@ type Event struct {
 
 // QueuePosting a massage for the queue
 type QueuePosting struct {
-	TargetQueue rune        `json:"queue"`
-	Location    string      `json:"location"`
-	ProgramName string      `json:"program"`
-	Timestamp   time.Time   `json:"timestamp,omitempty"`
-	Raw         interface{} `json:"raw,omitempty"`
+	TargetQueue rune      `json:"queue"`
+	Location    string    `json:"location"`
+	ProgramName string    `json:"program"`
+	Timestamp   time.Time `json:"timestamp,omitempty"`
+	Raw         any       `json:"raw,omitempty"`
 }
 
 // DebugMessage send a debug event
@@ -159,11 +159,11 @@ func (w *Queue) DebugMessage(msg string) error {
 }
 
 // SendMessage send a single message to the agent´s queue
-func (w *Queue) SendMessage(event interface{}, location string, programName string) error {
+func (w *Queue) SendMessage(event any, location string, programName string) error {
 	return w.sendMessage(event, location, programName)
 }
 
-func (w *Queue) sendMessage(event interface{}, location string, programName string) error {
+func (w *Queue) sendMessage(event any, location string, programName string) error {
 	var b []byte
 	var err error
 	switch v := event.(type) {
@@ -198,13 +198,13 @@ func (w *Queue) sendMessage(event interface{}, location string, programName stri
 }
 
 // AgentLoop process incoming messages
-func (w *Queue) AgentLoop(ctx context.Context, closeOnError bool) (chan *QueuePosting, chan interface{}, error) {
+func (w *Queue) AgentLoop(ctx context.Context, closeOnError bool) (chan *QueuePosting, chan any, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
 	// make the context cancable
 	input := make(chan *QueuePosting, 100)
-	out := make(chan interface{})
+	out := make(chan any)
 	go func() {
 		for {
 			for msg := range input {

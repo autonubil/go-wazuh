@@ -27364,7 +27364,7 @@ type ClusterControllerGetApiConfigResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON200      *struct {
-		AdditionalProperties map[string]interface{} `json:"-"`
+		AdditionalProperties map[string]any `json:"-"`
 	}
 	JSON400 *RequestError
 	JSON401 *RequestError
@@ -28938,7 +28938,7 @@ type AgentControllerGetGroupFileJsonResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON200      *struct {
-		Data *interface{} `json:"data,omitempty"`
+		Data *any `json:"data,omitempty"`
 	}
 	JSON400 *RequestError
 	JSON401 *RequestError
@@ -30449,7 +30449,7 @@ func (r SecurityControllerGetRbacActionsResponse) StatusCode() int {
 type SecurityControllerDeleteSecurityConfigResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *map[string]interface{}
+	JSON200      *map[string]any
 	JSON400      *RequestError
 	JSON401      *RequestError
 	JSON405      *RequestError
@@ -30502,7 +30502,7 @@ func (r SecurityControllerGetSecurityConfigResponse) StatusCode() int {
 type SecurityControllerPutSecurityConfigResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *map[string]interface{}
+	JSON200      *map[string]any
 	JSON400      *RequestError
 	JSON401      *RequestError
 	JSON405      *RequestError
@@ -31195,7 +31195,7 @@ func (r SecurityControllerRunAsLoginResponse) StatusCode() int {
 type SecurityControllerRevokeAllTokensResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *map[string]interface{}
+	JSON200      *map[string]any
 	JSON400      *RequestError
 	JSON401      *RequestError
 	JSON403      *ApiError
@@ -35834,7 +35834,7 @@ func ParseApiControllersClusterControllerGetApiConfigResponse(rsp *http.Response
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest struct {
-			AdditionalProperties map[string]interface{} `json:"-"`
+			AdditionalProperties map[string]any `json:"-"`
 		}
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
@@ -39118,7 +39118,7 @@ func ParseApiControllersAgentControllerGetGroupFileJsonResponse(rsp *http.Respon
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest struct {
-			Data *interface{} `json:"data,omitempty"`
+			Data *any `json:"data,omitempty"`
 		}
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
@@ -42336,7 +42336,7 @@ func ParseApiControllersSecurityControllerDeleteSecurityConfigResponse(rsp *http
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest map[string]interface{}
+		var dest map[string]any
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -42451,7 +42451,7 @@ func ParseApiControllersSecurityControllerPutSecurityConfigResponse(rsp *http.Re
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest map[string]interface{}
+		var dest map[string]any
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -43964,7 +43964,7 @@ func ParseApiControllersSecurityControllerRevokeAllTokensResponse(rsp *http.Resp
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest map[string]interface{}
+		var dest map[string]any
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}

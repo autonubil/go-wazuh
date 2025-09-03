@@ -644,7 +644,7 @@ const (
 type ActiveResponseBody struct {
 	Alert *struct {
 		// Alert data depending on the AR executed
-		Data *map[string]interface{} `json:"data,omitempty"`
+		Data *map[string]any `json:"data,omitempty"`
 	} `json:"alert,omitempty"`
 
 	// Command arguments
@@ -666,7 +666,7 @@ type Agent struct {
 }
 
 // Current agent's configuration. The output varies with requested component and the agent configuration
-type AgentConfiguration map[string]interface{}
+type AgentConfiguration map[string]any
 
 // AgentDistinct defines model for AgentDistinct.
 type AgentDistinct struct {
@@ -931,7 +931,7 @@ type AllItemsResponsePolicies struct {
 	AllItemsResponse `yaml:",inline"`
 	// Embedded fields due to inline allOf schema
 	// Items that successfully applied the API call action
-	AffectedItems []interface{} `json:"affected_items"`
+	AffectedItems []any `json:"affected_items"`
 }
 
 // AllItemsResponseRoles defines model for AllItemsResponseRoles.
@@ -1100,7 +1100,7 @@ type AllItemsResponseWazuhLogs struct {
 type AllItemsResponseWazuhStats struct {
 	// Embedded fields due to inline allOf schema
 	// Items that successfully applied the API call action
-	AffectedItems []interface{} `json:"affected_items"`
+	AffectedItems []any `json:"affected_items"`
 	// Embedded struct due to allOf(#/components/schemas/AllItemsResponse)
 	AllItemsResponse `yaml:",inline"`
 }
@@ -1309,7 +1309,7 @@ type ExtraAgentFields struct {
 // GroupConfiguration defines model for GroupConfiguration.
 type GroupConfiguration struct {
 	// Group configuration. The fields on this object depend on the actual group configuration
-	Config  map[string]interface{} `json:"config"`
+	Config  map[string]any `json:"config"`
 	Filters struct {
 		// The name of the agent where that configuration is being applied
 		Name *string `json:"name,omitempty"`
@@ -1324,7 +1324,7 @@ type GroupConfiguration struct {
 
 // Deleted group with a list of agents that were assigned to it
 type GroupDelete struct {
-	AdditionalProperties map[string][]interface{} `json:"-"`
+	AdditionalProperties map[string][]any `json:"-"`
 }
 
 // Group name
@@ -1336,7 +1336,7 @@ type GroupIDListAll string
 // ItemAffected defines model for ItemAffected.
 type ItemAffected struct {
 	// Items that successfully applied the API call action
-	AffectedItems []interface{} `json:"affected_items"`
+	AffectedItems []any `json:"affected_items"`
 }
 
 // LastScan defines model for LastScan.
@@ -1612,7 +1612,7 @@ type RolesResponse struct {
 	Name *string `json:"name,omitempty"`
 
 	// Role rule
-	Rule *map[string]interface{} `json:"rule,omitempty"`
+	Rule *map[string]any `json:"rule,omitempty"`
 }
 
 // Rule defines model for Rule.
@@ -1624,7 +1624,7 @@ type Rule struct {
 	Description *string `json:"description,omitempty"`
 
 	// Rule definition details
-	Details *map[string]interface{} `json:"details,omitempty"`
+	Details *map[string]any `json:"details,omitempty"`
 
 	// GDPR checks the rule is checking
 	Gdpr *[]string `json:"gdpr,omitempty"`
@@ -1785,7 +1785,7 @@ type SecurityRulesRequest struct {
 	Name string `json:"name"`
 
 	// Rule body
-	Rule map[string]interface{} `json:"rule"`
+	Rule map[string]any `json:"rule"`
 }
 
 // SecurityRulesRequestNoRequired defines model for SecurityRulesRequest_no_required.
@@ -1794,7 +1794,7 @@ type SecurityRulesRequestNoRequired struct {
 	Name *string `json:"name,omitempty"`
 
 	// Rule body
-	Rule *map[string]interface{} `json:"rule,omitempty"`
+	Rule *map[string]any `json:"rule,omitempty"`
 }
 
 // Security rule ID
@@ -1806,7 +1806,7 @@ type SecurityRuleIdDELETE string
 // SimpleApiError defines model for SimpleApiError.
 type SimpleApiError struct {
 	Error SimpleApiError_Error `json:"error"`
-	Ids    []string       `json:"id,omitempty"`
+	Ids   []string             `json:"id,omitempty"`
 }
 
 // SimpleApiError_Error defines model for SimpleApiError.Error.
@@ -2218,8 +2218,8 @@ type UsersResponse struct {
 	Id *int `json:"id,omitempty"`
 
 	// User's roles
-	Roles    *[]interface{} `json:"roles,omitempty"`
-	Username *string        `json:"username,omitempty"`
+	Roles    *[]any  `json:"roles,omitempty"`
+	Username *string `json:"username,omitempty"`
 }
 
 // ValidationStatus defines model for ValidationStatus.
@@ -2477,36 +2477,36 @@ type WazuhLogsSummary struct {
 
 // WazuhManagerConfiguration defines model for WazuhManagerConfiguration.
 type WazuhManagerConfiguration struct {
-	ActiveResponse  *[]map[string]interface{} `json:"active-response,omitempty"`
-	AgentKeyPolling *map[string]interface{}   `json:"agent-key-polling,omitempty"`
-	Agentless       *[]map[string]interface{} `json:"agentless,omitempty"`
-	Alerts          *map[string]interface{}   `json:"alerts,omitempty"`
-	Auth            *map[string]interface{}   `json:"auth,omitempty"`
-	AwsS3           *map[string]interface{}   `json:"aws-s3,omitempty"`
-	AzureLogs       *map[string]interface{}   `json:"azure-logs,omitempty"`
-	CisCat          *map[string]interface{}   `json:"cis-cat,omitempty"`
-	Cluster         *map[string]interface{}   `json:"cluster,omitempty"`
-	Command         *[]map[string]interface{} `json:"command,omitempty"`
-	DatabaseOutput  *map[string]interface{}   `json:"database_output,omitempty"`
-	DockerListener  *map[string]interface{}   `json:"docker-listener,omitempty"`
-	EmailAlerts     *map[string]interface{}   `json:"email_alerts,omitempty"`
-	GcpPubsub       *map[string]interface{}   `json:"gcp-pubsub,omitempty"`
-	Global          *map[string]interface{}   `json:"global,omitempty"`
-	Integration     *[]map[string]interface{} `json:"integration,omitempty"`
-	Labels          *map[string]interface{}   `json:"labels,omitempty"`
-	Localfile       *[]map[string]interface{} `json:"localfile,omitempty"`
-	Logging         *map[string]interface{}   `json:"logging,omitempty"`
-	OpenScap        *map[string]interface{}   `json:"open-scap,omitempty"`
-	Osquery         *map[string]interface{}   `json:"osquery,omitempty"`
-	Remote          *[]map[string]interface{} `json:"remote,omitempty"`
-	Reports         *map[string]interface{}   `json:"reports,omitempty"`
-	Rootcheck       *map[string]interface{}   `json:"rootcheck,omitempty"`
-	Ruleset         *map[string]interface{}   `json:"ruleset,omitempty"`
-	Sca             *map[string]interface{}   `json:"sca,omitempty"`
-	Socket          *map[string]interface{}   `json:"socket,omitempty"`
-	Syscheck        *map[string]interface{}   `json:"syscheck,omitempty"`
-	Syscollector    *map[string]interface{}   `json:"syscollector,omitempty"`
-	SyslogOutput    *[]map[string]interface{} `json:"syslog_output,omitempty"`
+	ActiveResponse  *[]map[string]any `json:"active-response,omitempty"`
+	AgentKeyPolling *map[string]any   `json:"agent-key-polling,omitempty"`
+	Agentless       *[]map[string]any `json:"agentless,omitempty"`
+	Alerts          *map[string]any   `json:"alerts,omitempty"`
+	Auth            *map[string]any   `json:"auth,omitempty"`
+	AwsS3           *map[string]any   `json:"aws-s3,omitempty"`
+	AzureLogs       *map[string]any   `json:"azure-logs,omitempty"`
+	CisCat          *map[string]any   `json:"cis-cat,omitempty"`
+	Cluster         *map[string]any   `json:"cluster,omitempty"`
+	Command         *[]map[string]any `json:"command,omitempty"`
+	DatabaseOutput  *map[string]any   `json:"database_output,omitempty"`
+	DockerListener  *map[string]any   `json:"docker-listener,omitempty"`
+	EmailAlerts     *map[string]any   `json:"email_alerts,omitempty"`
+	GcpPubsub       *map[string]any   `json:"gcp-pubsub,omitempty"`
+	Global          *map[string]any   `json:"global,omitempty"`
+	Integration     *[]map[string]any `json:"integration,omitempty"`
+	Labels          *map[string]any   `json:"labels,omitempty"`
+	Localfile       *[]map[string]any `json:"localfile,omitempty"`
+	Logging         *map[string]any   `json:"logging,omitempty"`
+	OpenScap        *map[string]any   `json:"open-scap,omitempty"`
+	Osquery         *map[string]any   `json:"osquery,omitempty"`
+	Remote          *[]map[string]any `json:"remote,omitempty"`
+	Reports         *map[string]any   `json:"reports,omitempty"`
+	Rootcheck       *map[string]any   `json:"rootcheck,omitempty"`
+	Ruleset         *map[string]any   `json:"ruleset,omitempty"`
+	Sca             *map[string]any   `json:"sca,omitempty"`
+	Socket          *map[string]any   `json:"socket,omitempty"`
+	Syscheck        *map[string]any   `json:"syscheck,omitempty"`
+	Syscollector    *map[string]any   `json:"syscollector,omitempty"`
+	SyslogOutput    *[]map[string]any `json:"syslog_output,omitempty"`
 }
 
 // WazuhRemotedStats defines model for WazuhRemotedStats.
@@ -2540,7 +2540,7 @@ type WazuhRemotedStats struct {
 }
 
 // WazuhStats defines model for WazuhStats.
-type WazuhStats map[string]interface{}
+type WazuhStats map[string]any
 
 // WazuhWeeklyStats defines model for WazuhWeeklyStats.
 type WazuhWeeklyStats struct {
@@ -6028,7 +6028,7 @@ type SecurityControllerLoginUserParams struct {
 }
 
 // SecurityControllerRunAsLoginJSONBody defines parameters for SecurityControllerRunAsLogin.
-type SecurityControllerRunAsLoginJSONBody map[string]interface{}
+type SecurityControllerRunAsLoginJSONBody map[string]any
 
 // SecurityControllerRunAsLoginParams defines parameters for SecurityControllerRunAsLogin.
 type SecurityControllerRunAsLoginParams struct {
@@ -6858,7 +6858,7 @@ func (a ApiError_DapiErrors) MarshalJSON() ([]byte, error) {
 
 // Getter for additional properties for GroupDelete. Returns the specified
 // element and whether it was found
-func (a GroupDelete) Get(fieldName string) (value []interface{}, found bool) {
+func (a GroupDelete) Get(fieldName string) (value []any, found bool) {
 	if a.AdditionalProperties != nil {
 		value, found = a.AdditionalProperties[fieldName]
 	}
@@ -6866,9 +6866,9 @@ func (a GroupDelete) Get(fieldName string) (value []interface{}, found bool) {
 }
 
 // Setter for additional properties for GroupDelete
-func (a *GroupDelete) Set(fieldName string, value []interface{}) {
+func (a *GroupDelete) Set(fieldName string, value []any) {
 	if a.AdditionalProperties == nil {
-		a.AdditionalProperties = make(map[string][]interface{})
+		a.AdditionalProperties = make(map[string][]any)
 	}
 	a.AdditionalProperties[fieldName] = value
 }
@@ -6882,9 +6882,9 @@ func (a *GroupDelete) UnmarshalJSON(b []byte) error {
 	}
 
 	if len(object) != 0 {
-		a.AdditionalProperties = make(map[string][]interface{})
+		a.AdditionalProperties = make(map[string][]any)
 		for fieldName, fieldBuf := range object {
-			var fieldVal []interface{}
+			var fieldVal []any
 			err := json.Unmarshal(fieldBuf, &fieldVal)
 			if err != nil {
 				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
@@ -6981,4 +6981,3 @@ func (a SimpleApiError_Error) MarshalJSON() ([]byte, error) {
 	}
 	return json.Marshal(object)
 }
-
