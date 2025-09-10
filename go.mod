@@ -1,6 +1,6 @@
 module github.com/autonubil/go-wazuh
 
-go 1.25
+go 1.25.1
 
 require (
 	github.com/coreos/go-semver v0.3.1
