@@ -16,7 +16,7 @@ require (
 require (
 	github.com/4kills/go-libdeflate/v2 v2.2.1
 	github.com/4kills/go-zlib v1.2.0
-	github.com/CycloneDX/cyclonedx-go v0.9.2
+	github.com/CycloneDX/cyclonedx-go v0.9.3
 	github.com/getsentry/sentry-go v0.34.1
 	github.com/golang-jwt/jwt/v4 v4.5.2
 	github.com/google/martian v2.1.0+incompatible
@@ -109,7 +109,7 @@ require (
 	golang.org/x/sys v0.36.0 // indirect
 	golang.org/x/text v0.29.0 // indirect
 	golang.org/x/time v0.12.0 // indirect
-	google.golang.org/protobuf v1.36.9 // indirect
+	google.golang.org/protobuf v1.36.10 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
