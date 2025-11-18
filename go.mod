@@ -20,7 +20,7 @@ require (
 	github.com/shirou/gopsutil/v3 v3.24.5
 	go.uber.org/ratelimit v0.3.1
 	go.uber.org/zap v1.27.0
-	golang.org/x/crypto v0.43.0
+	golang.org/x/crypto v0.44.0
 )
 
 require (
@@ -50,7 +50,7 @@ require (
 	github.com/gofrs/flock v0.13.0 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/gomarkdown/markdown v0.0.0-20230716120725-531d2d74bc12 // indirect
-	github.com/google/uuid v1.3.1 // indirect
+	github.com/google/uuid v1.6.0 // indirect
 	github.com/gorilla/css v1.0.0 // indirect
 	github.com/iris-contrib/schema v0.0.6 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
@@ -78,7 +78,7 @@ require (
 	github.com/pelletier/go-toml/v2 v2.0.8 // indirect
 	github.com/power-devops/perfstat v0.0.0-20240221224432-82ca36839d55 // indirect
 	github.com/prometheus/client_model v0.6.2 // indirect
-	github.com/prometheus/common v0.67.2 // indirect
+	github.com/prometheus/common v0.67.3 // indirect
 	github.com/prometheus/procfs v0.19.2 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/schollz/closestmatch v2.1.0+incompatible // indirect
@@ -86,8 +86,8 @@ require (
 	github.com/sirupsen/logrus v1.8.1 // indirect
 	github.com/tdewolff/minify/v2 v2.23.8 // indirect
 	github.com/tdewolff/parse/v2 v2.8.1 // indirect
-	github.com/tklauser/go-sysconf v0.3.15 // indirect
-	github.com/tklauser/numcpus v0.10.0 // indirect
+	github.com/tklauser/go-sysconf v0.3.16 // indirect
+	github.com/tklauser/numcpus v0.11.0 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.2.11 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
@@ -100,8 +100,8 @@ require (
 	go.yaml.in/yaml/v2 v2.4.3 // indirect
 	golang.org/x/arch v0.3.0 // indirect
 	golang.org/x/net v0.46.0 // indirect
-	golang.org/x/sys v0.37.0 // indirect
-	golang.org/x/text v0.30.0 // indirect
+	golang.org/x/sys v0.38.0 // indirect
+	golang.org/x/text v0.31.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
 	google.golang.org/protobuf v1.36.10 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
