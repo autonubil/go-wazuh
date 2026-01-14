@@ -1,6 +1,6 @@
 module github.com/autonubil/go-wazuh
 
-go 1.25.1
+go 1.25.5
 
 require (
 	github.com/4kills/go-libdeflate/v2 v2.2.1
