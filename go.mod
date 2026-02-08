@@ -3,9 +3,9 @@ module github.com/autonubil/go-wazuh
 go 1.25.5
 
 require (
-	github.com/4kills/go-libdeflate/v2 v2.2.1
+	github.com/4kills/go-libdeflate/v2 v2.2.2
 	github.com/4kills/go-zlib v1.2.0
-	github.com/CycloneDX/cyclonedx-go v0.9.3
+	github.com/CycloneDX/cyclonedx-go v0.10.0
 	github.com/coreos/go-semver v0.3.1
 	github.com/deepmap/oapi-codegen v1.16.3
 	github.com/getsentry/sentry-go v0.36.2
