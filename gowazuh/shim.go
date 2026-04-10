@@ -1,0 +1,68 @@
+package gowazuh
+
+import (
+	"github.com/autonubil/go-wazuh/ossec"
+	_ "golang.org/x/mobile/bind"
+)
+
+// AgentConfig is a plain struct that gobind will turn into a Java class
+type AgentConfig struct {
+	Server        string
+	AgentID       string
+	AgentName     string
+	AgentKey      string
+	ClientName    string
+	ClientVersion string
+	UseUDP        bool
+	Port          int // Using int because uint16 isn't always smooth in Java
+	AgentIP       string
+	BasePath      string
+	AllowedIPs    string
+}
+
+// GetMobile is a wrapper for the incompatible Get function
+func GetMobile(info *ossec.InitInfo, key string) string {
+	val, _ := info.Get(key)
+	return val
+}
+
+type WazuhClient struct {
+	internal *ossec.Client
+}
+
+func NewWazuhClient(cfg *AgentConfig) (*WazuhClient, error) {
+	// 1. Collect options based on the struct fields
+	var opts []ossec.AgentOption
+
+	if cfg.ClientName != "" {
+		opts = append(opts, ossec.WithClientName(cfg.ClientName))
+	}
+	if cfg.ClientVersion != "" {
+		opts = append(opts, ossec.WithClientVersion(cfg.ClientVersion))
+	}
+	if cfg.UseUDP {
+		opts = append(opts, ossec.WithUDP(true))
+	} else {
+		opts = append(opts, ossec.WithTCP(true))
+	}
+	if cfg.Port > 0 {
+		opts = append(opts, ossec.WithPort(uint16(cfg.Port)))
+	}
+	if cfg.AgentIP != "" {
+		opts = append(opts, ossec.WithAgentIP(cfg.AgentIP))
+	}
+	if cfg.BasePath != "" {
+		opts = append(opts, ossec.WithBasePath(cfg.BasePath))
+	}
+	if cfg.AllowedIPs != "" {
+		opts = append(opts, ossec.WithAgentAllowedIPs(cfg.AllowedIPs))
+	}
+
+	// 2. Call the actual NewAgent with the variadic slice
+	client, err := ossec.NewAgent(cfg.Server, cfg.AgentID, cfg.AgentName, cfg.AgentKey, opts...)
+	if err != nil {
+		return nil, err
+	}
+
+	return &WazuhClient{internal: client}, nil
+}

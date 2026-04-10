@@ -15,7 +15,6 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	// https://www.socketloop.com/tutorials/golang-get-hardware-information-such-as-disk-memory-and-cpu-usage
@@ -25,22 +24,8 @@ import (
 	cdx "github.com/CycloneDX/cyclonedx-go"
 )
 
-type SysCollector struct {
-	agent      *Client
-	scanId     int64
-	localPorts map[string]*PortInfo
-	scanTime   string
-	mxScan     sync.Mutex
-}
-
-var Scanner *SysCollector
-
-func NewScanner(client *Client) *SysCollector {
-	return &SysCollector{
-		scanId:     int64(time.Now().Unix()),
-		agent:      client,
-		localPorts: make(map[string]*PortInfo),
-	}
+type SysCollector interface {
+	PostSysinfo(input chan *QueuePosting)
 }
 
 func init() {
@@ -66,144 +51,6 @@ const (
 	TYPE_PACKAGE_END = "program_end"
 )
 
-func (s *SysCollector) PostSysinfo(input chan *QueuePosting) {
-	s.mxScan.Lock()
-	defer s.mxScan.Unlock()
-	s.scanId++
-	s.scanTime = getScanTime()
-
-	input <- &QueuePosting{
-		Location:    SYSCOLLECTOR_MOD,
-		TargetQueue: SYSCOLLECTOR_MQ,
-		Timestamp:   time.Now(),
-		Raw:         s.NewOS(),
-	}
-
-	input <- &QueuePosting{
-		Location:    SYSCOLLECTOR_MOD,
-		TargetQueue: SYSCOLLECTOR_MQ,
-		Timestamp:   time.Now(),
-		Raw:         s.NewHardware(),
-	}
-
-	s.sendNetworks(input)
-	s.sendPorts(input)
-	s.sendPackages(input)
-
-	input <- &QueuePosting{
-		Location:    SYSCOLLECTOR_MOD,
-		TargetQueue: SYSCOLLECTOR_MQ,
-		Timestamp:   time.Now(),
-		Raw:         s.NewProcess(TYPE_PROCESS),
-	}
-
-	input <- &QueuePosting{
-		Location:    SYSCOLLECTOR_MOD,
-		TargetQueue: SYSCOLLECTOR_MQ,
-		Timestamp:   time.Now(),
-		Raw:         &Process{Sysinfo: s.NewSysinfo(TYPE_PROCESS_END)},
-	}
-
-}
-
-func (s *SysCollector) sendPackages(input chan *QueuePosting) {
-	pwd, _ := os.Getwd()
-	for _, searchPath := range []string{"/", pwd, s.agent.GetBasePath()} {
-		filepath.Walk(searchPath, func(path string, info os.FileInfo, err error) error {
-			if err != nil {
-				return err
-			}
-			if info.IsDir() {
-				return nil
-			}
-			if matched, err := filepath.Match("*.sbom", filepath.Base(path)); err != nil {
-				return err
-			} else if matched {
-				s.sendSBOM(input, path)
-			}
-			return nil
-		})
-	}
-}
-
-func (s *SysCollector) sendSBOM(input chan *QueuePosting, path string) {
-	file, err := os.Open(path)
-	if err != nil {
-		return
-	}
-	defer file.Close()
-
-	bom := new(cdx.BOM)
-	decoder := cdx.NewBOMDecoder(file, cdx.BOMFileFormatJSON)
-	if err = decoder.Decode(bom); err != nil {
-		return
-	}
-
-	for _, component := range *bom.Components {
-		pkg := s.NewPackageFromComponent(component)
-		if pkg != nil {
-			input <- &QueuePosting{
-				Location:    SYSCOLLECTOR_MOD,
-				TargetQueue: SYSCOLLECTOR_MQ,
-				Timestamp:   time.Now(),
-				Raw:         pkg,
-			}
-		}
-	}
-
-	input <- &QueuePosting{
-		Location:    SYSCOLLECTOR_MOD,
-		TargetQueue: SYSCOLLECTOR_MQ,
-		Timestamp:   time.Now(),
-		Raw:         &Package{Sysinfo: s.NewSysinfo(TYPE_PACKAGE_END)},
-	}
-
-}
-
-func (s *SysCollector) sendPorts(input chan *QueuePosting) {
-	for _, pi := range s.localPorts {
-		input <- &QueuePosting{
-			Location:    SYSCOLLECTOR_MOD,
-			TargetQueue: SYSCOLLECTOR_MQ,
-			Timestamp:   time.Now(),
-			Raw:         &Port{Sysinfo: s.NewSysinfo(TYPE_PORT), PortInfo: s.NewPortInfo(pi)},
-		}
-	}
-
-	input <- &QueuePosting{
-		Location:    SYSCOLLECTOR_MOD,
-		TargetQueue: SYSCOLLECTOR_MQ,
-		Timestamp:   time.Now(),
-		Raw:         &Port{Sysinfo: s.NewSysinfo(TYPE_PORT_END)},
-	}
-}
-
-func (s *SysCollector) sendNetworks(input chan *QueuePosting) {
-	ifaces, err := net.Interfaces()
-	if err != nil {
-		return
-	}
-
-	for _, iface := range ifaces {
-		net, isLocal := s.NewNetwork(iface)
-		if !isLocal {
-			input <- &QueuePosting{
-				Location:    SYSCOLLECTOR_MOD,
-				TargetQueue: SYSCOLLECTOR_MQ,
-				Timestamp:   time.Now(),
-				Raw:         net,
-			}
-		}
-	}
-	input <- &QueuePosting{
-		Location:    SYSCOLLECTOR_MOD,
-		TargetQueue: SYSCOLLECTOR_MQ,
-		Timestamp:   time.Now(),
-		Raw:         &Network{Sysinfo: s.NewSysinfo(TYPE_NETWORK_END)},
-	}
-
-}
-
 type Sysinfo struct {
 	// ScanTime  string     `json:"scan_time,omitempty"`
 	Type     string  `json:"type"`
@@ -213,16 +60,16 @@ type Sysinfo struct {
 	ScanTime string  `json:"timestamp"`
 }
 
-func getScanTime() string {
-	return time.Now().Format("2006/01/02 03:04:05")
-}
-
-func (s SysCollector) NewSysinfo(typ string) *Sysinfo {
+func NewSysinfo(typ string, scanId int64, scanTime string) *Sysinfo {
 	return &Sysinfo{
 		Type:     typ,
-		ID:       s.scanId,
-		ScanTime: s.scanTime,
+		ID:       scanId,
+		ScanTime: scanTime,
 	}
+}
+
+func getScanTime() string {
+	return time.Now().Format("2006/01/02 03:04:05")
 }
 
 type HardwareInventory struct {
@@ -241,7 +88,7 @@ type Hardware struct {
 	Inventory HardwareInventory `json:"inventory"`
 }
 
-func (s *SysCollector) NewHardware() *Hardware {
+func NewHardware(scanId int64, scanTime string) *Hardware {
 	cpuStat, _ := cpu.Info()
 	vmStat, _ := mem.VirtualMemory()
 	ramFree := vmStat.Free / 1024
@@ -250,7 +97,7 @@ func (s *SysCollector) NewHardware() *Hardware {
 
 	numCpu := runtime.NumCPU()
 	hw := &Hardware{
-		Sysinfo: s.NewSysinfo(TYPE_HARDWARE),
+		Sysinfo: NewSysinfo(TYPE_HARDWARE, scanId, scanTime),
 		Inventory: HardwareInventory{
 			CPUName:  &cpuStat[0].ModelName,
 			CPUCores: &numCpu,
@@ -280,8 +127,8 @@ type OS struct {
 	Inventory OSInventory `json:"inventory"`
 }
 
-func (s *SysCollector) NewK8sNodeOS() *OS {
-	result := s.NewOS()
+func NewK8sNodeOS(agent *Client, scanId int64, scanTime string) *OS {
+	result := NewOS(agent, scanId, scanTime)
 
 	_, err := os.Stat("/var/run/secrets/kubernetes.io")
 	if err == nil {
@@ -298,15 +145,15 @@ func (s *SysCollector) NewK8sNodeOS() *OS {
 	return result
 }
 
-func (s *SysCollector) NewOS() *OS {
+func NewOS(agent *Client, scanId int64, scanTime string) *OS {
 	arch := runtime.GOARCH
 	os := &OS{
-		Sysinfo: s.NewSysinfo(TYPE_OS),
+		Sysinfo: NewSysinfo(TYPE_OS, scanId, scanTime),
 		Inventory: OSInventory{
-			OSName:       &s.agent.osInfo.Name,
-			OSVersion:    &s.agent.osInfo.Version,
-			Hostname:     &s.agent.un.Hostname,
-			OSRelease:    &s.agent.osInfo.Release,
+			OSName:       &agent.osInfo.Name,
+			OSVersion:    &agent.osInfo.Version,
+			Hostname:     &agent.un.Hostname,
+			OSRelease:    &agent.osInfo.Release,
 			Architecture: &arch,
 		},
 	}
@@ -356,7 +203,7 @@ type Process struct {
 	ProcessDetails *ProcessEntry `json:"process,omitempty"`
 }
 
-func (s *SysCollector) NewProcess(typ string) *Process {
+func NewProcess(typ string, scanId int64, scanTime string) *Process {
 	var euser string
 	var egroup string
 	name := filepath.Base(os.Args[0])
@@ -382,7 +229,7 @@ func (s *SysCollector) NewProcess(typ string) *Process {
 	runtime.ReadMemStats(&mStats)
 
 	p := &Process{
-		Sysinfo: s.NewSysinfo(typ),
+		Sysinfo: NewSysinfo(typ, scanId, scanTime),
 		ProcessDetails: &ProcessEntry{
 			Name:     &name,
 			Cmd:      &cmd,
@@ -463,7 +310,7 @@ type Network struct {
 	Interface *NetworkInterface `json:"iface,omitempty"`
 }
 
-func (s *SysCollector) NewNetwork(intf net.Interface) (*Network, bool) {
+func NewNetwork(intf net.Interface, scanId int64, scanTime string) (*Network, bool) {
 	isLocal := false
 	eth := "ethernet"
 	state := "down"
@@ -471,7 +318,7 @@ func (s *SysCollector) NewNetwork(intf net.Interface) (*Network, bool) {
 		state = "up"
 	}
 	network := &Network{
-		Sysinfo: s.NewSysinfo(TYPE_NETWORK),
+		Sysinfo: NewSysinfo(TYPE_NETWORK, scanId, scanTime),
 		Interface: &NetworkInterface{
 			Name:  &intf.Name,
 			MTU:   &intf.MTU,
@@ -532,7 +379,7 @@ type Port struct {
 	PortInfo *PortInfo `json:"port,omitempty"`
 }
 
-func (s *SysCollector) NewPort(pi *PortInfo) *Port {
+func NewPort(pi *PortInfo, scanId int64, scanTime string) *Port {
 	cmd := os.Args[0]
 	pid := os.Getpid()
 
@@ -540,13 +387,13 @@ func (s *SysCollector) NewPort(pi *PortInfo) *Port {
 	pi.Process = &cmd
 
 	port := &Port{
-		Sysinfo:  s.NewSysinfo(TYPE_PORT),
+		Sysinfo:  NewSysinfo(TYPE_PORT, scanId, scanTime),
 		PortInfo: pi,
 	}
 	return port
 }
 
-func (s *SysCollector) NewPortInfo(pi *PortInfo) *PortInfo {
+func NewPortInfo(pi *PortInfo) *PortInfo {
 	cmd := os.Args[0]
 	pid := os.Getpid()
 
@@ -582,7 +429,7 @@ func getPackage(component cdx.Component) *string {
 	return nil
 }
 
-func (s *SysCollector) NewPackageFromComponent(component cdx.Component) *Package {
+func NewPackageFromComponent(component cdx.Component, scanId int64, scanTime string) *Package {
 	arch := runtime.GOARCH
 	// 0|2022/02/15 19:43:23|deb|libgssapi-krb5-2|optional|libs|426|Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>||1.17-6ubuntu4.1|amd64|same|krb5|MIT Kerberos runtime libraries - krb5 GSS-API Mechanism||1|||ca498815b5cf037988ce8a1e9ffe8183ae83e4f9|00d7743f300b6ade5f6eb75b2667ce30043b69a6
 	//  scan_id INTEGER,    scan_time TEXT,    format TEXT NOT NULL CHECK (format IN ('pacman', 'deb', 'rpm', 'win', 'pkg')),    name TEXT,    priority TEXT,    section TEXT,    size INTEGER CHECK (size >= 0),    vendor TEXT,    install_time TEXT,    version TEXT,    architecture TEXT,    multiarch TEXT,    source TEXT,    description TEXT,    location TEXT,    triaged INTEGER(1),    cpe TEXT,    msu_name TEXT,    checksum TEXT NOT NULL CHECK (checksum <> ''),
@@ -617,7 +464,7 @@ func (s *SysCollector) NewPackageFromComponent(component cdx.Component) *Package
 	}
 
 	return &Package{
-		Sysinfo: s.NewSysinfo(TYPE_PACKAGE),
+		Sysinfo: NewSysinfo(TYPE_PACKAGE, scanId, scanTime),
 		Package: &PackageDetails{
 			Architecture: &arch,
 			Name:         &component.Name,
@@ -628,18 +475,6 @@ func (s *SysCollector) NewPackageFromComponent(component cdx.Component) *Package
 			Description:  description,
 		},
 	}
-}
-
-func (s *SysCollector) SetPort(name string, port *PortInfo) {
-	s.mxScan.Lock()
-	defer s.mxScan.Unlock()
-	s.localPorts[name] = port
-}
-
-func (s *SysCollector) RemovePort(name string) {
-	s.mxScan.Lock()
-	defer s.mxScan.Unlock()
-	delete(s.localPorts, name)
 }
 
 var CpeNamePattern = regexp.MustCompile(`^[c][pP][eE]:(2\.3:|/)([AHOaho])?(.*)$`)

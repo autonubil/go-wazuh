@@ -133,7 +133,7 @@ type Client struct {
 	ConfigHash         string
 	RemoteFiles        map[string]RemoteFileInfo
 	CurrentRemoteFile  *RemoteFileInfo
-	Scanner            *SysCollector
+	Scanner            SysCollector
 	basePath           string
 	remotePath         string
 	ridsPath           string
@@ -316,7 +316,7 @@ func NewAgent(server string, agentID string, agentName string, agentKey string, 
 		osInfo:           sysinfo.GetOSInfo(),
 	}
 
-	a.Scanner = NewScanner(a)
+	a.Scanner = NewPlatformScanner(a)
 
 	// mutate agent and add all optional params
 	for _, o := range opts {
