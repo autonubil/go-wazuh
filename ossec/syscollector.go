@@ -6,6 +6,7 @@ package ossec
 
 import (
 	"encoding/gob"
+	"fmt"
 	"net"
 	"net/url"
 	"os"
@@ -20,6 +21,7 @@ import (
 	// https://www.socketloop.com/tutorials/golang-get-hardware-information-such-as-disk-memory-and-cpu-usage
 	"github.com/shirou/gopsutil/v3/cpu"
 	"github.com/shirou/gopsutil/v3/mem"
+	"golang.org/x/sys/unix"
 
 	cdx "github.com/CycloneDX/cyclonedx-go"
 )
@@ -110,6 +112,85 @@ func NewHardware(scanId int64, scanTime string) *Hardware {
 	return hw
 }
 
+type GoInfoObject struct {
+	GoOS     string
+	Kernel   string
+	Core     string
+	Platform string
+	OS       string
+	Hostname string
+	CPUs     int
+}
+
+func GetInfo() GoInfoObject {
+	var uts unix.Utsname
+	// unix.Uname is a direct syscall. No "exec", no $PATH issues.
+	if err := unix.Uname(&uts); err != nil {
+		// Return empty/safe object if syscall fails
+		return GoInfoObject{
+			GoOS:     runtime.GOOS,
+			CPUs:     runtime.NumCPU(),
+			Hostname: "unknown",
+		}
+	}
+
+	return GoInfoObject{
+		Kernel:   charsToString(uts.Release[:]), // e.g., 6.1.25-android14
+		Core:     charsToString(uts.Version[:]), // e.g., #1 SMP PREEMPT...
+		Platform: charsToString(uts.Machine[:]), // e.g., aarch64
+		OS:       charsToString(uts.Sysname[:]), // e.g., Linux
+		GoOS:     runtime.GOOS,
+		CPUs:     runtime.NumCPU(),
+		Hostname: _hostname(),
+	}
+}
+
+func _hostname() string {
+	hn, err := os.Hostname()
+	if err != nil || hn == "" {
+		return "localhost"
+	}
+	return hn
+}
+
+// Replace your int8ToString with this:
+func charsToString(ca interface{}) string {
+	var s []byte
+
+	// We use a type switch to handle different architectures
+	switch t := ca.(type) {
+	case []int8:
+		for _, v := range t {
+			if v == 0 {
+				break
+			}
+			s = append(s, byte(v))
+		}
+	case []uint8:
+		for _, v := range t {
+			if v == 0 {
+				break
+			}
+			s = append(s, v)
+		}
+	}
+	return string(s)
+}
+
+func (gi *GoInfoObject) VarDump() {
+	fmt.Println("GoOS:", gi.GoOS)
+	fmt.Println("Kernel:", gi.Kernel)
+	fmt.Println("Core:", gi.Core)
+	fmt.Println("Platform:", gi.Platform)
+	fmt.Println("OS:", gi.OS)
+	fmt.Println("Hostname:", gi.Hostname)
+	fmt.Println("CPUs:", gi.CPUs)
+}
+
+func (gi *GoInfoObject) String() string {
+	return fmt.Sprintf("GoOS:%v,Kernel:%v,Core:%v,Platform:%v,OS:%v,Hostname:%v,CPUs:%v", gi.GoOS, gi.Kernel, gi.Core, gi.Platform, gi.OS, gi.Hostname, gi.CPUs)
+}
+
 type OSInventory struct {
 	OSName       *string `json:"os_name,omitempty"`
 	OSVersion    *string `json:"os_version,omitempty"`
@@ -147,17 +228,38 @@ func NewK8sNodeOS(agent *Client, scanId int64, scanTime string) *OS {
 
 func NewOS(agent *Client, scanId int64, scanTime string) *OS {
 	arch := runtime.GOARCH
+	name := GetMachineNameSafe()
 	os := &OS{
 		Sysinfo: NewSysinfo(TYPE_OS, scanId, scanTime),
 		Inventory: OSInventory{
 			OSName:       &agent.osInfo.Name,
 			OSVersion:    &agent.osInfo.Version,
-			Hostname:     &agent.un.Hostname,
+			Hostname:     &name,
 			OSRelease:    &agent.osInfo.Release,
 			Architecture: &arch,
 		},
 	}
 	return os
+}
+func GetMachineNameSafe() string {
+	// 1. Try the standard OS hostname call (syscall)
+	hostname, err := os.Hostname()
+	if err == nil && hostname != "" && hostname != "localhost" {
+		return hostname
+	}
+
+	// 2. Try common Environment Variables
+	// 'HOSTNAME' is common on Linux/Android
+	// 'COMPUTERNAME' is common on Windows
+	for _, env := range []string{"HOSTNAME", "COMPUTERNAME"} {
+		if val := os.Getenv(env); val != "" {
+			return val
+		}
+	}
+
+	// 3. Last Resort Fallback
+	// Returning a placeholder prevents the Go-bridge from throwing an error
+	return "android-device-unnamed"
 }
 
 // R"([{"architecture":"amd64","scan_time":"2020/12/28 21:49:50", "group":"x11","name":"xserver-xorg","priority":"optional","size":"411","source":"xorg","version":"1:7.7+19ubuntu14","os_patch":""},{"hotfix":"KB4586786"}])")));

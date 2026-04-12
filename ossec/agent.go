@@ -26,7 +26,6 @@ import (
 
 	"github.com/autonubil/go-wazuh/sysinfo"
 	"github.com/joncrlsn/dque"
-	"github.com/matishsiao/goInfo"
 )
 
 // EncryptionMethod supported transport encryption
@@ -156,7 +155,7 @@ type Client struct {
 	connected          bool
 	rateLimit          ratelimit.Limiter
 	outChannel         chan any
-	un                 *goInfo.GoInfoObject
+	un                 *GoInfoObject
 	osInfo             *sysinfo.OS
 }
 
@@ -188,6 +187,14 @@ type AgentOption func(*Client) error
 func WithContext(ctx context.Context) AgentOption {
 	return func(c *Client) error {
 		c.ctx = ctx
+		return nil
+	}
+}
+
+// WithOSSettings use a custom context
+func WithOSSettings(os *sysinfo.OS) AgentOption {
+	return func(c *Client) error {
+		c.osInfo = os
 		return nil
 	}
 }
@@ -289,10 +296,7 @@ func NewAgent(server string, agentID string, agentName string, agentKey string, 
 	filesum1 = fmt.Sprintf("%00x", md5.Sum([]byte(finalStr)))[0:15]
 	filesum2 = fmt.Sprintf("%00x", md5.Sum([]byte(agentKey)))
 	finalStr = fmt.Sprintf("%s%s", filesum2, filesum1)
-	un, err := goInfo.GetInfo()
-	if err != nil {
-		return nil, err
-	}
+	un := GetInfo()
 
 	a := &Client{
 		AgentKey: &AgentKey{
@@ -313,16 +317,19 @@ func NewAgent(server string, agentID string, agentName string, agentKey string, 
 		rateLimit:        ratelimit.New(SendRateLimit), // per second
 		RemoteFiles:      make(map[string]RemoteFileInfo),
 		un:               &un,
-		osInfo:           sysinfo.GetOSInfo(),
 	}
 
 	a.Scanner = NewPlatformScanner(a)
-
+	var err error
 	// mutate agent and add all optional params
 	for _, o := range opts {
 		if err := o(a); err != nil {
 			return nil, err
 		}
+	}
+
+	if a.osInfo == nil {
+		a.osInfo = sysinfo.GetOSInfo()
 	}
 
 	if a.logger == nil {
@@ -1059,6 +1066,8 @@ func (a *Client) AgentLoop(ctx context.Context, closeOnError bool) (chan *QueueP
 			a.logger.Error("shutdown", zap.Any("agentId", a.AgentID))
 			a.Close()
 			q.Close()
+			close(input)
+			close(out)
 		}()
 
 		nextSysinfoUpdate := -1

@@ -3,6 +3,7 @@ module github.com/autonubil/go-wazuh
 go 1.25.7
 
 require (
+	github.com/4kills/go-libdeflate/v2 v2.2.2
 	github.com/CycloneDX/cyclonedx-go v0.10.0
 	github.com/coreos/go-semver v0.3.1
 	github.com/deepmap/oapi-codegen v1.16.3
@@ -10,8 +11,8 @@ require (
 	github.com/golang-jwt/jwt/v4 v4.5.2
 	github.com/google/martian v2.1.0+incompatible
 	github.com/iancoleman/strcase v0.3.0
+	github.com/joho/godotenv v1.5.1
 	github.com/joncrlsn/dque v0.0.0-20241024143830-7723fd131a64
-	github.com/matishsiao/goInfo v0.0.0-20241216093258-66a9250504d6
 	github.com/opensearch-project/opensearch-go v1.1.0
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.23.2
@@ -20,6 +21,7 @@ require (
 	go.uber.org/zap v1.27.1
 	golang.org/x/crypto v0.50.0
 	golang.org/x/mobile v0.0.0-20260312152759-81488f6aeb60
+	golang.org/x/sys v0.43.0
 )
 
 require (
@@ -101,7 +103,6 @@ require (
 	golang.org/x/mod v0.34.0 // indirect
 	golang.org/x/net v0.52.0 // indirect
 	golang.org/x/sync v0.20.0 // indirect
-	golang.org/x/sys v0.43.0 // indirect
 	golang.org/x/text v0.36.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
 	golang.org/x/tools v0.43.0 // indirect

@@ -27,3 +27,4 @@ __debug_bin
 wazuh-go-wazuh
 go-wazuh
 
+.env
