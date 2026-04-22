@@ -8258,3 +8258,73 @@ func (a SimpleApiError_Error) MarshalJSON() ([]byte, error) {
 	return json.Marshal(object)
 }
 */
+
+type SyscollectorAgentUsersResponse struct {
+	Data struct {
+		AffectedItems []Item     `json:"affected_items"`
+		TotalItems    int        `json:"total_affected_items"`
+		FailedItems   []ApiError `json:"failed_items"`
+	} `json:"data"`
+	Message string `json:"message"`
+	Error   int    `json:"error"`
+}
+
+type SyscollectorControllerGetUserInfoParams struct {
+	Pretty          *bool     `form:"pretty,omitempty"`
+	WaitForComplete *bool     `form:"wait_for_complete,omitempty"`
+	Offset          *int32    `form:"offset,omitempty"`
+	Limit           *int32    `form:"limit,omitempty"`
+	Sort            *string   `form:"sort,omitempty"`
+	Search          *string   `form:"search,omitempty"`
+	Select          *[]string `form:"select,omitempty"`
+	Q               *string   `form:"q,omitempty"`
+	Distinct        *bool     `form:"distinct,omitempty"`
+}
+
+type AllItemsResponseSyscollectorAgentUsersItem struct {
+	AllItemsResponse `yaml:",inline"`
+	AffectedItems    []AgentUsersItem `json:"affected_items"`
+}
+
+type Item struct {
+	Login      AgentUsersLogin `json:"login"`
+	Scan       AgentUsersScan  `json:"scan"`
+	User       AgentUsersItem  `json:"user"`
+	ProcessPid int             `json:"process_pid"`
+	HostIP     string          `json:"host_ip"`
+	Checksum   string          `json:"checksum"`
+	AgentID    string          `json:"agent_id"`
+}
+
+type AgentUsersLogin struct {
+	Status int    `json:"status"`
+	TTY    string `json:"tty"`
+	Type   string `json:"type"`
+}
+
+type AgentUsersScan struct {
+	ID   int       `json:"id"`
+	Time time.Time `json:"time"`
+}
+
+type AgentUsersItem struct {
+	AuthFailedCount                 int    `json:"auth_failed_count"`
+	GroupID                         int    `json:"group_id"`
+	GroupIDSigned                   int    `json:"group_id_signed"`
+	Groups                          string `json:"groups"`
+	Home                            string `json:"home"`
+	ID                              int    `json:"id"`
+	IsHidden                        int    `json:"is_hidden"`
+	IsRemote                        int    `json:"is_remote"`
+	Name                            string `json:"name"`
+	PasswordLastChange              int64  `json:"password_last_change"`
+	PasswordMaxDaysBetweenChanges   int    `json:"password_max_days_between_changes"`
+	PasswordMinDaysBetweenChanges   int    `json:"password_min_days_between_changes"`
+	PasswordStatus                  string `json:"password_status"`
+	PasswordWarningDaysBeforeExpire int    `json:"password_warning_days_before_expiration"`
+	Roles                           string `json:"roles"`
+	Shell                           string `json:"shell"`
+	Type                            string `json:"type"`
+	UIDSigned                       int    `json:"uid_signed"`
+	UUID                            string `json:"uuid"`
+}

@@ -137,6 +137,7 @@ type SyscollectorControllerInterface interface {
 	GetPackagesInfo(arg1 AgentId, params *SyscollectorControllerGetPackagesInfoParams, reqEditors ...RequestEditorFn) (*AllItemsResponseSyscollectorPackages, error)
 	GetPortsInfo(arg1 AgentId, params *SyscollectorControllerGetPortsInfoParams, reqEditors ...RequestEditorFn) (*AllItemsResponseSyscollectorPorts, error)
 	GetProcessesInfo(arg1 AgentId, params *SyscollectorControllerGetProcessesInfoParams, reqEditors ...RequestEditorFn) (*AllItemsResponseSyscollectorProcesses, error)
+	GetAgentUsers(arg1 AgentId, params *SyscollectorControllerGetUserInfoParams, reqEditors ...RequestEditorFn) (*AllItemsResponseSyscollectorAgentUsersItem, error)
 }
 
 // ActiveResponseControllerInterface contains all methods for the wazuh controller api

@@ -604,6 +604,13 @@ type ClientInterface interface {
 	// SyscollectorControllerGetProcessesInfo request
 	SyscollectorControllerGetProcessesInfo(ctx context.Context, agentId AgentId, params *SyscollectorControllerGetProcessesInfoParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	SyscollectorControllerGetSyscollectorAgentUsersInfo(
+		ctx context.Context,
+		agentId AgentId,
+		params *SyscollectorControllerGetUserInfoParams,
+		reqEditors ...RequestEditorFn,
+	) (*http.Response, error)
+
 	// TaskControllerGetTasksStatus request
 	TaskControllerGetTasksStatus(ctx context.Context, params *TaskControllerGetTasksStatusParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -45712,4 +45719,75 @@ func (c *Client) GetAgentSerial(agentID string) (string, error) {
 	}
 
 	return result.Data.AffectedItems[0].Serial, nil
+}
+
+func (c *Client) SyscollectorControllerGetSyscollectorAgentUsersInfo(
+	ctx context.Context,
+	agentId AgentId,
+	params *SyscollectorControllerGetUserInfoParams,
+	reqEditors ...RequestEditorFn,
+) (*http.Response, error) {
+
+	url := fmt.Sprintf("%s/syscollector/%s/users", c.Server, agentId)
+
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("building request: %w", err)
+	}
+
+	// query params
+	if params != nil {
+		q := req.URL.Query()
+
+		if params.Offset != nil {
+			q.Set("offset", fmt.Sprintf("%d", *params.Offset))
+		}
+		if params.Limit != nil {
+			q.Set("limit", fmt.Sprintf("%d", *params.Limit))
+		}
+		if params.Sort != nil {
+			q.Set("sort", *params.Sort)
+		}
+		if params.Search != nil {
+			q.Set("search", *params.Search)
+		}
+		if params.Q != nil {
+			q.Set("q", *params.Q)
+		}
+		if params.Distinct != nil {
+			q.Set("distinct", fmt.Sprintf("%t", *params.Distinct))
+		}
+		if params.Pretty != nil {
+			q.Set("pretty", fmt.Sprintf("%t", *params.Pretty))
+		}
+		if params.WaitForComplete != nil {
+			q.Set("wait_for_complete", fmt.Sprintf("%t", *params.WaitForComplete))
+		}
+		if params.Select != nil {
+			q.Set("select", strings.Join(*params.Select, ","))
+		}
+
+		req.URL.RawQuery = q.Encode()
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+
+	if c.token != "" {
+		req.Header.Set("Authorization", "Bearer "+c.token)
+	}
+
+	for _, e := range reqEditors {
+		if e != nil {
+			if err := e(req.Context(), req); err != nil {
+				return nil, fmt.Errorf("request editor failed: %w", err)
+			}
+		}
+	}
+
+	resp, err := c.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("executing request: %w", err)
+	}
+
+	return resp, nil
 }

@@ -1,7 +1,11 @@
 package rest
 
 import (
+	"encoding/json"
+	"fmt"
 	"io"
+	"net/http"
+	"strings"
 )
 
 // AgentController implementation of the AgentController interface
@@ -3679,6 +3683,110 @@ func (c *SyscollectorController) GetProcessesInfo(arg1 AgentId, params *Syscolle
 
 	// cannot convert, return nil
 	return nil, nil
+}
+
+func (c *SyscollectorController) GetAgentUsers(
+	arg1 AgentId,
+	params *SyscollectorControllerGetUserInfoParams,
+	reqEditors ...RequestEditorFn,
+) (*AllItemsResponseSyscollectorAgentUsersItem, error) {
+	if c.ClientInterface.(*Client).token == "" {
+		if err := c.Authenticate(); err != nil {
+			return nil, fmt.Errorf("auth failed: %w", err)
+		}
+	}
+
+	server := strings.TrimRight(c.ClientInterface.(*Client).Server, "/")
+	url := fmt.Sprintf("%s/syscollector/%s/users", server, arg1)
+
+	req, err := http.NewRequestWithContext(c.ClientInterface.(*Client).ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("building request: %w", err)
+	}
+
+	if params != nil {
+		q := req.URL.Query()
+		if params.Offset != nil {
+			q.Set("offset", fmt.Sprintf("%d", *params.Offset))
+		}
+		if params.Limit != nil {
+			q.Set("limit", fmt.Sprintf("%d", *params.Limit))
+		}
+		if params.Sort != nil {
+			q.Set("sort", *params.Sort)
+		}
+		if params.Search != nil {
+			q.Set("search", *params.Search)
+		}
+		if params.Q != nil {
+			q.Set("q", *params.Q)
+		}
+		if params.Distinct != nil {
+			q.Set("distinct", fmt.Sprintf("%t", *params.Distinct))
+		}
+		if params.Pretty != nil {
+			q.Set("pretty", fmt.Sprintf("%t", *params.Pretty))
+		}
+		if params.WaitForComplete != nil {
+			q.Set("wait_for_complete", fmt.Sprintf("%t", *params.WaitForComplete))
+		}
+		if params.Select != nil {
+			q.Set("select", strings.Join(*params.Select, ","))
+		}
+		req.URL.RawQuery = q.Encode()
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	if c.ClientInterface.(*Client).token != "" {
+		req.Header.Set("Authorization", "Bearer "+c.ClientInterface.(*Client).token)
+	}
+
+	for _, e := range reqEditors {
+		if e != nil {
+			if err := e(req.Context(), req); err != nil {
+				return nil, fmt.Errorf("request editor failed: %w", err)
+			}
+		}
+	}
+
+	resp, err := c.ClientInterface.(*Client).Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("executing request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("reading response body: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("unexpected status: %s - %s", resp.Status, string(body))
+	}
+
+	var raw SyscollectorAgentUsersResponse
+	if err := json.Unmarshal(body, &raw); err != nil {
+		return nil, fmt.Errorf("decoding response: %w\nbody: %s", err, string(body))
+	}
+
+	if raw.Error != 0 {
+		return nil, fmt.Errorf("API error %d: %s", raw.Error, raw.Message)
+	}
+
+	failedItems := make([]SimpleApiError, 0, len(raw.Data.FailedItems))
+
+	affected := make([]AgentUsersItem, len(raw.Data.AffectedItems))
+	for i, item := range raw.Data.AffectedItems {
+		affected[i] = item.User
+	}
+
+	return &AllItemsResponseSyscollectorAgentUsersItem{
+		AllItemsResponse: AllItemsResponse{
+			TotalAffectedItems: int32(raw.Data.TotalItems),
+			FailedItems:        failedItems,
+		},
+		AffectedItems: affected,
+	}, nil
 }
 
 // ActiveResponseController implementation of the ActiveResponseController interface
