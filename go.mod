@@ -3,7 +3,6 @@ module github.com/autonubil/go-wazuh
 go 1.26.2
 
 require (
-	github.com/4kills/go-libdeflate/v2 v2.2.2
 	github.com/CycloneDX/cyclonedx-go v0.10.0
 	github.com/coreos/go-semver v0.3.1
 	github.com/deepmap/oapi-codegen v1.16.3
