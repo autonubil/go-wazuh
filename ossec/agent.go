@@ -964,22 +964,6 @@ func registerType(obj any) {
 	fmt.Printf("Registered type: %s\n", typ.Name())
 }
 
-func encodeData(data any) ([]byte, error) {
-	var buf bytes.Buffer
-	enc := gob.NewEncoder(&buf)
-	err := enc.Encode(data)
-	if err != nil {
-		return nil, err
-	}
-	return buf.Bytes(), nil
-}
-
-func decodeData(data []byte, obj any) error {
-	buf := bytes.NewBuffer(data)
-	dec := gob.NewDecoder(buf)
-	return dec.Decode(obj)
-}
-
 func (a *Client) openQueue(ctx context.Context) (chan *QueuePosting, *dque.DQue, error) {
 	q, err := dque.NewOrOpen("event-queue", a.basePath, 500, itemBuilder)
 	queuePath := a.basePath + "/event-queue"
