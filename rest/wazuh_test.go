@@ -44,7 +44,7 @@ func TestApiVersion(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	fmt.Printf("Wazuh API version: %s Revision %d\n", *status.ApiVersion, *status.Revision)
+	fmt.Printf("Wazuh API version: %s Revision %s\n", *status.ApiVersion, *status.Revision)
 }
 
 func TestListAgents(t *testing.T) {
