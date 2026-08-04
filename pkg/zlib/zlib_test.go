@@ -87,16 +87,16 @@ func TestAdversarialMatchesLibz(t *testing.T) {
 	}
 
 	cases := map[string][]byte{
-		"all-zero":           bytes.Repeat([]byte{0}, 2048),
-		"all-ff":             bytes.Repeat([]byte{0xff}, 2048),
-		"ababab":             bytes.Repeat([]byte("ab"), 1024),
-		"abcdefgh-rep":       bytes.Repeat([]byte("abcdefgh"), 256),
-		"single-byte":        []byte{0x42},
-		"short-5":            []byte("hello"),
-		"runs-256":           runs(256, 8),
-		"english-ish":        bytes.Repeat([]byte("the quick brown fox jumps over the lazy dog. "), 45),
-		"sparse-runs":        sparseRuns(2000),
-		"window-edge":        bytes.Repeat([]byte("X"), 2047),
+		"all-zero":     bytes.Repeat([]byte{0}, 2048),
+		"all-ff":       bytes.Repeat([]byte{0xff}, 2048),
+		"ababab":       bytes.Repeat([]byte("ab"), 1024),
+		"abcdefgh-rep": bytes.Repeat([]byte("abcdefgh"), 256),
+		"single-byte":  []byte{0x42},
+		"short-5":      []byte("hello"),
+		"runs-256":     runs(256, 8),
+		"english-ish":  bytes.Repeat([]byte("the quick brown fox jumps over the lazy dog. "), 45),
+		"sparse-runs":  sparseRuns(2000),
+		"window-edge":  bytes.Repeat([]byte("X"), 2047),
 	}
 
 	for _, level := range levels {

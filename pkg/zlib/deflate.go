@@ -29,12 +29,12 @@ type state struct {
 	window     []byte
 
 	// LZ77 hash table.
-	prev     []uint16
-	head     []uint16
-	insH     uint
-	hashSize uint
-	hashBits uint
-	hashMask uint
+	prev      []uint16
+	head      []uint16
+	insH      uint
+	hashSize  uint
+	hashBits  uint
+	hashMask  uint
 	hashShift uint
 
 	blockStart int // can be negative when window slides
