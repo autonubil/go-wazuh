@@ -72,16 +72,16 @@ type levelConfig struct {
 }
 
 var configTable = [10]levelConfig{
-	{0, 0, 0, 0, false, true},          // 0
-	{4, 4, 8, 4, false, false},         // 1
-	{4, 5, 16, 8, false, false},        // 2
-	{4, 6, 32, 32, false, false},       // 3
-	{4, 4, 16, 16, true, false},        // 4
-	{8, 16, 32, 32, true, false},       // 5
-	{8, 16, 128, 128, true, false},     // 6 (default)
-	{8, 32, 128, 256, true, false},     // 7
-	{32, 128, 258, 1024, true, false},  // 8
-	{32, 258, 258, 4096, true, false},  // 9
+	{0, 0, 0, 0, false, true},         // 0
+	{4, 4, 8, 4, false, false},        // 1
+	{4, 5, 16, 8, false, false},       // 2
+	{4, 6, 32, 32, false, false},      // 3
+	{4, 4, 16, 16, true, false},       // 4
+	{8, 16, 32, 32, true, false},      // 5
+	{8, 16, 128, 128, true, false},    // 6 (default)
+	{8, 32, 128, 256, true, false},    // 7
+	{32, 128, 258, 1024, true, false}, // 8
+	{32, 258, 258, 4096, true, false}, // 9
 }
 
 // ---------------------------------------------------------------------------
