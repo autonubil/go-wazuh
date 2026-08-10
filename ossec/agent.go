@@ -172,12 +172,15 @@ type RemoteFileInfo struct {
 }
 
 func init() {
-	gob.Register(map[string]any{})
-	gob.Register(QueuePosting{})
-	gob.Register(FileUpdatedEvent{})
-	gob.Register(AgentShutDownEvent{})
-	gob.Register(RemoteFileInfo{})
-	gob.Register(Client{})
+	// Types that may travel inside an interface field (QueuePosting.Raw and the
+	// values nested in it). Always register the value form - see registerGobType.
+	registerGobType(map[string]any{})
+	registerGobType([]any{})
+	registerGobType(QueuePosting{})
+	registerGobType(FileUpdatedEvent{})
+	registerGobType(AgentShutDownEvent{})
+	registerGobType(RemoteFileInfo{})
+	registerGobType(Client{})
 }
 
 // AgentOption allows setting custom parameters during construction
@@ -954,14 +957,56 @@ func itemBuilder() any {
 	return &QueuePosting{}
 }
 
-// Helper function to dynamically register a type with Gob
-func registerType(obj any) {
-	typ := reflect.TypeOf(obj)
-	if typ.Kind() == reflect.Ptr {
-		typ = typ.Elem() // Dereference pointer type
+// gobRegistered remembers every type already handed to gob.Register, keyed by
+// the dereferenced type. gob has no way to ask whether a type is known, and
+// registering the same type twice under two different derived names is a hard
+// panic, so we keep the books ourselves.
+var gobRegistered sync.Map // reflect.Type -> struct{}
+
+// registerGobType registers obj's concrete type with gob so that values of it
+// can be carried inside an interface field such as QueuePosting.Raw.
+//
+// obj is always normalised to its value form before registering. gob derives the
+// name it stores from the type it is handed, and a pointer yields a different
+// name than its element - "*ossec.QueuePosting" versus
+// "github.com/autonubil/go-wazuh/ossec.QueuePosting". Registering both forms of
+// one type panics with "gob: registering duplicate names", while registering the
+// value form alone is enough for gob to encode both values and pointers found in
+// an interface field.
+//
+// It reports the normalised type and whether this call was the one that
+// registered it. A panic from gob is swallowed on purpose: dropping one event is
+// always better than tearing the process down from a background goroutine.
+func registerGobType(obj any) (typ reflect.Type, registered bool) {
+	if obj == nil {
+		return nil, false
 	}
-	gob.Register(obj)
-	fmt.Printf("Registered type: %s\n", typ.Name())
+	typ = reflect.TypeOf(obj)
+	for typ != nil && typ.Kind() == reflect.Ptr {
+		typ = typ.Elem() // dereference pointer type
+	}
+	if typ == nil || typ.Kind() == reflect.Interface {
+		return typ, false
+	}
+	// Store before registering, so a type that makes gob panic is not retried.
+	if _, seen := gobRegistered.LoadOrStore(typ, struct{}{}); seen {
+		return typ, false
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			registered = false
+		}
+	}()
+	gob.Register(reflect.New(typ).Elem().Interface())
+	return typ, true
+}
+
+// registerType late-registers the concrete type of a value gob refused to encode
+// inside an interface field.
+func (a *Client) registerType(obj any) {
+	if typ, registered := registerGobType(obj); registered {
+		a.logger.Info("registered gob type", zap.Any("agentId", a.AgentID), zap.String("type", typ.String()))
+	}
 }
 
 func (a *Client) openQueue(ctx context.Context) (chan *QueuePosting, *dque.DQue, error) {
@@ -980,37 +1025,39 @@ func (a *Client) openQueue(ctx context.Context) (chan *QueuePosting, *dque.DQue,
 
 	input := make(chan *QueuePosting, 100)
 
+	// Drains until input is closed (see AgentLoop's shutdown), never re-ranging
+	// over the closed channel - that would spin a core for the rest of the run.
 	go func() {
-		for {
-			for msg := range input {
-				if msg.Timestamp.Unix() == 0 {
-					msg.Timestamp = time.Now()
-				}
-
-				if msg == nil {
-					a.logger.Warn("enqueue", zap.Any("agentId", a.AgentID), zap.String("problem", "nil item"))
-					continue
-				}
-
-				if err = q.Enqueue(msg); err == nil {
-					AgentCollector.Enqueue(a)
-				} else {
-					if strings.Contains(err.Error(), "gob: type not registered") {
-						a.logger.Info("enqueueItem - late register type", zap.Any("agentId", a.AgentID), zap.Any("item", msg), zap.String("cause", err.Error()))
-						registerType(msg)
-						if err = q.Enqueue(msg); err == nil {
-							AgentCollector.Enqueue(a)
-						}
-					}
-					if err != nil {
-						a.logger.Error("enqueueItem", zap.Any("agentId", a.AgentID), zap.Any("item", msg), zap.Error(err))
-						AgentCollector.SetQueueSize(a, q.Size())
-					}
-				}
+		for msg := range input {
+			if msg == nil {
+				a.logger.Warn("enqueue", zap.Any("agentId", a.AgentID), zap.String("problem", "nil item"))
+				continue
 			}
-			if ctx.Err() != nil {
-				break
+
+			// IsZero, because the zero time.Time is year 1, whose Unix() is
+			// -62135596800 - an unset timestamp never matched Unix() == 0.
+			if msg.Timestamp.IsZero() || msg.Timestamp.Unix() == 0 {
+				msg.Timestamp = time.Now()
 			}
+
+			// Keep the error local: openQueue's own err is still being returned
+			// to the caller while this goroutine runs.
+			err := q.Enqueue(msg)
+			if err != nil && strings.Contains(err.Error(), "gob: type not registered") {
+				// QueuePosting is registered in init, so the type gob is missing
+				// is the concrete one sitting in the Raw interface field - that
+				// is what needs registering, not the posting around it.
+				a.logger.Info("enqueueItem - late register type", zap.Any("agentId", a.AgentID), zap.String("cause", err.Error()))
+				a.registerType(msg.Raw)
+				err = q.Enqueue(msg)
+			}
+
+			if err != nil {
+				a.logger.Error("enqueueItem", zap.Any("agentId", a.AgentID), zap.Any("item", msg), zap.Error(err))
+				AgentCollector.SetQueueSize(a, q.Size())
+				continue
+			}
+			AgentCollector.Enqueue(a)
 		}
 	}()
 
