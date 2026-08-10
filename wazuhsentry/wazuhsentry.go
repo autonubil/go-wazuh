@@ -118,7 +118,13 @@ func getEnvironmentFromCert(certName string) string {
 var BeforeSend = func(event *sentry.Event, hint *sentry.EventHint) *sentry.Event {
 	if hint != nil {
 		if data, ok := hint.Data.(map[string]any); ok {
-			event.Extra, _ = data["fields"].(map[string]any)
+			// Extra was dropped from sentry-go; contexts are the replacement.
+			if fields, ok := data["fields"].(map[string]any); ok {
+				if event.Contexts == nil {
+					event.Contexts = make(map[string]sentry.Context)
+				}
+				event.Contexts["fields"] = fields
+			}
 			// event.Level, ok = hint.
 		}
 		if hint.OriginalException != nil {
@@ -286,7 +292,7 @@ func (c SentryCore) Write(entry zapcore.Entry, fields []zapcore.Field) error {
 	if err != nil {
 		hn = "localhost"
 	}
-	scope.SetExtra("hostname", hn)
+	scope.SetContext("host", sentry.Context{"hostname": hn})
 
 	for _, fld := range fields {
 		if fld.Interface != nil {
