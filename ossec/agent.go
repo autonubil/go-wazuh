@@ -888,7 +888,7 @@ func (a *Client) Connect(isStartup bool) error {
 	var localAddr net.Addr
 	if a.UDP {
 		a.logger.Debug("connect", zap.Any("agentId", a.AgentID), zap.String("protocol", "udp"), zap.String("server", a.Server))
-		a.conn, err = net.Dial("udp", fmt.Sprintf("%s:%d", a.Server, a.Port))
+		a.conn, err = net.Dial("udp", net.JoinHostPort(a.Server, strconv.Itoa(int(a.Port))))
 		if err != nil {
 			a.sessionID = 0
 			return err
@@ -896,7 +896,7 @@ func (a *Client) Connect(isStartup bool) error {
 		localAddr = a.conn.LocalAddr().(*net.UDPAddr)
 	} else {
 		a.logger.Debug("connect", zap.Any("agentId", a.AgentID), zap.String("protocol", "tcp"), zap.String("server", a.Server))
-		a.conn, err = net.Dial("tcp", fmt.Sprintf("%s:%d", a.Server, a.Port))
+		a.conn, err = net.Dial("tcp", net.JoinHostPort(a.Server, strconv.Itoa(int(a.Port))))
 		if err != nil {
 			a.sessionID = 0
 			return err
