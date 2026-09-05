@@ -8308,23 +8308,23 @@ type AgentUsersScan struct {
 }
 
 type AgentUsersItem struct {
-	AuthFailedCount                 int    `json:"auth_failed_count"`
-	GroupID                         int    `json:"group_id"`
-	GroupIDSigned                   int    `json:"group_id_signed"`
-	Groups                          string `json:"groups"`
-	Home                            string `json:"home"`
-	ID                              int    `json:"id"`
-	IsHidden                        int    `json:"is_hidden"`
-	IsRemote                        int    `json:"is_remote"`
-	Name                            string `json:"name"`
-	PasswordLastChange              int64  `json:"password_last_change"`
-	PasswordMaxDaysBetweenChanges   int    `json:"password_max_days_between_changes"`
-	PasswordMinDaysBetweenChanges   int    `json:"password_min_days_between_changes"`
-	PasswordStatus                  string `json:"password_status"`
-	PasswordWarningDaysBeforeExpire int    `json:"password_warning_days_before_expiration"`
-	Roles                           string `json:"roles"`
-	Shell                           string `json:"shell"`
-	Type                            string `json:"type"`
-	UIDSigned                       int    `json:"uid_signed"`
-	UUID                            string `json:"uuid"`
+	AuthFailedCount                 int     `json:"auth_failed_count"`
+	GroupID                         int     `json:"group_id"`
+	GroupIDSigned                   int     `json:"group_id_signed"`
+	Groups                          string  `json:"groups"`
+	Home                            string  `json:"home"`
+	ID                              int     `json:"id"`
+	IsHidden                        int     `json:"is_hidden"`
+	IsRemote                        int     `json:"is_remote"`
+	Name                            string  `json:"name"`
+	PasswordLastChange              float64 `json:"password_last_change"`
+	PasswordMaxDaysBetweenChanges   int     `json:"password_max_days_between_changes"`
+	PasswordMinDaysBetweenChanges   int     `json:"password_min_days_between_changes"`
+	PasswordStatus                  string  `json:"password_status"`
+	PasswordWarningDaysBeforeExpire int     `json:"password_warning_days_before_expiration"`
+	Roles                           string  `json:"roles"`
+	Shell                           string  `json:"shell"`
+	Type                            string  `json:"type"`
+	UIDSigned                       int     `json:"uid_signed"`
+	UUID                            string  `json:"uuid"`
 }
