@@ -18,6 +18,7 @@ import (
 	"encoding/gob"
 	"encoding/json"
 	"fmt"
+	"hash/fnv"
 	"net"
 	"time"
 
@@ -1009,13 +1010,37 @@ func (a *Client) registerType(obj any) {
 	}
 }
 
+// queueBaseName is the historical on-disk name of the agent event queue.
+const queueBaseName = "event-queue"
+
+// queueName returns the dque segment name for the event queue, keyed to the
+// identity gob uses on disk for a QueuePosting.
+//
+// dque persists items with encoding/gob, which encodes the concrete Go type
+// name. An obfuscating build (garble) randomises that name per build, so a
+// queue written by one build is gob-undecodable by another. Tying the queue
+// directory to the gob type name means an incompatible binary opens a fresh
+// queue instead of failing to decode (or silently dropping) events persisted
+// across an upgrade. A normal, unobfuscated build yields the canonical name, so
+// its queue path is unchanged from the historical "event-queue".
+func queueName() string {
+	name := reflect.TypeOf(QueuePosting{}).String()
+	if name == "ossec.QueuePosting" {
+		return queueBaseName
+	}
+	h := fnv.New32a()
+	_, _ = h.Write([]byte(name))
+	return queueBaseName + "-" + strconv.FormatUint(uint64(h.Sum32()), 16)
+}
+
 func (a *Client) openQueue(ctx context.Context) (chan *QueuePosting, *dque.DQue, error) {
-	q, err := dque.NewOrOpen("event-queue", a.basePath, 500, itemBuilder)
-	queuePath := a.basePath + "/event-queue"
+	name := queueName()
+	q, err := dque.NewOrOpen(name, a.basePath, 500, itemBuilder)
+	queuePath := a.basePath + "/" + name
 	if err != nil && strings.HasPrefix(err.Error(), "unable to create queue segment in "+queuePath) {
 		a.logger.Warn("drop corrupt queue", zap.String("path", queuePath), zap.Error(err))
 		os.RemoveAll(queuePath)
-		q, err = dque.NewOrOpen("event-queue", a.basePath, 500, itemBuilder)
+		q, err = dque.NewOrOpen(name, a.basePath, 500, itemBuilder)
 	}
 	if err != nil {
 		return nil, nil, err
