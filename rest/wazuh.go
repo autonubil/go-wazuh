@@ -58,6 +58,7 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -407,15 +408,60 @@ func getResponseObject(sr RawAPIResponse) (any, error) {
 				fmt.Println("do")
 			}
 			if sr.StatusCode() > 399 {
-				return s, errors.New(sr.Status())
+				return s, statusError(sr)
 			}
 			return s, nil
 		}
 	}
 	if sr.StatusCode() > 399 {
-		return sr, errors.New(sr.Status())
+		return sr, statusError(sr)
 	}
 	return sr, nil
+}
+
+// StatusError is returned for an HTTP error status the response type has no
+// field for. Its text starts with the status; when the manager sent its usual
+// error body, the text adds title and detail and Unwrap returns that body.
+type StatusError struct {
+	Status string
+	Body   *RequestError
+}
+
+func (e *StatusError) Error() string {
+	if e.Body == nil {
+		return e.Status
+	}
+	return e.Status + ": " + e.Body.Error()
+}
+
+func (e *StatusError) Unwrap() error {
+	if e.Body == nil {
+		return nil
+	}
+	return e.Body
+}
+
+// statusError builds a StatusError from the raw body every generated response
+// type keeps in its Body field.
+func statusError(sr RawAPIResponse) error {
+	err := &StatusError{Status: sr.Status()}
+	v := reflect.Indirect(reflect.ValueOf(sr))
+	if v.Kind() != reflect.Struct {
+		return err
+	}
+	field := v.FieldByName("Body")
+	if !field.IsValid() {
+		return err
+	}
+	body, ok := field.Interface().([]byte)
+	if !ok {
+		return err
+	}
+	var re RequestError
+	if json.Unmarshal(body, &re) == nil && (re.RequestTitle != "" || re.RequestDetail != "" || re.RequestError != nil) {
+		err.Body = &re
+	}
+	return err
 }
 
 func (c *ClientWithResponses) Authenticated() bool {
