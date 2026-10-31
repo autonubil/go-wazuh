@@ -1,6 +1,7 @@
 package rest
 
 import (
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -30,5 +31,16 @@ func TestGetAgentUsersFailedItems(t *testing.T) {
 	}
 	if err == nil || err.Error() != "API error 1: nothing returned" {
 		t.Fatalf("err = %v, want %q", err, "API error 1: nothing returned")
+	}
+	var fe *FailedItemsError
+	if !errors.As(err, &fe) {
+		t.Fatalf("err is %T, want *FailedItemsError", err)
+	}
+	if fe.Code != 1 || len(fe.FailedItems) != 1 {
+		t.Fatalf("FailedItemsError = %+v", fe)
+	}
+	item := fe.FailedItems[0]
+	if item.Error.Code != 42 || item.Error.Message != "item failed" || len(item.IDs) != 1 || item.IDs[0] != "007" {
+		t.Fatalf("failed item = %+v", item)
 	}
 }

@@ -1,9 +1,34 @@
 package rest
 
+import "fmt"
+
 type WazuhError interface {
 	Code() int32
 	Title() string
 	Detail() string
+}
+
+// FailedItem is one entry of a response's failed_items: the error the manager
+// hit and the IDs it hit it for.
+type FailedItem struct {
+	Error struct {
+		Code        int    `json:"code"`
+		Message     string `json:"message"`
+		Remediation string `json:"remediation,omitempty"`
+	} `json:"error"`
+	IDs []string `json:"id"`
+}
+
+// FailedItemsError is returned when a response carries error != 0. Its text is
+// "API error <code>: <message>", as before; FailedItems says what failed.
+type FailedItemsError struct {
+	Code        int
+	Message     string
+	FailedItems []FailedItem
+}
+
+func (e *FailedItemsError) Error() string {
+	return fmt.Sprintf("API error %d: %s", e.Code, e.Message)
 }
 
 /**
