@@ -5,9 +5,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"strings"
+	"io"
+	"time"
 
 	opensearch "github.com/opensearch-project/opensearch-go"
+	"github.com/opensearch-project/opensearch-go/opensearchapi"
 )
 
 type Indexer struct {
@@ -30,54 +32,104 @@ type agentVulnerabilitySource struct {
 type agentVulnerabilityHit struct {
 	Hits []agentVulnerabilitySource `json:"hits,omitempty"`
 }
-type osResult struct {
-	Hits agentVulnerabilityHit `json:"hits,omitempty"`
+
+// vulnerabilityPage is one round trip of a scrolled vulnerability search.
+type vulnerabilityPage struct {
+	ScrollID string                `json:"_scroll_id,omitempty"`
+	Hits     agentVulnerabilityHit `json:"hits,omitempty"`
 }
 
+const (
+	// vulnerabilityPageSize is the hits fetched per round trip. One agent can
+	// carry tens of thousands of documents, one per package and CVE.
+	vulnerabilityPageSize = 1000
+	// scrollKeepAlive is how long the indexer keeps the scroll between pages.
+	scrollKeepAlive = time.Minute
+)
+
+// GetAgentVulnerabilities returns every vulnerability document of an agent,
+// scrolling through the index page by page, in no particular order.
 func (i *Indexer) GetAgentVulnerabilities(agentId string, ctx context.Context) ([]AgentVulnerability, error) {
-
-	query := fmt.Sprintf(`{
-	"query": {
-		"term": {
-			"agent.id": "%s"
-		}
-	}
-}`, agentId)
-
-	res, err := i.client.Search(
-		i.client.Search.WithContext(ctx),
-		i.client.Search.WithIndex(i.IndexName),
-		i.client.Search.WithBody(strings.NewReader(query)),
-		i.client.Search.WithFrom(0),
-		i.client.Search.WithSize(2500),
-		i.client.Search.WithRequestCache(true),
-		i.client.Search.WithSort("vulnerability.id:asc"),
-	)
+	query, err := json.Marshal(map[string]any{
+		"query": map[string]any{"term": map[string]any{"agent.id": agentId}},
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	if res != nil && res.Body != nil {
-		defer res.Body.Close()
+	first := func() (*vulnerabilityPage, error) {
+		return decodeVulnerabilityPage(i.client.Search(
+			i.client.Search.WithContext(ctx),
+			i.client.Search.WithIndex(i.IndexName),
+			i.client.Search.WithBody(bytes.NewReader(query)),
+			i.client.Search.WithSize(vulnerabilityPageSize),
+			i.client.Search.WithSort("_doc"),
+			i.client.Search.WithScroll(scrollKeepAlive),
+		))
+	}
+	next := func(scrollID string) (*vulnerabilityPage, error) {
+		return decodeVulnerabilityPage(i.client.Scroll(
+			i.client.Scroll.WithContext(ctx),
+			i.client.Scroll.WithScrollID(scrollID),
+			i.client.Scroll.WithScroll(scrollKeepAlive),
+		))
 	}
 
-	buf := new(bytes.Buffer)
-	buf.ReadFrom(res.Body)
-	raw := buf.String()
+	vulns, scrollID, err := collectVulnerabilities(first, next)
+	if scrollID != "" {
+		// Best effort: an abandoned scroll expires after scrollKeepAlive anyway.
+		if res, cerr := i.client.ClearScroll(i.client.ClearScroll.WithContext(ctx), i.client.ClearScroll.WithScrollID(scrollID)); cerr == nil && res != nil && res.Body != nil {
+			res.Body.Close()
+		}
+	}
+	return vulns, err
+}
 
+// collectVulnerabilities reads pages until one comes back empty. It returns
+// the last scroll id it saw so the caller can release the scroll, also on
+// error.
+func collectVulnerabilities(first func() (*vulnerabilityPage, error), next func(scrollID string) (*vulnerabilityPage, error)) ([]AgentVulnerability, string, error) {
+	vulns := []AgentVulnerability{}
+	scrollID := ""
+	page, err := first()
+	for {
+		if err != nil {
+			return nil, scrollID, err
+		}
+		if page.ScrollID != "" {
+			scrollID = page.ScrollID
+		}
+		if len(page.Hits.Hits) == 0 {
+			return vulns, scrollID, nil
+		}
+		for _, hit := range page.Hits.Hits {
+			vulns = append(vulns, hit.Vulnerability)
+		}
+		if scrollID == "" {
+			return nil, "", fmt.Errorf("vulnerability search returned hits without a scroll id")
+		}
+		page, err = next(scrollID)
+	}
+}
+
+func decodeVulnerabilityPage(res *opensearchapi.Response, err error) (*vulnerabilityPage, error) {
+	if err != nil {
+		return nil, err
+	}
+	if res == nil || res.Body == nil {
+		return nil, fmt.Errorf("empty response from the indexer")
+	}
+	defer res.Body.Close()
+	raw, err := io.ReadAll(res.Body)
+	if err != nil {
+		return nil, err
+	}
 	if res.StatusCode != 200 {
 		return nil, fmt.Errorf("query returned code %d (%s)", res.StatusCode, raw)
 	}
-
-	result := osResult{}
-	err = json.Unmarshal(([]byte)(raw), &result)
-	if err != nil {
+	page := &vulnerabilityPage{}
+	if err := json.Unmarshal(raw, page); err != nil {
 		return nil, err
 	}
-
-	vulns := []AgentVulnerability{}
-	for _, hit := range result.Hits.Hits {
-		vulns = append(vulns, hit.Vulnerability)
-	}
-	return vulns, nil
+	return page, nil
 }
