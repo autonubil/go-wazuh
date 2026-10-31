@@ -20,11 +20,29 @@ func TestGetResponseObjectUnexpectedStatus(t *testing.T) {
 	if err == nil {
 		t.Fatal("no error for a 500")
 	}
-	if got, want := err.Error(), "500 Internal Server Error"; got != want {
+	if got, want := err.Error(), "500 Internal Server Error: Wazuh Internal Error (probe detail)"; got != want {
 		t.Errorf("error = %q, want %q", got, want)
 	}
 	var re *RequestError
-	if errors.As(err, &re) {
-		t.Errorf("manager error body unexpectedly available: %+v", re)
+	if !errors.As(err, &re) || re.RequestError == nil || *re.RequestError != 1000 {
+		t.Fatalf("manager error body not available: %+v", re)
+	}
+	var se *StatusError
+	if !errors.As(err, &se) || se.Status != "500 Internal Server Error" {
+		t.Errorf("StatusError = %+v", se)
+	}
+}
+
+// Without a manager error body the error stays the bare status, as before.
+func TestGetResponseObjectUnexpectedStatusWithoutBody(t *testing.T) {
+	for _, body := range []string{"", "<html><body>Bad Gateway</body></html>", `{"unrelated":true}`} {
+		_, err := getResponseObject(unexpectedStatus(body))
+		if err == nil || err.Error() != "500 Internal Server Error" {
+			t.Errorf("body %q: error = %v, want the bare status", body, err)
+		}
+		var re *RequestError
+		if errors.As(err, &re) {
+			t.Errorf("body %q: unexpected RequestError %+v", body, re)
+		}
 	}
 }
