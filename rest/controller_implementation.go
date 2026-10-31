@@ -3770,7 +3770,15 @@ func (c *SyscollectorController) GetAgentUsers(
 	}
 
 	if raw.Error != 0 {
-		return nil, fmt.Errorf("API error %d: %s", raw.Error, raw.Message)
+		// raw.Data.FailedItems has the wrong shape for these entries; a decode
+		// failure here only costs the detail, not the error.
+		var failed struct {
+			Data struct {
+				FailedItems []FailedItem `json:"failed_items"`
+			} `json:"data"`
+		}
+		_ = json.Unmarshal(body, &failed)
+		return nil, &FailedItemsError{Code: raw.Error, Message: raw.Message, FailedItems: failed.Data.FailedItems}
 	}
 
 	failedItems := make([]SimpleApiError, 0, len(raw.Data.FailedItems))
